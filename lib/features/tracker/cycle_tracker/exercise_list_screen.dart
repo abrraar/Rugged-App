@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
-import 'package:heavy_duty/core/widgets/elite_settings_app_bar.dart';
-import 'package:heavy_duty/features/tracker/cycle_tracker/cycle_exercise_detail_screen.dart';
-import 'package:heavy_duty/features/tracker/cycle_tracker/provider/cycle_provider.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/core/widgets/elite_confirm_dialog.dart';
+import 'package:rugged/core/widgets/elite_refresh_indicator.dart';
+import 'package:rugged/core/widgets/elite_settings_app_bar.dart';
+import 'package:rugged/features/tracker/cycle_tracker/cycle_exercise_detail_screen.dart';
+import 'package:rugged/features/tracker/cycle_tracker/provider/cycle_provider.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
-import 'package:heavy_duty/features/tracker/cycle_tracker/widgets/exercise_picker_sheet.dart';
-import 'package:heavy_duty/core/utils/adaptive_utils.dart';
+import 'package:rugged/features/tracker/cycle_tracker/widgets/exercise_picker_sheet.dart';
+import 'package:rugged/core/utils/adaptive_utils.dart';
 import 'package:provider/provider.dart';
-import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
+import 'package:rugged/core/widgets/elite_snackbar.dart';
+import 'package:rugged/core/ads/ad_service.dart';
 import 'model/exercise.dart';
+import 'model/workout.dart';
 
 class ExerciseListScreen extends StatefulWidget {
   final String workoutId;
@@ -40,6 +43,7 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
   final TextEditingController _workoutNoteController = TextEditingController();
   Timer? _debounce;
   bool _isInitialLoad = true;
+  bool? _wasCompletedOnEntry;
   final Set<String> _expandedExerciseIds = {}; // Track expanded exercise cards
 
   @override
@@ -105,8 +109,7 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
                 SizedBox(height: isCompact ? 16.h : 16.0),
                 Text(
                   "EXERCISE CONTROLS",
-                  style: AppTextStyles.h3.copyWith(
-                    fontSize: isCompact ? 18.sp : 16.0,
+                  style: AppTextStyles.h3.adaptive(context).copyWith(
                     letterSpacing: 1.2,
                   ),
                   textAlign: TextAlign.center,
@@ -124,7 +127,7 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
                 SizedBox(height: isCompact ? 16.h : 12.0),
                 _instructionRow(
                   Icons.swipe_down_rounded,
-                  "Pull down to sync the latest cloud data.",
+                  "Pull down to sync cloud data (Pro feature).",
                   isCompact,
                 ),
                 SizedBox(height: isCompact ? 16.h : 12.0),
@@ -159,10 +162,9 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
                           alignment: Alignment.center,
                           child: Text(
                             "DISMISS",
-                            style: AppTextStyles.labelSmall.copyWith(
+                            style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                               color: AppColors.crimson,
                               fontWeight: FontWeight.w500,
-                              fontSize: isCompact ? 13.sp : 12.0,
                             ),
                           ),
                         ),
@@ -186,9 +188,8 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
         Expanded(
           child: Text(
             text,
-            style: AppTextStyles.labelSmall.copyWith(
+            style: AppTextStyles.labelSmall.adaptive(context).copyWith(
               color: AppColors.textSecondary,
-              fontSize: isCompact ? 13.sp : 11.0,
             ),
           ),
         ),
@@ -217,89 +218,6 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
     );
   }
 
-  void _renameExercise(Exercise exercise) {
-    TextEditingController titleController = TextEditingController(text: exercise.name);
-    showDialog(
-      context: context,
-      builder: (context) => LayoutBuilder(
-        builder: (context, constraints) {
-          final bool isCompact = constraints.maxWidth < 600;
-          return AlertDialog(
-            backgroundColor: AppColors.surface,
-            surfaceTintColor: Colors.transparent,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(isCompact ? 28.r : 20.0)),
-            title: Column(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(isCompact ? 12.r : 12.0),
-                  decoration: BoxDecoration(color: AppColors.crimson.withValues(alpha : 0.1), shape: BoxShape.circle),
-                  child: Icon(Icons.edit_rounded, color: AppColors.crimson, size: isCompact ? 28.r : 24.0),
-                ),
-                SizedBox(height: isCompact ? 16.h : 16.0),
-                Text("RENAME EXERCISE", style: AppTextStyles.h3.copyWith(fontSize: isCompact ? 18.sp : 16.0, letterSpacing: 1.2), textAlign: TextAlign.center),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: titleController,
-                  autofocus: true,
-                  style: AppTextStyles.h3.copyWith(color: AppColors.white, fontSize: isCompact ? 18.sp : 16.0),
-                  textCapitalization: TextCapitalization.characters,
-                  textAlign: TextAlign.center,
-                  decoration: InputDecoration(
-                    hintText: "ENTER NEW TITLE",
-                    hintStyle: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: isCompact ? 14.sp : 12.0),
-                    enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.crimson, width: 2)),
-                    focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.crimson, width: 2)),
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              Padding(
-                padding: EdgeInsets.fromLTRB(isCompact ? 12.w : 12.0, 0, isCompact ? 12.w : 12.0, isCompact ? 16.h : 16.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: Container(
-                          padding: EdgeInsets.symmetric(vertical: isCompact ? 12.h : 12.0),
-                          decoration: BoxDecoration(color: Colors.transparent, borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0), border: Border.all(color: AppColors.white.withValues(alpha : 0.1))),
-                          alignment: Alignment.center,
-                          child: Text("CANCEL", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w500, fontSize: isCompact ? null : 12.0)),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: isCompact ? 12.w : 12.0),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () async {
-                          if (titleController.text.isNotEmpty) {
-                            await context.read<CycleProvider>().renameExerciseGlobally(exercise.name, titleController.text);
-                            if (mounted) Navigator.pop(context);
-                          }
-                        },
-                        child: Container(
-                          padding: EdgeInsets.symmetric(vertical: isCompact ? 12.h : 12.0),
-                          decoration: BoxDecoration(color: AppColors.crimson.withValues(alpha : 0.1), borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0), border: Border.all(color: AppColors.crimson.withValues(alpha : 0.5))),
-                          alignment: Alignment.center,
-                          child: Text("SAVE", style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontWeight: FontWeight.w500, fontSize: isCompact ? null : 12.0)),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          );
-        }
-      ),
-    );
-  }
-
   void _editWorkoutHeaderName(String currentName) {
     TextEditingController titleController = TextEditingController(text: currentName);
     showDialog(
@@ -319,7 +237,7 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
                   child: Icon(Icons.edit_rounded, color: AppColors.crimson, size: isCompact ? 28.r : 24.0),
                 ),
                 SizedBox(height: isCompact ? 16.h : 16.0),
-                Text("RENAME WORKOUT", style: AppTextStyles.h3.copyWith(fontSize: isCompact ? 18.sp : 16.0, letterSpacing: 1.2), textAlign: TextAlign.center),
+                Text("RENAME WORKOUT", style: AppTextStyles.h3.adaptive(context).copyWith(letterSpacing: 1.2), textAlign: TextAlign.center),
               ],
             ),
             content: Column(
@@ -328,12 +246,12 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
                 TextField(
                   controller: titleController,
                   autofocus: true,
-                  style: AppTextStyles.h3.copyWith(color: AppColors.white, fontSize: isCompact ? 18.sp : 16.0),
+                  style: AppTextStyles.h3.adaptive(context).copyWith(color: AppColors.white),
                   textCapitalization: TextCapitalization.characters,
                   textAlign: TextAlign.center,
                   decoration: InputDecoration(
                     hintText: "ENTER WORKOUT NAME",
-                    hintStyle: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: isCompact ? 14.sp : 12.0),
+                    hintStyle: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary),
                     enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.crimson, width: 2)),
                     focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.crimson, width: 2)),
                   ),
@@ -352,7 +270,7 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
                           padding: EdgeInsets.symmetric(vertical: isCompact ? 12.h : 12.0),
                           decoration: BoxDecoration(color: Colors.transparent, borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0), border: Border.all(color: AppColors.white.withValues(alpha : 0.1))),
                           alignment: Alignment.center,
-                          child: Text("CANCEL", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w500, fontSize: isCompact ? null : 12.0)),
+                          child: Text("CANCEL", style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
                         ),
                       ),
                     ),
@@ -362,14 +280,15 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
                         onTap: () async {
                           if (titleController.text.isNotEmpty) {
                             await context.read<CycleProvider>().updateWorkoutName(widget.workoutId, titleController.text);
-                            if (mounted) Navigator.pop(context);
+                            if (!context.mounted) return;
+                            Navigator.pop(context);
                           }
                         },
                         child: Container(
                           padding: EdgeInsets.symmetric(vertical: isCompact ? 12.h : 12.0),
                           decoration: BoxDecoration(color: AppColors.crimson.withValues(alpha : 0.1), borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0), border: Border.all(color: AppColors.crimson.withValues(alpha : 0.5))),
                           alignment: Alignment.center,
-                          child: Text("SAVE", style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontWeight: FontWeight.w500, fontSize: isCompact ? null : 12.0)),
+                          child: Text("SAVE", style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.crimson, fontWeight: FontWeight.w500)),
                         ),
                       ),
                     ),
@@ -392,6 +311,7 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
         try {
           final workout = provider.workouts.firstWhere((w) => w.id == widget.workoutId);
           currentWorkoutName = workout.name;
+          _wasCompletedOnEntry ??= workout.status == WorkoutStatus.completed;
           if (_isInitialLoad) {
             _workoutNoteController.text = workout.note ?? "";
             _isInitialLoad = false;
@@ -402,12 +322,22 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
         final bool isLargeScreen = MediaQuery.of(context).size.width >= 600;
         final bool isWideLandscape = isLargeScreen && isLandscape;
 
-        // Adaptive FAB styling
-        final bool isTabletOrWide = isLargeScreen;
-
         return PopScope(
           onPopInvokedWithResult: (didPop, result) {
             if (didPop) {
+              // ELITE AD TRIGGER: Show ad ONLY if workout was actively completed during this live session
+              try {
+                final workout = provider.workouts.firstWhere((w) => w.id == widget.workoutId);
+                final isCompletedNow = workout.status == WorkoutStatus.completed;
+                if (isCompletedNow && _wasCompletedOnEntry == false) {
+                  debugPrint("ExerciseListScreen: Live Workout Freshly Completed. Triggering Custom Native Interstitial Ad on Pop.");
+                  if (!context.mounted) return;
+                  AdService().showCustomNativeInterstitial(context);
+                } else {
+                  debugPrint("ExerciseListScreen: Exiting workout review (Was already completed or incomplete). Skipping ad.");
+                }
+              } catch (_) {}
+
               // Ensure selection is cleared in provider when popping in portrait
               final bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
               final bool isLargeScreen = MediaQuery.of(context).size.width >= 600;
@@ -429,10 +359,9 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
               icon: Icon(Icons.add, color: AppColors.white, size: isLargeScreen ? 20.0 : null),
               label: Text(
                 "EXERCISE",
-                style: AppTextStyles.labelSmall.copyWith(
+                style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                   color: AppColors.white,
                   fontWeight: FontWeight.w500,
-                  fontSize: isLargeScreen ? 11.0 : null,
                 ),
               ),
             ),
@@ -448,14 +377,12 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
               final bool isCurrent = ModalRoute.of(context)?.isCurrent ?? false;
               if (isCurrent && isWideLandscape && !widget.isEmbedded && constraints.maxWidth > 600) {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!context.mounted) return;
                   if (Navigator.canPop(context)) {
                     Navigator.pop(context);
                   }
                 });
               }
-
-              // Helper for adaptive dimensions
-              double adaptive(double mobile, double tablet) => isLandscape ? tablet : (isCompact ? mobile : tablet);
 
               return Column(
                 children: [
@@ -475,7 +402,7 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
 
                   // Content
                   Expanded(
-                    child: RefreshIndicator(
+                    child: EliteRefreshIndicator(
                       onRefresh: () => provider.forceRefresh(),
                       color: AppColors.crimson,
                       backgroundColor: AppColors.surface,
@@ -528,9 +455,9 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
       margin: EdgeInsets.symmetric(vertical: isCompact ? 20.h : 20.0),
       padding: EdgeInsets.all(isCompact ? 32.r : 24.0),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.surfaceLight.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(isCompact ? 28.r : 20.0),
-        border: Border.all(color: AppColors.white.withValues(alpha : 0.05)),
+        border: Border.all(color: AppColors.border),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha : 0.2),
@@ -556,21 +483,19 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
           SizedBox(height: isCompact ? 24.h : 20.0),
           Text(
             "NULL DATA",
-            style: AppTextStyles.h3.copyWith(
+            style: AppTextStyles.h3.adaptive(context).copyWith(
               color: AppColors.white,
               letterSpacing: 4,
-              fontSize: isCompact ? 14.sp : 14.0,
             ),
           ),
           SizedBox(height: isCompact ? 12.h : 10.0),
           Text(
             "THIS WORKOUT HAS NO DEFINED EXERCISE SEQUENCES.",
             textAlign: TextAlign.center,
-            style: AppTextStyles.labelSmall.copyWith(
+            style: AppTextStyles.labelSmall.adaptive(context).copyWith(
               color: AppColors.textSecondary,
               fontWeight: FontWeight.w500,
               height: 1.5,
-              fontSize: isCompact ? null : 11.0,
             ),
           ),
           SizedBox(height: isCompact ? 16.h : 16.0),
@@ -583,9 +508,8 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
           Text(
             "SELECT 'ADD EXERCISE' BELOW TO CONSTRUCT YOUR TARGETED HIT MOVEMENTS FOR THIS SESSION.",
             textAlign: TextAlign.center,
-            style: AppTextStyles.labelSmall.copyWith(
+            style: AppTextStyles.labelSmall.adaptive(context).copyWith(
               color: AppColors.textSecondary.withValues(alpha : 0.5),
-              fontSize: isCompact ? 10.sp : 11.0,
               height: 1.4,
             ),
           ),
@@ -605,25 +529,27 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
           controller: _workoutNoteController,
           minLines: 3,
           maxLines: null,
-          style: TextStyle(
+          style: AppTextStyles.bodyMedium.adaptive(context).copyWith(
             color: AppColors.white,
-            fontSize: isCompact ? 15.sp : 14.0,
           ),
           decoration: InputDecoration(
-            hintText: "NOTES ON PERFORMANCE, RECOVERY, OR INTENSITY...",
-            hintStyle: AppTextStyles.labelSmall.copyWith(
-              color: AppColors.textSecondary,
-              fontSize: isCompact ? 13.sp : 11.0
+            hintText: "NOTES ON WORKOUT...",
+            hintStyle: AppTextStyles.labelSmall.adaptive(context).copyWith(
+              color: AppColors.textSecondary.withValues(alpha: 0.3),
             ),
             filled: true,
-            fillColor: AppColors.surface,
+            fillColor: AppColors.surface.withValues(alpha: 0.3),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
-              borderSide: BorderSide(color: AppColors.white.withValues(alpha : 0.1))
+              borderSide: const BorderSide(color: AppColors.border),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
+              borderSide: const BorderSide(color: AppColors.border),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
-              borderSide: const BorderSide(color: AppColors.crimson)
+              borderSide: const BorderSide(color: AppColors.crimson),
             ),
           ),
         ),
@@ -631,9 +557,8 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
         Center(
           child: Text(
             "AUTOSAVES AS YOU TYPE",
-            style: AppTextStyles.labelSmall.copyWith(
+            style: AppTextStyles.labelSmall.adaptive(context).copyWith(
               color: AppColors.textSecondary.withValues(alpha : 0.3),
-              fontSize: isCompact ? 10.sp : 9.0,
               letterSpacing: 1.5,
             ),
           ),
@@ -674,24 +599,29 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
 
     final DateTime? picked = await showDatePicker(
       context: context,
+      useRootNavigator: true,
       initialDate: initialDate,
       firstDate: firstDate,
       lastDate: lastDate,
       helpText: "SELECT LOG DATE",
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.dark(
-            primary: AppColors.crimson,
-            onPrimary: Colors.white,
-            surface: AppColors.surface,
-            onSurface: Colors.white,
+      builder: (context, child) => Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: const ColorScheme.dark(
+                primary: AppColors.crimson,
+                onPrimary: Colors.white,
+                surface: AppColors.surface,
+                onSurface: Colors.white,
+              ),
+              textButtonTheme: TextButtonThemeData(
+                style: TextButton.styleFrom(foregroundColor: AppColors.crimson),
+              ), dialogTheme: DialogThemeData(backgroundColor: AppColors.background),
+            ),
+            child: child!,
           ),
-          textButtonTheme: TextButtonThemeData(
-            style: TextButton.styleFrom(foregroundColor: AppColors.crimson),
-          ),
-          dialogBackgroundColor: AppColors.background,
         ),
-        child: child!,
       ),
     );
 
@@ -785,9 +715,8 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
                         completedAt != null
                             ? DateFormat('EEEE, MMM dd, yyyy').format(completedAt).toUpperCase()
                             : "ASSIGN DATE TO LOG",
-                        style: AppTextStyles.labelSmall.copyWith(
+                        style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                           color: completedAt != null ? AppColors.white : AppColors.textSecondary.withValues(alpha: 0.5),
-                          fontSize: isCompact ? 10.sp : 11.0,
                           fontWeight: completedAt != null ? FontWeight.w500 : FontWeight.w500,
                           letterSpacing: 1,
                         ),
@@ -825,19 +754,18 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
     return Row(
       children: [
         Container(
-          width: isCompact ? 2.5.w : 2.5,
-          height: isCompact ? 12.h : 12.0,
+          width: 2.5,
+          height: 12.0,
           decoration: BoxDecoration(
             color: AppColors.crimson,
-            borderRadius: BorderRadius.circular(isCompact ? 2.r : 2.0),
+            borderRadius: BorderRadius.circular(2.0),
           ),
         ),
-        SizedBox(width: isCompact ? 8.w : 8.0),
+        const SizedBox(width: 6.0),
         Text(
           title,
-          style: AppTextStyles.labelSmall.copyWith(
+          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
             color: AppColors.textSecondary.withValues(alpha: 0.8),
-            fontSize: isCompact ? 12.sp : 12.0,
           ),
         ),
       ],
@@ -852,12 +780,12 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
       currentCycleId = workout.cycleId;
     } catch (_) {}
 
-    final progression = provider.calculateExerciseProgression(exercise.name, targetCycleId: currentCycleId);
+    final progression = provider.calculateExerciseProgression(exercise.name, targetCycleId: currentCycleId, exerciseId: exercise.id);
     final strength = progression['strength']!;
     final volume = progression['volume']!;
     final bool hasProgression = strength != 0 || volume != 0;
 
-    final bool isSelected = widget.selectedExerciseId == exercise.id;
+              final bool isSelected = !isCompact && widget.selectedExerciseId == exercise.id;
 
     return Dismissible(
       key: Key("${exercise.id}_dismiss"),
@@ -886,9 +814,9 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
       child: Container(
         margin: EdgeInsets.only(bottom: isCompact ? 20.h : 16.0),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.crimson.withValues(alpha: 0.1) : AppColors.surface,
+          color: isSelected ? AppColors.crimson.withValues(alpha: 0.1) : AppColors.surfaceLight.withValues(alpha: 0.6),
           borderRadius: BorderRadius.circular(isCompact ? 24.r : 20.0),
-          border: isSelected ? Border.all(color: AppColors.crimson.withValues(alpha: 0.5), width: 1.5) : null,
+          border: isSelected ? Border.all(color: AppColors.crimson.withValues(alpha: 0.5), width: 1.5) : Border.all(color: AppColors.border),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha : 0.2),
@@ -941,18 +869,16 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
                                     alignment: Alignment.center,
                                     child: Text(
                                       "${index + 1}",
-                                      style: AppTextStyles.labelSmall.copyWith(
+                                      style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                         color: AppColors.white,
                                         fontWeight: FontWeight.w500,
-                                        fontSize: isCompact ? 10.sp : 11.0,
                                       ),
                                     ),
                                   ),
                                   Expanded(
                                     child: Text(
                                       exercise.name.toUpperCase(),
-                                      style: AppTextStyles.h3.copyWith(
-                                        fontSize: isCompact ? 18.sp : 16.0,
+                                      style: AppTextStyles.h3.adaptive(context).copyWith(
                                         color: AppColors.white,
                                         fontWeight: FontWeight.w500,
                                         letterSpacing: 1,
@@ -965,9 +891,8 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
                                 SizedBox(height: isCompact ? 8.h : 8.0),
                                 Text(
                                   exercise.targetMuscles!.toUpperCase(),
-                                  style: AppTextStyles.labelSmall.copyWith(
+                                  style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                     color: isSelected ? AppColors.white.withValues(alpha: 0.7) : AppColors.textSecondary.withValues(alpha : 0.4),
-                                    fontSize: isCompact ? 13.sp : 12.0,
                                     letterSpacing: 1,
                                   ),
                                 ),
@@ -985,18 +910,16 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
                             children: [
                               Text(
                                 "STRENGTH",
-                                style: AppTextStyles.labelSmall.copyWith(
+                                style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                   color: isSelected ? AppColors.white.withValues(alpha: 0.7) : AppColors.textSecondary.withValues(alpha : 0.4),
-                                  fontSize: isCompact ? 9.sp : 8.0,
                                   fontWeight: FontWeight.w500,
                                   letterSpacing: 0.5,
                                 ),
                               ),
                               Text(
                                 "${strength > 0 ? '+' : ''}${(strength * 100).toStringAsFixed(1)}%",
-                                style: AppTextStyles.h2.copyWith(
+                                style: AppTextStyles.h2.adaptive(context).copyWith(
                                   color: strength > 0 ? AppColors.success : Colors.redAccent,
-                                  fontSize: isCompact ? 20.sp : 18.0,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -1034,9 +957,8 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
                     children: [
                       Text(
                         isExpanded ? "COLLAPSE DATA" : "SHOW PERFORMANCE DATA",
-                        style: AppTextStyles.labelSmall.copyWith(
+                        style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                           color: AppColors.textSecondary.withValues(alpha : 0.4),
-                          fontSize: isCompact ? 11.sp : 10.0,
                           letterSpacing: 2,
                           fontWeight: FontWeight.w500,
                         ),
@@ -1081,20 +1003,18 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
                                 children: [
                                   Text(
                                     "VOLUME CHANGE",
-                                    style: AppTextStyles.labelSmall.copyWith(
+                                    style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                       color: AppColors.white,
-                                      fontSize: isCompact ? 11.sp : 10.0,
                                       fontWeight: FontWeight.w500,
                                       letterSpacing: 1,
                                     ),
                                   ),
                                   SizedBox(height: isCompact ? 8.h : 8.0),
                                   Text(
-                                    "${volume > 0 ? '+' : ''}${(volume * 100).toStringAsFixed(1)}%",
-                                    style: AppTextStyles.labelMedium.copyWith(
+                                    "${volume * 100 > 0 ? '+' : ''}${(volume * 100).toStringAsFixed(1)}%",
+                                    style: AppTextStyles.labelMedium.adaptive(context).copyWith(
                                       color: volume > 0 ? AppColors.success : AppColors.crimson,
                                       fontWeight: FontWeight.w500,
-                                      fontSize: isCompact ? 18.sp : 16.0,
                                     ),
                                   ),
                                 ],
@@ -1113,7 +1033,11 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
   }
 
   Widget _buildExerciseStatusBadge(Exercise exercise, CycleProvider provider, bool isCompact) {
-    final exLogs = provider.logs.where((l) => l.exerciseId == exercise.id).toList();
+    final exLogs = provider.logs.where((l) {
+      if (l.exerciseId != exercise.id) return false;
+      final workout = provider.getWorkoutForExercise(l.exerciseId);
+      return workout != null && workout.completedAt != null;
+    }).toList();
     exLogs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
     bool isCompleted = false;
@@ -1143,9 +1067,8 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
           ),
           child: Text(
             "COMPLETED",
-            style: AppTextStyles.labelSmall.copyWith(
+            style: AppTextStyles.labelSmall.adaptive(context).copyWith(
               color: AppColors.success,
-              fontSize: isCompact ? 11.sp : 9.0,
               fontWeight: FontWeight.w500,
               letterSpacing: 1,
             ),

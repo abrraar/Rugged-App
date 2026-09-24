@@ -1,12 +1,13 @@
 // lib/features/tracker/supplement/provider/supplement_provider.dart
 
 import 'package:flutter/material.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/features/tracker/supplement/model/supplement_settings.dart';
-import 'package:heavy_duty/features/tracker/supplement/model/supplement_stack.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/features/auth/provider/auth_provider.dart';
+import 'package:rugged/features/tracker/supplement/model/supplement_settings.dart';
+import 'package:rugged/features/tracker/supplement/model/supplement_stack.dart';
 import 'package:collection/collection.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:heavy_duty/core/providers/sync_provider.dart';
+import 'package:rugged/core/providers/sync_provider.dart';
 
 import 'package:uuid/uuid.dart';
 import '../../../../core/services/notification_service.dart';
@@ -70,6 +71,7 @@ class SupplementProvider with ChangeNotifier {
   }
 
   void _setupRealtimeSubscription(String userId) {
+    if (!AuthProvider().isPro) return;
     // Clean up existing channel if any
     _realtimeChannel?.unsubscribe();
 
@@ -1313,7 +1315,7 @@ class SupplementProvider with ChangeNotifier {
              _history[idx].isSynced = 1;
              notifyListeners();
            }
-        }).catchError((e) => debugPrint("Cloud sync error: $e"));
+        });
         
         _cloudRepo.updateSupplementStock(libItem.id, libItem.remainingStock!).catchError((e) => debugPrint("Cloud stock sync error: $e"));
       }
@@ -1449,7 +1451,7 @@ class SupplementProvider with ChangeNotifier {
              _history[idx].isSynced = 1;
              notifyListeners();
            }
-        }).catchError((e) => debugPrint("Cloud sync error: $e"));
+        });
 
         _cloudRepo.updateSupplementStock(libItem.id, libItem.remainingStock!).catchError((e) => debugPrint("Cloud stock sync error: $e"));
       }
@@ -1519,6 +1521,11 @@ class SupplementProvider with ChangeNotifier {
   // --- SHARING METHODS ---
 
   Future<String?> generateSupplementShareLink(Supplement supplement, String userName) async {
+    if (!AuthProvider().isPro) {
+      debugPrint("SupplementProvider: Sharing skipped - Pro status required.");
+      return null;
+    }
+
     final Map<String, dynamic> shareData = {
       'type': 'supplement',
       'name': supplement.name,
@@ -1546,7 +1553,7 @@ class SupplementProvider with ChangeNotifier {
       }).select('id').single();
 
       final shareId = response['id'] as String;
-      return "https://heavydutyapp.org/share/supplement?id=$shareId&from=${Uri.encodeComponent(userName)}";
+      return "https://affulabs.com/rugged/app/share/supplement?id=$shareId&from=${Uri.encodeComponent(userName)}";
     } catch (e) {
       debugPrint("SupplementProvider: Error sharing supplement: $e");
       return null;
@@ -1554,6 +1561,11 @@ class SupplementProvider with ChangeNotifier {
   }
 
   Future<String?> generateStackShareLink(SupplementStack stack, String userName) async {
+    if (!AuthProvider().isPro) {
+      debugPrint("SupplementProvider: Sharing skipped - Pro status required.");
+      return null;
+    }
+
     final Map<String, dynamic> shareData = {
       'type': 'stack',
       'name': stack.name,
@@ -1583,7 +1595,7 @@ class SupplementProvider with ChangeNotifier {
       }).select('id').single();
 
       final shareId = response['id'] as String;
-      return "https://heavydutyapp.org/share/stack?id=$shareId&from=${Uri.encodeComponent(userName)}";
+      return "https://affulabs.com/rugged/app/share/stack?id=$shareId&from=${Uri.encodeComponent(userName)}";
     } catch (e) {
       debugPrint("SupplementProvider: Error sharing stack: $e");
       return null;

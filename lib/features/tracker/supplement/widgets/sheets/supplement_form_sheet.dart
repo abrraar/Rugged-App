@@ -3,8 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
 import '../../model/supplement.dart';
 
 class SupplementFormSheet extends StatefulWidget {
@@ -223,7 +223,7 @@ class _SupplementFormSheetState extends State<SupplementFormSheet> {
                   borderRadius: widget.isSideSheet 
                     ? const BorderRadius.horizontal(left: Radius.circular(24.0))
                     : BorderRadius.vertical(top: Radius.circular(isCompact ? 32.r : 24.0)),
-                  border: Border.all(color: AppColors.white.withOpacity(0.05)),
+                  border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
                 ),
                 child: Column(
                   mainAxisSize: widget.isSideSheet ? MainAxisSize.max : MainAxisSize.min,
@@ -240,7 +240,7 @@ class _SupplementFormSheetState extends State<SupplementFormSheet> {
                           width: isCompact ? 40.w : 40.0,
                           height: isCompact ? 4.h : 4.0,
                           decoration: BoxDecoration(
-                            color: AppColors.textSecondary.withOpacity(0.4),
+                            color: AppColors.textSecondary.withValues(alpha: 0.4),
                             borderRadius: BorderRadius.circular(3.r),
                           ),
                         ),
@@ -268,7 +268,7 @@ class _SupplementFormSheetState extends State<SupplementFormSheet> {
                                         Container(
                                           padding: EdgeInsets.all(isCompact ? 10.r : 10.0),
                                           decoration: BoxDecoration(
-                                            color: AppColors.crimson.withOpacity(0.1),
+                                            color: AppColors.crimson.withValues(alpha: 0.1),
                                             shape: BoxShape.circle,
                                           ),
                                           child: Icon(
@@ -383,12 +383,10 @@ class _SupplementFormSheetState extends State<SupplementFormSheet> {
                                             horizontal: isCompact ? 18.w : 16.0
                                           ),
                                           decoration: BoxDecoration(
-                                            color: AppColors.background.withOpacity(
-                                              0.35,
-                                            ),
+                                            color: AppColors.background.withValues(alpha: 0.35),
                                             borderRadius: BorderRadius.circular(isCompact ? 20.r : 16.0),
                                             border: Border.all(
-                                              color: AppColors.white.withOpacity(0.06),
+                                              color: AppColors.white.withValues(alpha: 0.06),
                                               width: 1,
                                             ),
                                           ),
@@ -405,7 +403,7 @@ class _SupplementFormSheetState extends State<SupplementFormSheet> {
                                                     style: AppTextStyles.labelSmall
                                                         .copyWith(
                                                           color: AppColors.textSecondary
-                                                              .withOpacity(0.6),
+                                                              .withValues(alpha: 0.6),
                                                           fontWeight: FontWeight.w500,
                                                           fontSize: isCompact ? 11.sp : 10.0,
                                                           letterSpacing: 0.8,
@@ -430,12 +428,12 @@ class _SupplementFormSheetState extends State<SupplementFormSheet> {
                                                         ),
                                                         decoration: BoxDecoration(
                                                           color: AppColors.crimson
-                                                              .withOpacity(0.08),
+                                                              .withValues(alpha: 0.08),
                                                           borderRadius:
                                                               BorderRadius.circular(8.r),
                                                           border: Border.all(
                                                             color: AppColors.crimson
-                                                                .withOpacity(0.15),
+                                                                .withValues(alpha: 0.15),
                                                           ),
                                                         ),
                                                         child: Row(
@@ -470,7 +468,7 @@ class _SupplementFormSheetState extends State<SupplementFormSheet> {
                                               Padding(
                                                 padding: EdgeInsets.symmetric(vertical: isCompact ? 12.h : 8.0),
                                                 child: Divider(
-                                                  color: AppColors.white.withOpacity(0.04),
+                                                  color: AppColors.white.withValues(alpha: 0.04),
                                                   thickness: 1,
                                                 ),
                                               ),
@@ -485,7 +483,7 @@ class _SupplementFormSheetState extends State<SupplementFormSheet> {
                                                       style: AppTextStyles.labelSmall
                                                           .copyWith(
                                                             color: AppColors.white
-                                                                .withOpacity(0.7),
+                                                                .withValues(alpha: 0.7),
                                                             fontWeight: FontWeight.w500,
                                                             fontSize: isCompact ? null : 11.0,
                                                           ),
@@ -514,7 +512,7 @@ class _SupplementFormSheetState extends State<SupplementFormSheet> {
                                                       style: AppTextStyles.labelSmall
                                                           .copyWith(
                                                             color: AppColors.white
-                                                                .withOpacity(0.7),
+                                                                .withValues(alpha: 0.7),
                                                             fontWeight: FontWeight.w500,
                                                             fontSize: isCompact ? null : 11.0,
                                                           ),
@@ -544,7 +542,7 @@ class _SupplementFormSheetState extends State<SupplementFormSheet> {
                                                       style: AppTextStyles.labelSmall
                                                           .copyWith(
                                                             color: AppColors.white
-                                                                .withOpacity(0.7),
+                                                                .withValues(alpha: 0.7),
                                                             fontWeight: FontWeight.w500,
                                                             fontSize: isCompact ? null : 11.0,
                                                           ),
@@ -587,10 +585,10 @@ class _SupplementFormSheetState extends State<SupplementFormSheet> {
                                       height: isCompact ? 54.h : 48.0,
                                       alignment: Alignment.center,
                                       decoration: BoxDecoration(
-                                        color: AppColors.crimson.withOpacity(0.04),
+                                        color: AppColors.crimson.withValues(alpha: 0.04),
                                         borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0),
                                         border: Border.all(
-                                          color: AppColors.crimson.withOpacity(0.3),
+                                          color: AppColors.crimson.withValues(alpha: 0.3),
                                           width: 1.5,
                                           style: BorderStyle.solid,
                                         ),
@@ -704,7 +702,7 @@ class _SupplementFormSheetState extends State<SupplementFormSheet> {
                                 Padding(
                                   padding: EdgeInsets.symmetric(vertical: isCompact ? 24.h : 20.0),
                                   child: Divider(
-                                    color: AppColors.white.withOpacity(0.08),
+                                    color: AppColors.white.withValues(alpha: 0.08),
                                     thickness: 1,
                                   ),
                                 ),
@@ -937,9 +935,9 @@ class _SupplementFormSheetState extends State<SupplementFormSheet> {
       padding: EdgeInsets.symmetric(horizontal: isCompact ? 16.w : 16.0),
       alignment: maxLines > 1 ? Alignment.topLeft : Alignment.centerLeft,
       decoration: BoxDecoration(
-        color: AppColors.background.withOpacity(0.5),
+        color: AppColors.background.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
-        border: Border.all(color: AppColors.white.withOpacity(0.05)),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
       ),
       child: TextField(
         controller: controller,
@@ -954,7 +952,7 @@ class _SupplementFormSheetState extends State<SupplementFormSheet> {
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: TextStyle(
-            color: AppColors.textSecondary.withOpacity(0.25),
+            color: AppColors.textSecondary.withValues(alpha: 0.25),
             fontSize: isCompact ? 15.sp : 14.0,
           ),
           border: InputBorder.none,
@@ -977,7 +975,7 @@ class _SupplementFormSheetState extends State<SupplementFormSheet> {
       decoration: BoxDecoration(
         color: AppColors.background,
         borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
-        border: Border.all(color: AppColors.white.withOpacity(0.05)),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1026,7 +1024,7 @@ class _SupplementFormSheetState extends State<SupplementFormSheet> {
           boxShadow: isEnabled
               ? [
                   BoxShadow(
-                    color: color.withOpacity(0.3),
+                    color: color.withValues(alpha: 0.3),
                     blurRadius: 15,
                     offset: const Offset(0, 6),
                   ),
@@ -1039,7 +1037,7 @@ class _SupplementFormSheetState extends State<SupplementFormSheet> {
           style: AppTextStyles.buttonPrimary.copyWith(
             color: isEnabled
                 ? Colors.white
-                : AppColors.textSecondary.withOpacity(0.4),
+                : AppColors.textSecondary.withValues(alpha: 0.4),
             fontSize: isCompact ? 16.sp : 14.0,
           ),
         ),

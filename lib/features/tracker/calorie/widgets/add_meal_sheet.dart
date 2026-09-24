@@ -2,15 +2,15 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/features/tracker/calorie/model/saved_meal.dart';
-import 'package:heavy_duty/features/tracker/supplement/provider/supplement_provider.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/features/tracker/calorie/model/saved_meal.dart';
+import 'package:rugged/features/tracker/supplement/provider/supplement_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../model/calorie_log.dart';
-import 'package:heavy_duty/features/tracker/supplement/model/supplement.dart';
-import 'package:heavy_duty/features/tracker/supplement/model/supplement_stack.dart';
+import 'package:rugged/features/tracker/supplement/model/supplement.dart';
+import 'package:rugged/features/tracker/supplement/model/supplement_stack.dart';
 
 class AddMealSheet extends StatefulWidget {
   final SavedMeal? existingMeal;
@@ -546,14 +546,14 @@ class _AddMealSheetState extends State<AddMealSheet> {
     return Row(
       children: [
         Container(
-          width: isCompact ? 3.w : 3.0,
-          height: isCompact ? 12.h : 12.0,
+          width: 2.5,
+          height: 12.0,
           decoration: BoxDecoration(
             color: AppColors.crimson,
-            borderRadius: BorderRadius.circular(2.r),
+            borderRadius: BorderRadius.circular(2.0),
           ),
         ),
-        SizedBox(width: isCompact ? 8.w : 8.0),
+        const SizedBox(width: 6.0),
         Text(
           title,
           style: AppTextStyles.labelSmall.copyWith(

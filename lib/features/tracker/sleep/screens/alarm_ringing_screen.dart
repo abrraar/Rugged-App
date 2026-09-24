@@ -3,8 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
 import 'package:provider/provider.dart';
 import '../provider/sleep_alarm_provider.dart';
 import 'package:intl/intl.dart';
@@ -131,21 +131,24 @@ class _AlarmRingingScreenState extends State<AlarmRingingScreen> with SingleTick
               const Spacer(),
               
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 40.w),
-                child: Column(
-                  children: [
-                    _buildSlider(),
-                    SizedBox(height: 20.h),
-                    TextButton(
-                      onPressed: () {
-                        // Snooze logic could go here
-                      },
-                      child: Text(
-                        "SNOOZE (9 MIN)",
-                        style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary),
+                padding: EdgeInsets.symmetric(horizontal: 24.w),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Column(
+                    children: [
+                      _buildSlider(),
+                      SizedBox(height: 20.h),
+                      TextButton(
+                        onPressed: () {
+                          // Snooze logic could go here
+                        },
+                        child: Text(
+                          "SNOOZE (9 MIN)",
+                          style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               

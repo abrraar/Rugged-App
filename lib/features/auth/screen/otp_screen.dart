@@ -5,14 +5,14 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/core/navigation/app_routes.dart';
-import 'package:heavy_duty/core/constants/dimensions.dart';
-import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/core/navigation/app_routes.dart';
+import 'package:rugged/core/constants/dimensions.dart';
+import 'package:rugged/core/widgets/elite_snackbar.dart';
 import 'package:flutter/widget_previews.dart';
-import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
-import 'package:heavy_duty/features/auth/widgets/auth_components.dart';
+import 'package:rugged/features/auth/provider/auth_provider.dart';
+import 'package:rugged/features/auth/widgets/auth_components.dart';
 
 @Preview()
 Widget previewOtpScreen() {
@@ -20,7 +20,7 @@ Widget previewOtpScreen() {
   try {
     Supabase.initialize(
       url: 'https://placeholder.supabase.co',
-      anonKey: 'dummy',
+      publishableKey: 'dummy',
     );
   } catch (_) {}
 
@@ -84,6 +84,14 @@ class _OtpScreenState extends State<OtpScreen> {
     } else if (value.isEmpty && index > 0) {
       _focusNodes[index - 1].requestFocus();
     }
+
+    // ELITE AUTO-VERIFICATION
+    // As soon as all boxes are filled, we trigger verification immediately.
+    final otp = _controllers.map((c) => c.text).join();
+    if (otp.length == 6 && !_isVerifying) {
+      // Small delay to allow the UI to show the last digit before the buffer starts
+      Future.delayed(const Duration(milliseconds: 100), () => _verifyOtp());
+    }
   }
 
   Future<void> _verifyOtp() async {
@@ -97,22 +105,31 @@ class _OtpScreenState extends State<OtpScreen> {
 
     try {
       final authProvider = context.read<AuthProvider>();
-      final email = authProvider.pendingEmail;
 
+      final email = authProvider.pendingEmail;
       if (email == null) {
-        // If we are already verifying, don't show session expired as we're likely transitioning
-        if (!_isVerifying) {
-          EliteSnackbar.show(context, 'SESSION EXPIRED. PLEASE SIGN UP AGAIN.', isError: true);
-          context.go(AppRoutes.signin);
+        // If we are already authenticated, just move forward
+        if (authProvider.isAuthenticated) {
+          context.go(AppRoutes.createProfilePersonal);
+          return;
         }
+        EliteSnackbar.show(context, 'SESSION EXPIRED. PLEASE SIGN UP AGAIN.', isError: true);
+        context.go(AppRoutes.signin);
         return;
       }
 
       setState(() => _isVerifying = true);
+      
+      // We wrap the call to ensure the UI has updated to show the loading state
+      await Future.delayed(const Duration(milliseconds: 50));
       await authProvider.verifyOTPCode(email, otp);
       
-      // Explicit navigation safety: The router SHOULD handle this via redirect, 
-      // but adding a guard to prevent further interaction on this screen.
+      // ELITE FORCED REDIRECT: We don't wait for the Router to notice the change.
+      // We explicitly push the user to the personal info screen.
+      if (mounted) {
+        debugPrint("OtpScreen: Verification successful. Redirecting to Final Steps...");
+        context.go(AppRoutes.createProfilePersonal);
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _isVerifying = false);
@@ -254,7 +271,7 @@ class _OtpScreenState extends State<OtpScreen> {
             children: [
               Text(
                 "Didn't receive the code?",
-                style: AppTextStyles.caption.copyWith(fontSize: isWideLayout ? 14 : 13.sp),
+                style: AppTextStyles.caption.adaptive(context),
               ),
               TextButton(
                 onPressed: (isLoading || cooldown > 0)
@@ -283,10 +300,9 @@ class _OtpScreenState extends State<OtpScreen> {
                       },
                 child: Text(
                   cooldown == 0 ? 'RESEND OTP' : 'RESEND OTP IN ${cooldown}S',
-                  style: AppTextStyles.link.copyWith(
-                    color: cooldown == 0 ? AppColors.crimson : AppColors.textSecondary.withOpacity(0.5),
+                  style: AppTextStyles.link.adaptive(context).copyWith(
+                    color: cooldown == 0 ? AppColors.crimson : AppColors.textSecondary.withValues(alpha: 0.5),
                     fontWeight: FontWeight.w500,
-                    fontSize: isWideLayout ? 14 : 13.sp,
                   ),
                 ),
               ),
@@ -309,9 +325,8 @@ class _OtpScreenState extends State<OtpScreen> {
         keyboardType: TextInputType.number,
         maxLength: 1,
         enabled: enabled,
-        style: AppTextStyles.h3.copyWith(
+        style: AppTextStyles.h3.adaptive(context).copyWith(
           color: Colors.white,
-          fontSize: isWideLayout ? 24 : 20.sp,
         ),
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
         decoration: InputDecoration(

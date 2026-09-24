@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/widgets/elite_settings_app_bar.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/core/widgets/elite_unit_toggle_card.dart';
+import 'package:rugged/core/widgets/elite_settings_app_bar.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/core/widgets/elite_unit_toggle_card.dart';
 
-import 'package:heavy_duty/features/tracker/sleep/provider/sleep_provider.dart';
+import 'package:rugged/features/tracker/sleep/provider/sleep_provider.dart';
 import 'package:provider/provider.dart';
 
 class SleepSettingsScreen extends StatefulWidget {
-  const SleepSettingsScreen({super.key});
+  final bool isEmbedded;
+  const SleepSettingsScreen({super.key, this.isEmbedded = false});
 
   @override
   State<SleepSettingsScreen> createState() => _SleepSettingsScreenState();
@@ -31,14 +32,13 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen> {
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final bool isCompact = constraints.maxWidth < 600 && !isLargeScreen;
-                final bool isWideLandscape = isLargeScreen && MediaQuery.of(context).orientation == Orientation.landscape;
 
                 return Column(
                   children: [
                     EliteSettingsAppBar(
                       title: "SLEEP SETTINGS", 
                       isCompact: isCompact,
-                      showBackButton: !isWideLandscape,
+                      showBackButton: !widget.isEmbedded,
                     ),
 
                     Expanded(
@@ -90,11 +90,10 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen> {
       ),
       child: Text(
         title,
-        style: AppTextStyles.labelSmall.copyWith(
+        style: AppTextStyles.labelSmall.adaptive(context).copyWith(
           color: AppColors.crimson,
           fontWeight: FontWeight.w500,
           letterSpacing: 1.5,
-          fontSize: isLargeScreen ? 11.0 : null,
         ),
       ),
     );

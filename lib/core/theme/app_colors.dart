@@ -33,7 +33,7 @@ class AppColors {
 
   // ── Dividers & Borders ────────────────────────────────
   static const Color divider        = Color(0xFF444444);
-  static const Color border         = Color(0xFF333333);
+  static const Color border         = Color(0xFF272727);
 
   // ── Status ────────────────────────────────────────────
   static const Color success        = Color(0xFF69F0AE); // greenAccent

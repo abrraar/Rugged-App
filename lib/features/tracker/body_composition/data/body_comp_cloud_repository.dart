@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:rugged/features/auth/provider/auth_provider.dart';
 import '../model/body_comp_log.dart';
 import '../model/body_comp_settings.dart';
 
@@ -7,6 +8,7 @@ class BodyCompCloudRepository {
   SupabaseClient get _supabase => Supabase.instance.client;
 
   String? get _currentUserId => _supabase.auth.currentUser?.id;
+  bool get _isPro => AuthProvider().isPro;
 
   String _getTableName(BodyMetricType type) {
     switch (type) {
@@ -19,6 +21,7 @@ class BodyCompCloudRepository {
   // --- Settings ---
 
   Future<BodyCompSettings?> getSettings() async {
+    if (!_isPro) return null;
     final uid = _currentUserId;
     if (uid == null) return null;
 
@@ -39,6 +42,7 @@ class BodyCompCloudRepository {
   }
 
   Future<void> saveSettings(BodyCompSettings settings) async {
+    if (!_isPro) return;
     final uid = _currentUserId;
     if (uid == null) return;
 
@@ -52,6 +56,7 @@ class BodyCompCloudRepository {
   // --- Logs ---
 
   Future<List<BodyCompLog>?> getAllLogs() async {
+    if (!_isPro) return null;
     final uid = _currentUserId;
     if (uid == null) return null;
 
@@ -77,6 +82,7 @@ class BodyCompCloudRepository {
   }
 
   Future<void> insertLog(BodyCompLog log) async {
+    if (!_isPro) return;
     final uid = _currentUserId;
     if (uid == null) return;
 
@@ -87,9 +93,11 @@ class BodyCompCloudRepository {
   }
 
   Future<void> deleteLog(String id, BodyMetricType type) async {
+    if (!_isPro) return;
     final uid = _currentUserId;
     if (uid == null) return;
 
     await _supabase.from(_getTableName(type)).delete().eq('id', id).eq('user_id', uid);
   }
 }
+

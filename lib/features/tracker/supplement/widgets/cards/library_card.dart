@@ -2,15 +2,15 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/features/tracker/supplement/model/supplement.dart';
-import 'package:heavy_duty/features/tracker/supplement/provider/supplement_provider.dart';
+import 'package:go_router/go_router.dart';
+import 'package:rugged/core/navigation/app_routes.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/features/tracker/supplement/model/supplement.dart';
+import 'package:rugged/features/tracker/supplement/provider/supplement_provider.dart';
 
-import 'package:heavy_duty/features/tracker/calorie/provider/calorie_provider.dart';
-import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
-import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
-import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
+import 'package:rugged/features/tracker/calorie/provider/calorie_provider.dart';
+import 'package:rugged/features/auth/provider/auth_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -38,46 +38,6 @@ class LibraryCard extends StatefulWidget {
 
 class _LibraryCardState extends State<LibraryCard> {
   bool isExpanded = false; // Tracks if the action menu is open
-
-  void _showHeavyDutyDeletePrompt(BuildContext context) async {
-    final confirm = await EliteConfirmDialog.show(
-      context,
-      title: "DELETE SUPPLEMENT",
-      message: "Are you sure you want to permanently delete \"${widget.item.name.toUpperCase()}\"? This action cannot be undone.",
-      icon: Icons.delete_outline_rounded,
-    );
-    
-    if (confirm == true) {
-      widget.onDelete();
-    }
-  }
-
-  Widget _dialogBtn(String label, Color bg, Color text, VoidCallback onTap) =>
-      GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: EdgeInsets.symmetric(vertical: 12.h),
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(12.r),
-            border: Border.all(
-              color: bg == Colors.transparent
-                  ? AppColors.white.withValues(alpha: 0.1)
-                  : Colors.transparent,
-            ),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: AppTextStyles.labelSmall.copyWith(
-              color: text,
-              fontWeight: FontWeight.w500,
-              fontSize: widget.isCompact ? 12.sp : 12.0,
-            ),
-          ),
-        ),
-      );
-
   @override
   Widget build(BuildContext context) {
     String daysUntilExpiry = widget.provider
@@ -144,8 +104,7 @@ class _LibraryCardState extends State<LibraryCard> {
                         widget.item.name.toUpperCase(),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.labelSmall.copyWith(
-                          fontSize: isCompact ? 13.sp : 12.0,
+                        style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                           color: widget.item.isActive
                               ? Colors.white
                               : AppColors.textSecondary,
@@ -171,9 +130,8 @@ class _LibraryCardState extends State<LibraryCard> {
                               SizedBox(width: isCompact ? 4.w : 4.0),
                               Text(
                                 "SHARED BY ${widget.item.sharedBy!.toUpperCase()}",
-                                style: AppTextStyles.labelSmall.copyWith(
+                                style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                   color: Colors.blueAccent,
-                                  fontSize: isCompact ? 10.sp : 9.0,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -184,9 +142,8 @@ class _LibraryCardState extends State<LibraryCard> {
                       SizedBox(height: isCompact ? 4.h : 4.0),
                       Text(
                         remainingServings,
-                        style: AppTextStyles.labelSmall.copyWith(
+                        style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                           color: widget.provider.getStockColor(widget.item),
-                          fontSize: isCompact ? 12.sp : 11.0,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -201,9 +158,8 @@ class _LibraryCardState extends State<LibraryCard> {
                                 padding: EdgeInsets.only(bottom: isCompact ? 2.h : 2.0),
                                 child: Text(
                                   "• ${ingredient.name}: ${ingredient.amount.toInt()}${ingredient.unit}",
-                                  style: AppTextStyles.labelSmall.copyWith(
+                                  style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                     color: AppColors.textSecondary,
-                                    fontSize: isCompact ? 11.sp : 10.0,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -217,24 +173,29 @@ class _LibraryCardState extends State<LibraryCard> {
                 ),
               ),
               SizedBox(width: isCompact ? 12.w : 12.0),
-              _buildQuickActionButton(
-                icon: Icons.ios_share_rounded,
-                isActive: false,
-                isCompact: isCompact,
-                onTap: () async {
-                  final authProvider = context.read<AuthProvider>();
-                  final userName = authProvider.displayName;
-                  
-                  EliteSnackbar.show(context, "GENERATING SHAREABLE LINK...");
-
-                  final link = await widget.provider.generateSupplementShareLink(widget.item, userName);
-                  
-                  if (link != null) {
-                    await Share.share(
-                      "CHECK OUT THIS SUPPLEMENT SHARED BY $userName IN HEAVY DUTY:\n\n$link",
-                      subject: "SUPPLEMENT SHARED BY $userName",
-                    );
-                  }
+              Consumer<AuthProvider>(
+                builder: (context, authProv, _) {
+                  final bool isPro = authProv.isPro;
+                  return _buildQuickActionButton(
+                    icon: isPro ? Icons.ios_share_rounded : Icons.lock_rounded,
+                    isActive: false,
+                    isCompact: isCompact,
+                    onTap: () async {
+                      if (!isPro) {
+                        context.push(AppRoutes.proUpgrade);
+                        return;
+                      }
+                      final userName = authProv.displayName;
+                      final link = await widget.provider.generateSupplementShareLink(widget.item, userName);
+                      
+                      if (link != null) {
+                        await Share.share(
+                          "CHECK OUT THIS SUPPLEMENT SHARED BY $userName IN RUGGED:\n\n$link",
+                          subject: "SUPPLEMENT SHARED BY $userName",
+                        );
+                      }
+                    },
+                  );
                 },
               ),
               SizedBox(width: isCompact ? 8.w : 6.0),
@@ -254,6 +215,7 @@ class _LibraryCardState extends State<LibraryCard> {
                 children: [
                   Expanded(
                     child: _buildActionButton(
+                      context,
                       icon: Icons.edit_note_rounded,
                       label: "EDIT",
                       color: AppColors.textSecondary.withValues(alpha: 0.1),
@@ -267,6 +229,7 @@ class _LibraryCardState extends State<LibraryCard> {
                   SizedBox(width: isCompact ? 12.w : 10.0),
                   Expanded(
                     child: _buildActionButton(
+                      context,
                       icon: Icons.delete_outline_rounded,
                       label: "DELETE",
                       color: AppColors.crimson.withValues(alpha: 0.1),
@@ -304,16 +267,14 @@ class _LibraryCardState extends State<LibraryCard> {
                     SizedBox(width: isCompact ? 6.w : 6.0),
                     Text(
                       "Expires: ",
-                      style: AppTextStyles.labelSmall.copyWith(
-                        fontSize: isCompact ? 11.sp : 10.0,
+                      style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                         color: AppColors.textSecondary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     Text(
                       expiryText,
-                      style: AppTextStyles.labelSmall.copyWith(
-                        fontSize: isCompact ? 11.sp : 10.0,
+                      style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                         color: widget.provider.getExpiryColor(
                           widget.item.expiryDate,
                         ),
@@ -325,8 +286,7 @@ class _LibraryCardState extends State<LibraryCard> {
                 if (widget.item.caloriesPerUnit != null)
                   Text(
                     "${widget.item.caloriesPerUnit!.toStringAsFixed(0)} kcal/${widget.item.weightUnit}",
-                    style: AppTextStyles.labelSmall.copyWith(
-                      fontSize: isCompact ? 11.sp : 10.0,
+                    style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                       color: AppColors.textSecondary.withValues(alpha: 0.6),
                       fontWeight: FontWeight.w500,
                     ),
@@ -365,7 +325,7 @@ class _LibraryCardState extends State<LibraryCard> {
     );
   }
 
-  Widget _buildActionButton({
+  Widget _buildActionButton(BuildContext context, {
     required IconData icon,
     required String label,
     required Color color,
@@ -388,8 +348,7 @@ class _LibraryCardState extends State<LibraryCard> {
             SizedBox(width: 8.w),
             Text(
               label,
-              style: AppTextStyles.labelSmall.copyWith(
-                fontSize: isCompact ? 13.sp : 12.0,
+              style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                 fontWeight: FontWeight.w500,
                 color: iconColor ?? Colors.white,
               ),

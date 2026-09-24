@@ -42,18 +42,16 @@ class EliteUnitToggleCard extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: AppTextStyles.labelSmall.copyWith(
+                      style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w500,
-                        fontSize: isCompact ? null : 12.0,
                       ),
                     ),
                     SizedBox(height: isCompact ? 4.h : 4.0),
                     Text(
                       subtitle,
-                      style: AppTextStyles.labelSmall.copyWith(
+                      style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                         color: AppColors.textSecondary,
-                        fontSize: isCompact ? 10.sp : 10.0,
                         letterSpacing: 0,
                       ),
                     ),
@@ -125,10 +123,9 @@ class _EliteToggle extends StatelessWidget {
               alignment: Alignment.center,
               child: Text(
                 options[index],
-                style: AppTextStyles.labelSmall.copyWith(
+                style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                   color: isSelected ? Colors.white : AppColors.textSecondary.withValues(alpha: 0.4),
-                  fontWeight: isSelected ? FontWeight.w500 : FontWeight.w500,
-                  fontSize: isCompact ? 11.sp : 11.0,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   letterSpacing: 1.0,
                 ),
               ),

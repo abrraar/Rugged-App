@@ -33,6 +33,8 @@ class AppRoutes {
   static const String settingsBodyComp = '/settings/body-comp';
   static const String manageEmail = '/settings/manage-email';
   static const String changePassword = '/settings/change-password';
+  static const String deleteAccount = '/settings/delete-account';
+  static const String proUpgrade    = '/pro-upgrade';
 
   static const String authCallback = '/auth/callback';
   static const String verifyEmail  = '/verify-email';

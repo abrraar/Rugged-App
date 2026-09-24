@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/core/widgets/elite_settings_app_bar.dart';
-import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/core/widgets/elite_settings_app_bar.dart';
+import 'package:rugged/features/auth/provider/auth_provider.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/widgets/elite_snackbar.dart';
+
 class ChangeUsernameScreen extends StatefulWidget {
-  const ChangeUsernameScreen({super.key});
+  final bool isEmbedded;
+  const ChangeUsernameScreen({super.key, this.isEmbedded = false});
 
   @override
   State<ChangeUsernameScreen> createState() => _ChangeUsernameScreenState();
@@ -65,9 +68,7 @@ class _ChangeUsernameScreenState extends State<ChangeUsernameScreen> {
       try {
         await authProv.updateUserProfile(username: newUsername);
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("USERNAME UPDATED SUCCESSFULLY"), backgroundColor: Colors.green),
-        );
+        EliteSnackbar.show(context, "USERNAME UPDATED SUCCESSFULLY");
         context.pop();
       } catch (e) {
         setState(() {
@@ -90,6 +91,7 @@ class _ChangeUsernameScreenState extends State<ChangeUsernameScreen> {
     final authProv = context.watch<AuthProvider>();
     final isLoading = authProv.isLoading || _isChecking;
     final currentUsername = authProv.username;
+    final hasUsername = authProv.hasUsername;
     final enteredUsername = _usernameController.text.trim();
     final isChanged = enteredUsername.isNotEmpty && enteredUsername != currentUsername;
 
@@ -102,14 +104,13 @@ class _ChangeUsernameScreenState extends State<ChangeUsernameScreen> {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final bool isCompact = constraints.maxWidth < 600 && !isLargeScreen;
-            final bool isWideLandscape = isLargeScreen && MediaQuery.of(context).orientation == Orientation.landscape;
 
             return Column(
               children: [
                 EliteSettingsAppBar(
                   title: "IDENTITY", 
                   isCompact: isCompact,
-                  showBackButton: !isWideLandscape,
+                  showBackButton: !widget.isEmbedded,
                 ),
                 Expanded(
                   child: SingleChildScrollView(
@@ -121,19 +122,19 @@ class _ChangeUsernameScreenState extends State<ChangeUsernameScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "CHANGE USERNAME",
-                          style: AppTextStyles.h1.copyWith(
-                            fontSize: isLargeScreen ? 28.0 : 32.sp, 
+                          hasUsername ? "CHANGE USERNAME" : "CREATE USERNAME",
+                          style: AppTextStyles.h1.adaptive(context).copyWith(
                             letterSpacing: -1
                           ),
                         ),
                         SizedBox(height: isLargeScreen ? 8.0 : 8.h),
                         Text(
-                          "CHOOSE YOUR UNIQUE ELITE TAG",
-                          style: AppTextStyles.labelSmall.copyWith(
+                          hasUsername 
+                            ? "CHOOSE YOUR UNIQUE ELITE TAG"
+                            : "CHOOSE A UNIQUE ELITE TAG FOR YOUR ACCOUNT",
+                          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                             color: AppColors.textSecondary, 
                             letterSpacing: 1.5,
-                            fontSize: isLargeScreen ? 11.0 : null,
                           ),
                         ),
                         SizedBox(height: isLargeScreen ? 40.0 : 40.h),
@@ -141,9 +142,8 @@ class _ChangeUsernameScreenState extends State<ChangeUsernameScreen> {
                         _buildLabel("NEW USERNAME", isCompact, isLargeScreen),
                         TextField(
                           controller: _usernameController,
-                          style: AppTextStyles.inputText.copyWith(
+                          style: AppTextStyles.inputText.adaptive(context).copyWith(
                             color: Colors.white,
-                            fontSize: isLargeScreen ? 14.0 : null,
                           ),
                           onChanged: (_) => setState(() {
                             _isAvailable = null;
@@ -152,9 +152,8 @@ class _ChangeUsernameScreenState extends State<ChangeUsernameScreen> {
                           }),
                           decoration: InputDecoration(
                             hintText: "ENTER USERNAME",
-                            hintStyle: TextStyle(
+                            hintStyle: AppTextStyles.inputText.adaptive(context).copyWith(
                               color: Colors.white24,
-                              fontSize: isLargeScreen ? 14.0 : null,
                             ),
                             filled: true,
                             fillColor: AppColors.surfaceLight.withValues(alpha: 0.3),
@@ -180,9 +179,8 @@ class _ChangeUsernameScreenState extends State<ChangeUsernameScreen> {
                             ),
                             child: Text(
                               _errorText!, 
-                              style: AppTextStyles.labelSmall.copyWith(
+                              style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                 color: AppColors.error, 
-                                fontSize: isLargeScreen ? 10.0 : 10.sp,
                                 fontWeight: FontWeight.w500,
                                 letterSpacing: 1.2,
                               ),
@@ -216,10 +214,9 @@ class _ChangeUsernameScreenState extends State<ChangeUsernameScreen> {
                                 ),
                                 child: Text(
                                   s, 
-                                  style: AppTextStyles.labelSmall.copyWith(
+                                  style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                     color: AppColors.crimson, 
                                     fontWeight: FontWeight.w500,
-                                    fontSize: isLargeScreen ? 10.0 : 10.sp,
                                   ),
                                 ),
                               ),
@@ -229,7 +226,7 @@ class _ChangeUsernameScreenState extends State<ChangeUsernameScreen> {
 
                         SizedBox(height: isLargeScreen ? 60.0 : 60.h),
                         _PrimaryButton(
-                          label: "VERIFY & SAVE",
+                          label: hasUsername ? "VERIFY & SAVE" : "CREATE TAG",
                           isLoading: isLoading,
                           enabled: isChanged,
                           onTap: _handleVerifyAndSave,
@@ -256,11 +253,10 @@ class _ChangeUsernameScreenState extends State<ChangeUsernameScreen> {
       ),
       child: Text(
         text,
-        style: AppTextStyles.labelSmall.copyWith(
+        style: AppTextStyles.labelSmall.adaptive(context).copyWith(
           color: AppColors.textSecondary, 
           letterSpacing: 1.5, 
           fontWeight: FontWeight.w500,
-          fontSize: isLargeScreen ? 11.0 : null,
         ),
       ),
     );
@@ -307,10 +303,9 @@ class _PrimaryButton extends StatelessWidget {
             ? const CircularProgressIndicator(color: Colors.white)
             : Text(
                 label, 
-                style: AppTextStyles.labelMedium.copyWith(
+                style: AppTextStyles.labelMedium.adaptive(context).copyWith(
                   color: Colors.white, 
                   fontWeight: FontWeight.w500,
-                  fontSize: isLargeScreen ? 14.0 : null,
                 ),
               ),
         ),

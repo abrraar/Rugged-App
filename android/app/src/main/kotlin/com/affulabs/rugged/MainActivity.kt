@@ -1,4 +1,4 @@
-package org.heavydutyapp
+package com.affulabs.rugged
 
 import android.os.Build
 import android.os.Bundle

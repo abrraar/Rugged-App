@@ -2,12 +2,14 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/constants/dimensions.dart';
-import 'package:heavy_duty/core/providers/ui_provider.dart';
+import 'package:rugged/core/constants/dimensions.dart';
+import 'package:rugged/core/providers/ui_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:collection/collection.dart';
+
+import 'package:rugged/core/widgets/elite_refresh_indicator.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -21,7 +23,7 @@ import '../tracker/cycle_tracker/model/workout.dart';
 import '../tracker/cycle_tracker/exercise_list_screen.dart';
 import '../tracker/cycle_tracker/cycle_tracking_screen.dart';
 
-import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
+import 'package:rugged/core/widgets/elite_snackbar.dart';
 import 'widgets/welcome_header.dart';
 import 'widgets/affirmation_card.dart';
 import 'widgets/water_tracker_card.dart';
@@ -56,7 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ? (width - kMaxContentWidth).clamp(40.0, double.infinity) / 2 
                 : 20.w;
 
-            return RefreshIndicator(
+            return EliteRefreshIndicator(
               onRefresh: _refreshData,
               color: AppColors.crimson,
               backgroundColor: AppColors.surface,
@@ -104,7 +106,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   
-                  SliverToBoxAdapter(child: SizedBox(height: 50.h)),
+                  SliverToBoxAdapter(child: SizedBox(height: 12.h)),
                 ],
               ),
             );
@@ -252,7 +254,7 @@ class _WorkoutMetricTile extends StatelessWidget {
         label: isHistory ? 'Last Workout' : 'Upcoming',
         value: workout?.name ?? (activeCycle == null ? 'Start Cycle' : (isHistory ? 'No History' : 'Cycle Complete')),
         icon: isHistory ? Icons.history : Icons.calendar_today_rounded,
-        date: workout?.completedAt != null ? DateFormat('MMM dd, yyyy').format(workout!.completedAt!) : (!isHistory && workout != null ? 'Next Session' : null),
+        date: workout?.completedAt != null ? DateFormat('MMM dd, yyyy').format(workout!.completedAt!) : null,
         isCompact: isCompact,
       ),
     );
@@ -273,7 +275,7 @@ class _MealLogSection extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text("MEAL QUICK LOG", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 2.0, fontSize: isCompact ? 13.sp : 12.sp, fontWeight: FontWeight.w500)),
+              Text("MEAL QUICK LOG", style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary, letterSpacing: 2.0, fontWeight: FontWeight.w500)),
               SizedBox(height: 12.r),
               SizedBox(
                 height: 155.r,
@@ -337,6 +339,7 @@ class _MealLogSection extends StatelessWidget {
       timestamp: DateTime.now()
     ));
     
+    if (!context.mounted) return;
     _showMealLogConfirmation(context, meal, provider, logId);
   }
 
@@ -390,7 +393,7 @@ class _SupplementLogSection extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text("SUPPLEMENT QUICK LOG", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 2.0, fontSize: isCompact ? 13.sp : 12.sp, fontWeight: FontWeight.w500)),
+              Text("SUPPLEMENT QUICK LOG", style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary, letterSpacing: 2.0, fontWeight: FontWeight.w500)),
               SizedBox(height: 12.r),
               SizedBox(
                 height: 160.r, 
@@ -422,7 +425,7 @@ class _StackLogSection extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text("STACK QUICK LOG", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 2.0, fontSize: isCompact ? 13.sp : 12.sp, fontWeight: FontWeight.w500)),
+              Text("STACK QUICK LOG", style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary, letterSpacing: 2.0, fontWeight: FontWeight.w500)),
               SizedBox(height: 12.r),
               SizedBox(
                 height: 165.r,

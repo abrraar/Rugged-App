@@ -1,26 +1,30 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
+import 'package:rugged/core/navigation/app_routes.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
-import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/core/widgets/elite_refresh_indicator.dart';
+import 'package:rugged/core/widgets/elite_confirm_dialog.dart';
+import 'package:rugged/core/widgets/elite_snackbar.dart';
 import 'package:provider/provider.dart';
-import 'package:heavy_duty/features/tracker/calorie/widgets/sheets/calorie_notification_sheet.dart';
-import 'package:heavy_duty/features/tracker/calorie/widgets/calorie_analytical_widget.dart';
+import 'package:rugged/features/tracker/calorie/widgets/sheets/calorie_notification_sheet.dart';
+import 'package:rugged/features/tracker/calorie/widgets/calorie_analytical_widget.dart';
+import 'package:rugged/core/ads/locked_analytics_overlay.dart';
 import '../../main_wrapper.dart';
 import 'model/saved_meal.dart';
-import 'package:heavy_duty/features/tracker/calorie/provider/calorie_provider.dart';
-import 'package:heavy_duty/features/tracker/calorie/widgets/add_meal_sheet.dart';
-import 'package:heavy_duty/core/utils/adaptive_utils.dart';
-import 'package:heavy_duty/features/tracker/calorie/model/calorie_log.dart';
-import 'package:heavy_duty/features/tracker/supplement/provider/supplement_provider.dart';
-import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
+import 'package:rugged/features/tracker/calorie/provider/calorie_provider.dart';
+import 'package:rugged/features/tracker/calorie/widgets/add_meal_sheet.dart';
+import 'package:rugged/core/utils/adaptive_utils.dart';
+import 'package:rugged/features/tracker/calorie/model/calorie_log.dart';
+import 'package:rugged/features/tracker/supplement/provider/supplement_provider.dart';
+import 'package:rugged/features/auth/provider/auth_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
-import 'package:heavy_duty/core/constants/dimensions.dart';
+import 'package:rugged/core/constants/dimensions.dart';
 
 class CalorieScreen extends StatefulWidget {
   final int initialTabIndex;
@@ -39,7 +43,6 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
   final Set<String> _expandedSupplementIds = {};
 
   // Analytical Tab State
-  final Set<String> _visibleAnalyticalMetrics = {"calories", "protein", "carbs", "fats"};
   int? _comparisonIdx1;
   int? _comparisonIdx2;
 
@@ -125,8 +128,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                     SizedBox(height: isCompact ? 16.h : 16.0),
                     Text(
                       "LOG MEAL",
-                      style: AppTextStyles.h3.copyWith(
-                        fontSize: isCompact ? 16.sp : 15.0,
+                      style: AppTextStyles.h3.adaptive(context).copyWith(
                         letterSpacing: 1.2
                       ),
                       textAlign: TextAlign.center,
@@ -139,9 +141,8 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                     Text(
                       "ADJUST SERVINGS FOR '${meal.name.toUpperCase()}'",
                       textAlign: TextAlign.center,
-                      style: AppTextStyles.labelSmall.copyWith(
+                      style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                         color: AppColors.textSecondary,
-                        fontSize: isCompact ? 13.sp : 11.0,
                       ),
                     ),
                     SizedBox(height: isCompact ? 24.h : 20.0),
@@ -162,11 +163,23 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                             },
                             icon: const Icon(Icons.remove_circle_outline_rounded, color: Colors.white24),
                           ),
-                          Text(
-                            "${tempServings % 1 == 0 ? tempServings.toInt() : tempServings.toStringAsFixed(1)}X",
-                            style: AppTextStyles.h2.copyWith(
-                              color: AppColors.crimson,
-                              fontSize: isCompact ? 28.sp : 24.0,
+                          Text.rich(
+                            TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: tempServings % 1 == 0 ? tempServings.toInt().toString() : tempServings.toStringAsFixed(1),
+                                  style: AppTextStyles.h2.adaptive(context).copyWith(
+                                    color: AppColors.white,
+                                  ),
+                                ),
+                                TextSpan(
+                                  text: "X",
+                                  style: AppTextStyles.h2.adaptive(context).copyWith(
+                                    color: AppColors.white,
+                                    fontSize: 16.0,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           IconButton(
@@ -200,9 +213,8 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                               alignment: Alignment.center,
                               child: Text(
                                 "CANCEL",
-                                style: AppTextStyles.labelMedium.copyWith(
+                                style: AppTextStyles.labelMedium.adaptive(context).copyWith(
                                   color: AppColors.textSecondary,
-                                  fontSize: isCompact ? 14.sp : 12.0,
                                 ),
                               ),
                             ),
@@ -222,10 +234,9 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                               alignment: Alignment.center,
                               child: Text(
                                 "CONFIRM",
-                                style: AppTextStyles.labelMedium.copyWith(
+                                style: AppTextStyles.labelMedium.adaptive(context).copyWith(
                                   color: Colors.greenAccent,
                                   fontWeight: FontWeight.w500,
-                                  fontSize: isCompact ? 14.sp : 12.0,
                                 ),
                               ),
                             ),
@@ -332,7 +343,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
         servings: finalServings,
         timestamp: DateTime.now(),
       ));
-
+      if (!mounted) return;
       EliteSnackbar.show(context, "${meal.name} logged!");
     }
   }
@@ -391,10 +402,9 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                               child: Text(
                                 'CALORIE TRACKER',
                                 textAlign: TextAlign.center,
-                                style: AppTextStyles.h2.copyWith(
+                                style: AppTextStyles.h2.adaptive(context).copyWith(
                                   color: AppColors.white,
                                   fontWeight: FontWeight.w500,
-                                  fontSize: isCompact ? 20.sp : 20.0,
                                 ),
                               ),
                             ),
@@ -414,9 +424,8 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                       controller: _tabController,
                       indicatorColor: AppColors.crimson,
                       indicatorSize: TabBarIndicatorSize.tab,
-                      labelStyle: AppTextStyles.labelMedium.copyWith(
+                      labelStyle: AppTextStyles.labelMedium.adaptive(context).copyWith(
                         fontWeight: FontWeight.w500,
-                        fontSize: isCompact ? 11.sp : 11.0,
                       ),
                       unselectedLabelColor: AppColors.textSecondary,
                       labelColor: AppColors.crimson,
@@ -456,10 +465,9 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
           return Center(
             child: Text(
               "LOG MEALS TO VIEW TRENDS",
-              style: AppTextStyles.labelSmall.copyWith(
-                color: AppColors.textSecondary.withOpacity(0.3),
+              style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+                color: AppColors.textSecondary.withValues(alpha: 0.3),
                 letterSpacing: 1,
-                fontSize: isCompact ? 10.sp : 10.0,
               ),
             ),
           );
@@ -478,125 +486,93 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
           "fats": sortedLogs.map((l) => l.fats != null ? l.fats! * 9 : null).toList(),
         };
 
-        return RefreshIndicator(
+        final double width = MediaQuery.sizeOf(context).width;
+        final bool isLandscape = MediaQuery.orientationOf(context) == Orientation.landscape;
+        final bool isTabletOrFoldable = width >= 600;
+        final bool isWideLandscape = isTabletOrFoldable && isLandscape;
+
+        Widget buildTrendAndOverlayContent() {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CalorieAnalyticalGraph(
+                dates: sortedDates,
+                data: aggregatedData,
+                visibleMetrics: provider.visibleMetrics,
+                onPointSelected: (idx) {},
+                isCompact: isCompact,
+              ),
+              SizedBox(height: isCompact ? 32.h : 24.0),
+              _buildSectionHeader("METRIC OVERLAY", isCompact),
+              SizedBox(height: isCompact ? 16.h : 12.0),
+              Wrap(
+                spacing: isCompact ? 10.w : 10.0,
+                runSpacing: isCompact ? 10.h : 10.0,
+                children: [
+                  _buildAnalyticalMetricToggle("CALORIES", "calories", AppColors.crimson, isCompact),
+                  _buildAnalyticalMetricToggle("PROTEIN (kcal)", "protein", Colors.blueAccent, isCompact),
+                  _buildAnalyticalMetricToggle("CARBS (kcal)", "carbs", Colors.greenAccent, isCompact),
+                  _buildAnalyticalMetricToggle("FATS (kcal)", "fats", Colors.orangeAccent, isCompact),
+                ],
+              ),
+            ],
+          );
+        }
+
+        Widget buildComparisonContent() {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionHeader("DATA COMPARISON", isCompact),
+              SizedBox(height: isCompact ? 16.h : 12.0),
+              CalorieComparisonWidget(
+                idx1: _comparisonIdx1,
+                idx2: _comparisonIdx2,
+                dates: sortedDates,
+                data: aggregatedData,
+                isCompact: isCompact,
+                onPointAChanged: (val) => setState(() => _comparisonIdx1 = val),
+                onPointBChanged: (val) => setState(() => _comparisonIdx2 = val),
+              ),
+            ],
+          );
+        }
+
+        return EliteRefreshIndicator(
           onRefresh: () => provider.forceRefresh(),
           color: AppColors.crimson,
           backgroundColor: AppColors.surface,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final bool isWide = constraints.maxWidth > 700;
-
-              if (isWide) {
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // --- LEFT COLUMN: ANALYTICS ---
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: EdgeInsets.all(isCompact ? 24.r : 20.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildSectionHeader("ENERGY TRENDS (KCAL)", isCompact),
-                            SizedBox(height: isCompact ? 24.h : 20.0),
-                            CalorieAnalyticalGraph(
-                              dates: sortedDates,
-                              data: aggregatedData,
-                              visibleMetrics: _visibleAnalyticalMetrics,
-                              onPointSelected: (idx) {},
-                              isCompact: isCompact,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    VerticalDivider(color: AppColors.white.withOpacity(0.05), width: 1),
-                    // --- RIGHT COLUMN: OVERLAY & COMPARISON ---
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: EdgeInsets.all(isCompact ? 24.r : 20.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildSectionHeader("METRIC OVERLAY", isCompact),
-                            SizedBox(height: isCompact ? 16.h : 12.0),
-                            Wrap(
-                              spacing: isCompact ? 10.w : 10.0,
-                              runSpacing: isCompact ? 10.h : 10.0,
-                              children: [
-                                _buildAnalyticalMetricToggle("CALORIES", "calories", AppColors.crimson, isCompact),
-                                _buildAnalyticalMetricToggle("PROTEIN (kcal)", "protein", Colors.blueAccent, isCompact),
-                                _buildAnalyticalMetricToggle("CARBS (kcal)", "carbs", Colors.greenAccent, isCompact),
-                                _buildAnalyticalMetricToggle("FATS (kcal)", "fats", Colors.orangeAccent, isCompact),
-                              ],
-                            ),
-                            SizedBox(height: isCompact ? 40.h : 32.0),
-                            _buildSectionHeader("DATA COMPARISON", isCompact),
-                            SizedBox(height: isCompact ? 16.h : 12.0),
-                            CalorieComparisonWidget(
-                              idx1: _comparisonIdx1,
-                              idx2: _comparisonIdx2,
-                              dates: sortedDates,
-                              data: aggregatedData,
-                              isCompact: isCompact,
-                              onPointAChanged: (val) => setState(() => _comparisonIdx1 = val),
-                              onPointBChanged: (val) => setState(() => _comparisonIdx2 = val),
-                            ),
-                            SizedBox(height: 40.h),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              }
-
-              // --- MOBILE: SINGLE COLUMN ---
-              return SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-                padding: EdgeInsets.all(isCompact ? 24.r : 20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSectionHeader("ENERGY TRENDS (KCAL)", isCompact),
-                    SizedBox(height: isCompact ? 24.h : 20.0),
-                    CalorieAnalyticalGraph(
-                      dates: sortedDates,
-                      data: aggregatedData,
-                      visibleMetrics: _visibleAnalyticalMetrics,
-                      onPointSelected: (idx) {},
-                      isCompact: isCompact,
-                    ),
-                    SizedBox(height: isCompact ? 32.h : 24.0),
-                    _buildSectionHeader("METRIC OVERLAY", isCompact),
-                    SizedBox(height: isCompact ? 16.h : 12.0),
-                    Wrap(
-                      spacing: isCompact ? 10.w : 10.0,
-                      runSpacing: isCompact ? 10.h : 10.0,
+          child: LockedAnalyticsOverlay(
+            unlockKey: 'calorie_analytics',
+            isCompact: isCompact,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+              padding: EdgeInsets.all(isCompact ? 24.r : 20.0),
+              child: isWideLandscape 
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildAnalyticalMetricToggle("CALORIES", "calories", AppColors.crimson, isCompact),
-                        _buildAnalyticalMetricToggle("PROTEIN (kcal)", "protein", Colors.blueAccent, isCompact),
-                        _buildAnalyticalMetricToggle("CARBS (kcal)", "carbs", Colors.greenAccent, isCompact),
-                        _buildAnalyticalMetricToggle("FATS (kcal)", "fats", Colors.orangeAccent, isCompact),
+                        Expanded(
+                          flex: 5,
+                          child: buildTrendAndOverlayContent(),
+                        ),
+                        SizedBox(width: 32.0),
+                        Expanded(
+                          flex: 4,
+                          child: buildComparisonContent(),
+                        ),
+                      ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        buildTrendAndOverlayContent(),
+                        SizedBox(height: isCompact ? 40.h : 32.0),
+                        buildComparisonContent(),
+                        SizedBox(height: 40.h),
                       ],
                     ),
-                    SizedBox(height: isCompact ? 40.h : 32.0),
-                    _buildSectionHeader("DATA COMPARISON", isCompact),
-                    SizedBox(height: isCompact ? 16.h : 12.0),
-                    CalorieComparisonWidget(
-                      idx1: _comparisonIdx1,
-                      idx2: _comparisonIdx2,
-                      dates: sortedDates,
-                      data: aggregatedData,
-                      isCompact: isCompact,
-                      onPointAChanged: (val) => setState(() => _comparisonIdx1 = val),
-                      onPointBChanged: (val) => setState(() => _comparisonIdx2 = val),
-                    ),
-                    SizedBox(height: 40.h),
-                  ],
-                ),
-              );
-            },
+            ),
           ),
         );
       },
@@ -604,25 +580,26 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
   }
 
   Widget _buildAnalyticalMetricToggle(String label, String key, Color color, bool isCompact) {
-    final bool isActive = _visibleAnalyticalMetrics.contains(key);
+    final provider = context.watch<CalorieProvider>();
+    final bool isActive = provider.visibleMetrics.contains(key);
     return GestureDetector(
       onTap: () {
-        setState(() {
-          if (isActive) {
-            _visibleAnalyticalMetrics.remove(key);
-          } else {
-            _visibleAnalyticalMetrics.add(key);
-          }
-        });
+        final newMetrics = Set<String>.from(provider.visibleMetrics);
+        if (isActive) {
+          newMetrics.remove(key);
+        } else {
+          newMetrics.add(key);
+        }
+        provider.setVisibleMetrics(newMetrics);
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: EdgeInsets.symmetric(horizontal: isCompact ? 16.w : 12.0, vertical: isCompact ? 10.h : 8.0),
         decoration: BoxDecoration(
-          color: isActive ? color.withOpacity(0.1) : AppColors.surface,
+          color: isActive ? color.withValues(alpha: 0.1) : AppColors.surfaceLight.withValues(alpha: 0.6),
           borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
           border: Border.all(
-            color: isActive ? color : AppColors.white.withOpacity(0.05),
+            color: isActive ? color : AppColors.border,
             width: 1.5,
           ),
         ),
@@ -633,18 +610,17 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
               width: isCompact ? 8.r : 6.0,
               height: isCompact ? 8.r : 6.0,
               decoration: BoxDecoration(
-                color: isActive ? color : AppColors.textSecondary.withOpacity(0.3),
+                color: isActive ? color : AppColors.textSecondary.withValues(alpha: 0.3),
                 shape: BoxShape.circle,
               ),
             ),
             SizedBox(width: isCompact ? 10.w : 8.0),
             Text(
               label,
-              style: AppTextStyles.labelSmall.copyWith(
+              style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                 color: isActive ? AppColors.white : AppColors.textSecondary,
                 fontWeight: FontWeight.w500,
                 letterSpacing: 1,
-                fontSize: isCompact ? 10.sp : 10.0,
               ),
             ),
           ],
@@ -659,7 +635,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
         final settings = provider.settings;
         final consumed = provider.consumedCalories;
 
-        return RefreshIndicator(
+        return EliteRefreshIndicator(
           onRefresh: () => provider.forceRefresh(),
           color: AppColors.crimson,
           backgroundColor: AppColors.surface,
@@ -676,6 +652,11 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                       child: ListView(
                         padding: EdgeInsets.symmetric(vertical: 20.0),
                         children: [
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 24.0),
+                            child: _buildSectionHeader("CONSUMED", isCompact),
+                          ),
+                          SizedBox(height: 12.0),
                           _buildEnergySummary(
                             consumed, 
                             settings.dailyCalorieGoal,
@@ -686,6 +667,11 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                           ),
                           if (settings.trackMacros) ...[
                             SizedBox(height: 24.0),
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 24.0),
+                              child: _buildSectionHeader("MACROS", isCompact),
+                            ),
+                            SizedBox(height: 12.0),
                             _buildMacroSection(
                               provider.proteinTotal,
                               provider.carbsTotal,
@@ -696,13 +682,15 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                         ],
                       ),
                     ),
-                    VerticalDivider(color: AppColors.white.withOpacity(0.05), width: 1),
+                    VerticalDivider(color: AppColors.white..withValues(alpha: 0.05), width: 1),
                     // --- RIGHT COLUMN: MEAL LOG ---
                     Expanded(
                       child: ListView(
                         padding: EdgeInsets.all(20.0),
                         children: [
-                          _buildMealLogSection(provider, isCompact),
+                          _buildSectionHeader("MEAL LOG", isCompact),
+                          SizedBox(height: 12.0),
+                          _buildMealLogSection(context, provider, isCompact),
                         ],
                       ),
                     ),
@@ -714,8 +702,14 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
               return SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SizedBox(height: isCompact ? 20.h : 20.0),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: isCompact ? 20.w : 24.0),
+                      child: _buildSectionHeader("CONSUMED", isCompact),
+                    ),
+                    SizedBox(height: isCompact ? 12.h : 10.0),
                     _buildEnergySummary(
                       consumed, 
                       settings.dailyCalorieGoal,
@@ -726,6 +720,11 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                     ),
                     if (settings.trackMacros) ...[
                       SizedBox(height: 24.h),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: isCompact ? 20.w : 24.0),
+                        child: _buildSectionHeader("MACROS", isCompact),
+                      ),
+                      SizedBox(height: isCompact ? 12.h : 10.0),
                       _buildMacroSection(
                         provider.proteinTotal,
                         provider.carbsTotal,
@@ -736,7 +735,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                     SizedBox(height: 24.h),
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: isCompact ? 20.w : 24.0),
-                      child: _buildMealLogSection(provider, isCompact),
+                      child: _buildMealLogSection(context, provider, isCompact),
                     ),
                     SizedBox(height: 40.h),
                   ],
@@ -754,7 +753,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
       builder: (context, provider, _) {
         final savedMeals = provider.savedMeals;
 
-        return RefreshIndicator(
+        return EliteRefreshIndicator(
           onRefresh: () => provider.forceRefresh(),
           color: AppColors.crimson,
           backgroundColor: AppColors.surface,
@@ -778,12 +777,12 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                         ],
                       ),
                     ),
-                    VerticalDivider(color: AppColors.white.withOpacity(0.05), width: 1),
+                    VerticalDivider(color: AppColors.white..withValues(alpha: 0.05), width: 1),
                     // --- RIGHT COLUMN: SAVED MEALS ---
                     Expanded(
                       flex: 6,
                       child: savedMeals.isEmpty 
-                          ? Center(child: Text("No saved meals in your library.", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 12.0)))
+                          ? Center(child: Text("No saved meals in your library.", style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary)))
                           : ListView.builder(
                               padding: EdgeInsets.all(20.0),
                               itemCount: savedMeals.length,
@@ -882,9 +881,8 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
             SizedBox(width: 8.w),
             Text(
               "ADD A MEAL",
-              style: AppTextStyles.buttonPrimary.copyWith(
+              style: AppTextStyles.buttonPrimary.adaptive(context).copyWith(
                 color: AppColors.crimson,
-                fontSize: isCompact ? 12.sp : 12.0,
               ),
             ),
           ],
@@ -946,7 +944,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                       ),
                     ),
                   ),
-                  VerticalDivider(color: AppColors.white.withOpacity(0.05), width: 1),
+                  VerticalDivider(color: AppColors.white..withValues(alpha: 0.05), width: 1),
                   // --- RIGHT COLUMN: SLIDER + LOGS ---
                   Expanded(
                     flex: 5,
@@ -984,7 +982,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                                   child: Center(
                                     child: Text(
                                       "No logs for this date.",
-                                      style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: isCompact ? 13.sp : 12.0),
+                                      style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary),
                                     ),
                                   ),
                                 ),
@@ -1143,11 +1141,28 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                 onTap: () async {
                   final DateTime? picked = await showDatePicker(
                     context: context,
+                    useRootNavigator: true,
                     initialDate: _selectedHistoryDate,
                     firstDate: DateTime(2020),
                     lastDate: DateTime.now(),
-                    builder: (context, child) => child!,
+                    builder: (context, child) => Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 520),
+                        child: Theme(
+                          data: Theme.of(context).copyWith(
+                            colorScheme: const ColorScheme.dark(
+                              primary: AppColors.crimson,
+                              onPrimary: Colors.white,
+                              surface: AppColors.surface,
+                              onSurface: Colors.white,
+                            ),
+                          ),
+                          child: child!,
+                        ),
+                      ),
+                    ),
                   );
+                  if (!context.mounted) return;
                   if (picked != null) {
                     setState(() {
                       _selectedHistoryDate = picked;
@@ -1157,7 +1172,12 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                 },
                 child: Text(
                   DateFormat('MMMM yyyy').format(_displayedMonth).toUpperCase(),
-                  style: AppTextStyles.labelMedium.copyWith(color: Colors.white, letterSpacing: 1.5, fontSize: isCompact ? 14.sp : 14.0),
+                  style: AppTextStyles.labelMedium.adaptive(context).copyWith(
+                    color: Colors.white, 
+                    letterSpacing: 1.5,
+                    fontSize: isCompact ? 14.0 : 16.0,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
               IconButton(
@@ -1168,21 +1188,29 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
               ),
             ],
           ),
-          SizedBox(height: isCompact ? 10.h : 8.0),
+          const SizedBox(height: 8.0),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: ["M", "T", "W", "T", "F", "S", "S"].map((d) => Expanded(
-              child: Text(d, textAlign: TextAlign.center, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.5), fontSize: isCompact ? 10.sp : 10.0)),
+              child: Text(
+                d, 
+                textAlign: TextAlign.center, 
+                style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+                  color: AppColors.textSecondary.withValues(alpha: 0.5),
+                  fontSize: isCompact ? 11.0 : 13.0,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             )).toList(),
           ),
-          SizedBox(height: isCompact ? 10.h : 8.0),
+          const SizedBox(height: 8.0),
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 7,
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
+              mainAxisSpacing: 6,
+              crossAxisSpacing: 6,
             ),
             itemCount: daysInMonth + (firstDayOfMonth - 1),
             itemBuilder: (context, index) {
@@ -1205,39 +1233,43 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                     _selectedHistoryDate = date;
                   });
                 },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  decoration: BoxDecoration(
-                    color: isSelected ? AppColors.crimson : Colors.transparent,
-                    shape: BoxShape.circle,
-                    border: isToday && !isSelected 
-                        ? Border.all(color: AppColors.crimson.withValues(alpha: 0.5))
-                        : null,
-                  ),
-                  alignment: Alignment.center,
-                  child: Stack(
+                child: AspectRatio(
+                  aspectRatio: 1.0,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    decoration: BoxDecoration(
+                      color: isSelected ? AppColors.crimson : Colors.transparent,
+                      shape: BoxShape.circle,
+                      border: isToday && !isSelected 
+                          ? Border.all(color: AppColors.crimson.withValues(alpha: 0.5))
+                          : null,
+                    ),
                     alignment: Alignment.center,
-                    children: [
-                      Text(
-                        day.toString(),
-                        style: AppTextStyles.labelSmall.copyWith(
-                          color: isSelected 
-                              ? Colors.white 
-                              : (isFuture ? Colors.white.withValues(alpha: 0.05) : (hasData ? Colors.white : Colors.white.withValues(alpha: 0.2))),
-                          fontWeight: FontWeight.w500,
-                          fontSize: isCompact ? 12.sp : 12.0,
-                        ),
-                      ),
-                      if (hasData && !isSelected)
-                        Positioned(
-                          bottom: isCompact ? 4.h : 4.0,
-                          child: Container(
-                            width: isCompact ? 3.r : 3.0,
-                            height: isCompact ? 3.r : 3.0,
-                            decoration: const BoxDecoration(color: AppColors.crimson, shape: BoxShape.circle),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          day.toString(),
+                          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+                            fontSize: isCompact ? 13.0 : 15.0,
+                            color: isSelected 
+                                ? Colors.white 
+                                : (isFuture ? Colors.white.withValues(alpha: 0.05) : (hasData ? Colors.white : Colors.white.withValues(alpha: 0.2))),
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                    ],
+                        const SizedBox(height: 2.0),
+                        Container(
+                          width: 4.0,
+                          height: 4.0,
+                          decoration: BoxDecoration(
+                            color: (hasData && !isSelected) ? AppColors.crimson : Colors.transparent,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -1292,7 +1324,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                 children: [
                   Text(
                     DateFormat('EEE').format(dateOnly).toUpperCase(),
-                    style: AppTextStyles.labelSmall.copyWith(
+                    style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                       fontSize: isCompact ? 10.sp : 10.0,
                       color: isSelected 
                           ? Colors.white 
@@ -1303,8 +1335,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                   SizedBox(height: isCompact ? 4.h : 4.0),
                   Text(
                     dateOnly.day.toString(),
-                    style: AppTextStyles.h3.copyWith(
-                      fontSize: isCompact ? 16.sp : 16.0,
+                    style: AppTextStyles.h3.adaptive(context).copyWith(
                       color: isSelected 
                           ? Colors.white 
                           : (hasData ? AppColors.white : AppColors.white.withValues(alpha: 0.15)),
@@ -1354,34 +1385,24 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "CONSUMED",
-                    style: AppTextStyles.labelSmall.copyWith(
-                      color: AppColors.textSecondary,
-                      fontSize: isCompact ? 10.sp : 9.0,
-                    ),
-                  ),
-                  Text(
                     "$consumed",
-                    style: AppTextStyles.h1.copyWith(
-                      fontSize: isCompact ? 32.sp : 24.0,
+                    style: AppTextStyles.h1.adaptive(context).copyWith(
                       color: AppColors.white,
                     ),
                   ),
                   Text(
                     "/ $goal kcal",
-                    style: AppTextStyles.labelSmall.copyWith(
+                    style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                       color: AppColors.white.withValues(alpha: 0.5),
                       fontWeight: FontWeight.w500,
-                      fontSize: isCompact ? 10.sp : 9.0,
                     ),
                   ),
                   if (settings.showRemaining) ...[
                     SizedBox(height: isCompact ? 8.h : 6.0),
                     Text(
                       isOver ? "OVER: ${remaining.abs()} kcal" : "REMAINING: $remaining kcal",
-                      style: AppTextStyles.labelSmall.copyWith(
+                      style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                         color: isOver ? AppColors.crimson : Colors.greenAccent,
-                        fontSize: isCompact ? 10.sp : 9.0,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -1471,29 +1492,11 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
           padding: EdgeInsets.symmetric(horizontal: isCompact ? 20.w : 24.0),
           child: Row(
             children: [
-              _buildMacroTile(
-                "Protein", 
-                protein != null ? "${protein.toInt()}g" : "-", 
-                "${targetPro.toInt()}g",
-                Colors.blueAccent,
-                isCompact,
-              ),
+              _buildMacroTile("Protein", protein != null ? "${protein.toInt()}g" : "-", "${targetPro.toInt()}g", Colors.blueAccent, isCompact),
               SizedBox(width: isCompact ? 10.w : 10.0),
-              _buildMacroTile(
-                "Carbs", 
-                carbs != null ? "${carbs.toInt()}g" : "-", 
-                "${targetCho.toInt()}g",
-                Colors.greenAccent,
-                isCompact,
-              ),
+              _buildMacroTile("Carbs", carbs != null ? "${carbs.toInt()}g" : "-", "${targetCho.toInt()}g", Colors.greenAccent, isCompact),
               SizedBox(width: isCompact ? 10.w : 10.0),
-              _buildMacroTile(
-                "Fats", 
-                fats != null ? "${fats.toInt()}g" : "-", 
-                "${targetFat.toInt()}g",
-                Colors.orangeAccent,
-                isCompact,
-              ),
+              _buildMacroTile("Fats", fats != null ? "${fats.toInt()}g" : "-", "${targetFat.toInt()}g", Colors.orangeAccent, isCompact),
             ],
           ),
         );
@@ -1506,24 +1509,24 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
       child: Container(
         padding: EdgeInsets.symmetric(vertical: isCompact ? 16.h : 14.0),
         decoration: BoxDecoration(
-          color: AppColors.surfaceLight.withValues(alpha: 0.2),
-          borderRadius: BorderRadius.circular(isCompact ? 16.r : 14.0),
+          color: AppColors.surfaceLight.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(isCompact ? 20.r : 18.0),
+          border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
         ),
         child: Column(
           children: [
             Text(
               value,
-              style: AppTextStyles.labelMedium.copyWith(color: AppColors.white, fontWeight: FontWeight.w500, fontSize: isCompact ? 14.sp : 13.0),
+              style: AppTextStyles.labelMedium.adaptive(context).copyWith(color: AppColors.white, fontWeight: FontWeight.w500),
             ),
             Text(
               "/ $target",
-              style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: isCompact ? 10.sp : 9.0, fontWeight: FontWeight.w500),
+              style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w500),
             ),
             SizedBox(height: isCompact ? 4.h : 4.0),
             Text(
               label.toUpperCase(),
-              style: AppTextStyles.labelSmall.copyWith(
-                fontSize: isCompact ? 9.sp : 8.0,
+              style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                 color: color,
                 fontWeight: FontWeight.w500,
                 letterSpacing: 1,
@@ -1535,7 +1538,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
     );
   }
 
-  Widget _buildMealLogSection(CalorieProvider provider, bool isCompact) {
+  Widget _buildMealLogSection(BuildContext context, CalorieProvider provider, bool isCompact) {
     final todayLogs = provider.logs.where((l) {
       final now = DateTime.now();
       return l.timestamp.year == now.year &&
@@ -1556,7 +1559,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
               padding: EdgeInsets.symmetric(vertical: isCompact ? 20.h : 16.0),
               child: Text(
                 "No meals logged today.",
-                style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: isCompact ? 10.sp : 10.0),
+                style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary),
               ),
             ),
           )
@@ -1589,9 +1592,8 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
             SizedBox(width: 8.w),
             Text(
               "ADD MEAL ENTRY",
-              style: AppTextStyles.buttonPrimary.copyWith(
+              style: AppTextStyles.buttonPrimary.adaptive(context).copyWith(
                 color: AppColors.crimson,
-                fontSize: isCompact ? 12.sp : 12.0,
               ),
             ),
           ],
@@ -1717,12 +1719,12 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(log.mealName.toUpperCase(), 
-                          style: AppTextStyles.h2.copyWith(fontSize: isCompact ? 20.sp : 16.0, color: Colors.white, fontWeight: FontWeight.w500)),
+                          style: AppTextStyles.h2.adaptive(context).copyWith(color: Colors.white, fontWeight: FontWeight.w500)),
                         if (log.foodItems.isNotEmpty)
                           Padding(
                             padding: EdgeInsets.only(top: 4.h),
                             child: Text(log.foodItems, 
-                              style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: isCompact ? 12.sp : 10.0)),
+                              style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary)),
                           ),
                       ],
                     ),
@@ -1784,9 +1786,8 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                   children: [
                     Text(
                       _expandedSupplementIds.contains(log.id) ? "COLLAPSE DETAILS" : "SHOW MORE DETAILS",
-                      style: AppTextStyles.labelSmall.copyWith(
+                      style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                         color: AppColors.textSecondary.withValues(alpha: 0.4),
-                        fontSize: isCompact ? 9.sp : 9.0,
                         letterSpacing: 2,
                         fontWeight: FontWeight.w500,
                       ),
@@ -1968,8 +1969,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                       children: [
                         Text(
                           meal.name.toUpperCase(), 
-                          style: AppTextStyles.h3.copyWith(
-                            fontSize: isCompact ? 16.sp : 15.0, 
+                          style: AppTextStyles.h3.adaptive(context).copyWith(
                             color: Colors.white,
                             letterSpacing: 1,
                           ),
@@ -1991,9 +1991,8 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                                   SizedBox(width: 4.w),
                                   Text(
                                     "SHARED BY ${meal.sharedBy!.toUpperCase()}",
-                                    style: AppTextStyles.labelSmall.copyWith(
+                                    style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                       color: Colors.blueAccent,
-                                      fontSize: isCompact ? 8.sp : 8.0,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
@@ -2008,9 +2007,8 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                               meal.foodItems,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: AppTextStyles.labelSmall.copyWith(
+                              style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                 color: AppColors.textSecondary,
-                                fontSize: isCompact ? 11.sp : 10.0,
                                 height: 1.3,
                               ),
                             ),
@@ -2022,22 +2020,29 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _buildQuickActionButton(
-                        icon: Icons.ios_share_rounded,
-                        isActive: false,
-                        onTap: () async {
-                          final authProvider = context.read<AuthProvider>();
-                          final userName = authProvider.displayName;
-                          EliteSnackbar.show(context, "GENERATING SHAREABLE LINK...");
-                          final link = await provider.generateShareableLink(meal, userName);
-                          if (link != null) {
-                            await Share.share(
-                              "CHECK OUT THIS MEAL SHARED BY $userName IN HEAVY DUTY:\n\n$link",
-                              subject: "MEAL SHARED BY $userName",
-                            );
-                          }
+                      Consumer<AuthProvider>(
+                        builder: (context, authProv, _) {
+                          final bool isPro = authProv.isPro;
+                          return _buildQuickActionButton(
+                            icon: isPro ? Icons.ios_share_rounded : Icons.lock_rounded,
+                            isActive: false,
+                            onTap: () async {
+                              if (!isPro) {
+                                context.push(AppRoutes.proUpgrade);
+                                return;
+                              }
+                              final userName = authProv.displayName;
+                              final link = await provider.generateShareableLink(meal, userName);
+                              if (link != null) {
+                                await Share.share(
+                                  "CHECK OUT THIS MEAL SHARED BY $userName IN RUGGED:\n\n$link",
+                                  subject: "MEAL SHARED BY $userName",
+                                );
+                              }
+                            },
+                            isCompact: isCompact,
+                          );
                         },
-                        isCompact: isCompact,
                       ),
                       SizedBox(width: isCompact ? 8.w : 6.0),
                       _buildQuickActionButton(
@@ -2122,9 +2127,8 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                                   item['name'].toUpperCase(),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: AppTextStyles.labelSmall.copyWith(
+                                  style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                     color: Colors.white,
-                                    fontSize: isCompact ? 11.sp : 10.0,
                                     fontWeight: FontWeight.w500,
                                     letterSpacing: 0.5,
                                   ),
@@ -2137,18 +2141,16 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                                   SizedBox(width: 4.w),
                                   Text(
                                     "+${item['cals']}",
-                                    style: AppTextStyles.h3.copyWith(
+                                    style: AppTextStyles.h3.adaptive(context).copyWith(
                                       color: Colors.white,
-                                      fontSize: isCompact ? 14.sp : 13.0,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
                                   SizedBox(width: 2.w),
                                   Text(
                                     "kcal",
-                                    style: AppTextStyles.labelSmall.copyWith(
+                                    style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                       color: AppColors.textSecondary.withValues(alpha: 0.5),
-                                      fontSize: isCompact ? 8.sp : 8.0,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
@@ -2192,9 +2194,8 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                                 isExpanded 
                                     ? "SHOW FEWER INGREDIENTS" 
                                     : "SHOW ${additions.length - 1} MORE ADDITIONS",
-                                style: AppTextStyles.labelSmall.copyWith(
+                                style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                   color: AppColors.textSecondary.withValues(alpha: 0.4),
-                                  fontSize: isCompact ? 9.sp : 9.0,
                                   fontWeight: FontWeight.w500,
                                   letterSpacing: 1.5,
                                 ),
@@ -2219,9 +2220,8 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                           children: [
                             Text(
                               "TOTAL ADDITIONS:",
-                              style: AppTextStyles.labelSmall.copyWith(
+                              style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                 color: AppColors.textSecondary.withValues(alpha: 0.5),
-                                fontSize: isCompact ? 9.sp : 9.0,
                                 fontWeight: FontWeight.w500,
                                 letterSpacing: 1,
                               ),
@@ -2234,18 +2234,16 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                                 SizedBox(width: 4.w),
                                 Text(
                                   "+$totalAdditionsCals",
-                                  style: AppTextStyles.h3.copyWith(
+                                  style: AppTextStyles.h3.adaptive(context).copyWith(
                                     color: Colors.white,
-                                    fontSize: isCompact ? 14.sp : 13.0,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
                                 SizedBox(width: 2.w),
                                 Text(
                                   "kcal",
-                                  style: AppTextStyles.labelSmall.copyWith(
+                                  style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                     color: AppColors.textSecondary.withValues(alpha: 0.5),
-                                    fontSize: isCompact ? 8.sp : 8.0,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -2271,17 +2269,15 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                       SizedBox(width: 6.w),
                       Text(
                         meal.calories % 1 == 0 ? meal.calories.toInt().toString() : meal.calories.toStringAsFixed(1),
-                        style: AppTextStyles.h3.copyWith(
+                        style: AppTextStyles.h3.adaptive(context).copyWith(
                           color: Colors.white,
-                          fontSize: isCompact ? 18.sp : 17.0,
                         ),
                       ),
                       SizedBox(width: 4.w),
                       Text(
                         "kcal",
-                        style: AppTextStyles.labelSmall.copyWith(
+                        style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                           color: AppColors.textSecondary,
-                          fontSize: isCompact ? 10.sp : 10.0,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -2310,8 +2306,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
       children: [
         Text(
           total % 1 == 0 ? total.toInt().toString() : total.toStringAsFixed(1),
-          style: AppTextStyles.h1.copyWith(
-            fontSize: isCompact ? 28.sp : 22.0,
+          style: AppTextStyles.h1.adaptive(context).copyWith(
             color: Colors.white,
             height: 1,
             fontWeight: FontWeight.w500,
@@ -2319,8 +2314,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
         ),
         Text(
           "KCAL",
-          style: AppTextStyles.labelSmall.copyWith(
-            fontSize: isCompact ? 10.sp : 8.0,
+          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
             fontWeight: FontWeight.w500,
             color: AppColors.crimson,
             letterSpacing: 1.2,
@@ -2344,10 +2338,10 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
       child: Column(
         children: [
           Text(value, 
-            style: AppTextStyles.h2.copyWith(fontSize: isCompact ? 22.sp : 15.0, color: Colors.white, fontWeight: FontWeight.w500)),
+            style: AppTextStyles.h2.adaptive(context).copyWith(color: Colors.white, fontWeight: FontWeight.w500)),
           SizedBox(height: 2.h),
           Text(label, 
-            style: AppTextStyles.labelSmall.copyWith(color: color, fontSize: isCompact ? 11.sp : 8.0, fontWeight: FontWeight.w500, letterSpacing: 0.8)),
+            style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: color, fontWeight: FontWeight.w500, letterSpacing: 0.8)),
         ],
       ),
     );
@@ -2360,33 +2354,18 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, 
-            style: AppTextStyles.labelSmall.copyWith(
+            style: AppTextStyles.labelSmall.adaptive(context).copyWith(
               color: isAccent ? AppColors.crimson.withValues(alpha: 0.9) : AppColors.textSecondary,
               fontWeight: FontWeight.w500,
-              fontSize: isCompact ? 11.sp : 10.0,
               letterSpacing: 1,
             )),
           Text(value, 
-            style: AppTextStyles.labelMedium.copyWith(
+            style: AppTextStyles.labelMedium.adaptive(context).copyWith(
               color: isBold ? Colors.white : Colors.white.withValues(alpha: 0.7),
               fontWeight: FontWeight.w500,
-              fontSize: isBold ? (isCompact ? 15.sp : 14.0) : (isCompact ? 13.sp : 12.0),
             )),
         ],
       ),
-    );
-  }
-
-  Widget _buildPremiumMacroPill(String text, Color color, bool isCompact) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: isCompact ? 12.w : 10.0, vertical: isCompact ? 8.h : 6.0),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: color.withValues(alpha: 0.2), width: 1),
-      ),
-      child: Text(text, 
-        style: AppTextStyles.labelSmall.copyWith(color: color, fontWeight: FontWeight.w500, fontSize: isCompact ? 10.sp : 9.0)),
     );
   }
 
@@ -2404,20 +2383,18 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
           Expanded(
             child: Text(
               item['name'].toString().toUpperCase(), 
-              style: AppTextStyles.labelSmall.copyWith(
+              style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                 color: Colors.white.withValues(alpha: 0.8), 
                 fontWeight: FontWeight.w500, 
-                fontSize: isCompact ? 11.sp : 10.0,
                 letterSpacing: 0.5,
               )
             ),
           ),
           Text(
             "+${item['cals']} kcal", 
-            style: AppTextStyles.labelSmall.copyWith(
+            style: AppTextStyles.labelSmall.adaptive(context).copyWith(
               color: AppColors.textSecondary.withValues(alpha: 0.6), 
               fontWeight: FontWeight.w500, 
-              fontSize: isCompact ? 11.sp : 10.0,
             )
           ),
         ],
@@ -2429,19 +2406,18 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
     return Row(
       children: [
         Container(
-          width: 3.0,
-          height: isCompact ? 12.h : 10.0,
+          width: 2.5,
+          height: 12.0,
           decoration: BoxDecoration(
             color: AppColors.crimson,
-            borderRadius: BorderRadius.circular(2.r),
+            borderRadius: BorderRadius.circular(2.0),
           ),
         ),
-        SizedBox(width: 8.w),
+        const SizedBox(width: 6.0),
         Text(
           title,
-          style: AppTextStyles.labelSmall.copyWith(
+          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
             color: AppColors.textSecondary.withValues(alpha: 0.8),
-            fontSize: isCompact ? 12.sp : 10.0,
           ),
         ),
       ],
@@ -2458,9 +2434,8 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
       ),
       child: Text(
         text.toUpperCase(),
-        style: AppTextStyles.labelSmall.copyWith(
+        style: AppTextStyles.labelSmall.adaptive(context).copyWith(
           color: Colors.white,
-          fontSize: isCompact ? 10.sp : 9.0,
           fontWeight: FontWeight.w500,
           letterSpacing: 0.5,
         ),
@@ -2475,17 +2450,15 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
           children: [
             TextSpan(
               text: "- ",
-              style: AppTextStyles.labelSmall.copyWith(
+              style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                 color: Colors.white.withValues(alpha: 0.9),
-                fontSize: isCompact ? 9.sp : 8.0,
                 fontWeight: FontWeight.w500,
               ),
             ),
             TextSpan(
               text: label,
-              style: AppTextStyles.labelSmall.copyWith(
+              style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                 color: color,
-                fontSize: isCompact ? 8.sp : 7.0,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -2499,17 +2472,15 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
         children: [
           TextSpan(
             text: "$formattedValue ",
-            style: AppTextStyles.labelSmall.copyWith(
+            style: AppTextStyles.labelSmall.adaptive(context).copyWith(
               color: Colors.white.withValues(alpha: 0.9),
-              fontSize: isCompact ? 9.sp : 8.0,
               fontWeight: FontWeight.w500,
             ),
           ),
           TextSpan(
             text: label,
-            style: AppTextStyles.labelSmall.copyWith(
+            style: AppTextStyles.labelSmall.adaptive(context).copyWith(
               color: color,
-              fontSize: isCompact ? 8.sp : 7.0,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -2523,9 +2494,8 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
       padding: EdgeInsets.symmetric(horizontal: 8.w),
       child: Text(
         "|",
-        style: AppTextStyles.labelSmall.copyWith(
+        style: AppTextStyles.labelSmall.adaptive(context).copyWith(
           color: AppColors.white.withValues(alpha: 0.1),
-          fontSize: isCompact ? 9.sp : 8.0,
         ),
       ),
     );

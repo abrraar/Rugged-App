@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../auth/provider/auth_provider.dart';
 import '../model/sleep_log.dart';
 import '../model/sleep_settings.dart';
 
@@ -9,10 +10,12 @@ class SleepCloudRepository {
   SupabaseClient get _supabase => Supabase.instance.client;
 
   String? get _currentUserId => _supabase.auth.currentUser?.id;
+  bool get _isPro => AuthProvider().isPro;
 
   // --- Settings ---
 
   Future<SleepSettings?> getSettings() async {
+    if (!_isPro) return null;
     final uid = _currentUserId;
     if (uid == null) return null;
 
@@ -31,6 +34,7 @@ class SleepCloudRepository {
   }
 
   Future<void> saveSettings(SleepSettings settings) async {
+    if (!_isPro) return;
     final uid = _currentUserId;
     if (uid == null) return;
 
@@ -41,6 +45,7 @@ class SleepCloudRepository {
   }
 
   Future<List<SleepLog>?> getAllLogs() async {
+    if (!_isPro) return null;
     final uid = _currentUserId;
     if (uid == null) return null;
 
@@ -59,6 +64,7 @@ class SleepCloudRepository {
   }
 
   Future<void> insertLog(SleepLog log) async {
+    if (!_isPro) return;
     final uid = _currentUserId;
     if (uid == null) return;
 
@@ -69,6 +75,7 @@ class SleepCloudRepository {
   }
 
   Future<void> deleteLog(String id) async {
+    if (!_isPro) return;
     final uid = _currentUserId;
     if (uid == null) return;
 

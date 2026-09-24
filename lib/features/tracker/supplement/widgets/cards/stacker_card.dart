@@ -2,20 +2,22 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/features/tracker/supplement/model/supplement.dart';
-import 'package:heavy_duty/features/tracker/supplement/model/supplement_stack.dart';
-import 'package:heavy_duty/features/tracker/supplement/provider/supplement_provider.dart';
-import 'package:heavy_duty/features/tracker/supplement/widgets/sheets/stack_form_sheet.dart';
-import 'package:heavy_duty/features/tracker/supplement/widgets/sheets/stack_notification_sheet.dart';
-import 'package:heavy_duty/core/utils/adaptive_utils.dart'; // Import the new sheet
-import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
+import 'package:go_router/go_router.dart';
+import 'package:rugged/core/navigation/app_routes.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/features/tracker/supplement/model/supplement.dart';
+import 'package:rugged/features/tracker/supplement/model/supplement_stack.dart';
+import 'package:rugged/features/tracker/supplement/provider/supplement_provider.dart';
+import 'package:rugged/features/tracker/supplement/widgets/sheets/stack_form_sheet.dart';
+import 'package:rugged/features/tracker/supplement/widgets/sheets/stack_notification_sheet.dart';
+import 'package:rugged/core/utils/adaptive_utils.dart'; // Import the new sheet
+import 'package:rugged/core/widgets/elite_snackbar.dart';
 import 'package:provider/provider.dart';
 import 'package:collection/collection.dart';
 
-import 'package:heavy_duty/features/tracker/calorie/provider/calorie_provider.dart';
-import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
+import 'package:rugged/features/tracker/calorie/provider/calorie_provider.dart';
+import 'package:rugged/features/auth/provider/auth_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../../core/widgets/elite_confirm_dialog.dart';
@@ -92,26 +94,40 @@ class _StackerCardState extends State<StackerCard> {
   Future<void> _pickDateTime() async {
     final DateTime? pickedDate = await showDatePicker(
       context: context,
+      useRootNavigator: true,
       initialDate: _selectedDateTime,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.dark(
-            primary: AppColors.crimson,
-            onPrimary: Colors.white,
-            surface: AppColors.surface,
-            onSurface: Colors.white,
+      builder: (context, child) => Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: const ColorScheme.dark(
+                primary: AppColors.crimson,
+                onPrimary: Colors.white,
+                surface: AppColors.surface,
+                onSurface: Colors.white,
+              ),
+            ),
+            child: child!,
           ),
         ),
-        child: child!,
       ),
     );
 
     if (pickedDate != null) {
+      if (!mounted) return;
       final TimeOfDay? pickedTime = await showTimePicker(
         context: context,
+        useRootNavigator: true,
         initialTime: TimeOfDay.fromDateTime(_selectedDateTime),
+        builder: (context, child) => Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: child!,
+          ),
+        ),
       );
 
       if (pickedTime != null) {
@@ -213,8 +229,7 @@ class _StackerCardState extends State<StackerCard> {
               children: [
                 Text(
                   widget.stack.name.toUpperCase(),
-                  style: AppTextStyles.h3.copyWith(
-                    fontSize: isCompact ? (15.sp).clamp(13, 17) : 15.0,
+                  style: AppTextStyles.h3.adaptive(context).copyWith(
                     color: isDeactivated
                         ? AppColors.textSecondary
                         : AppColors.white,
@@ -239,9 +254,8 @@ class _StackerCardState extends State<StackerCard> {
                         SizedBox(width: 4.w),
                         Text(
                           "SHARED BY ${widget.stack.sharedBy!.toUpperCase()}",
-                          style: AppTextStyles.labelSmall.copyWith(
+                          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                             color: Colors.blueAccent,
-                            fontSize: isCompact ? 7.sp : 7.0,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -297,24 +311,29 @@ class _StackerCardState extends State<StackerCard> {
                   : () {},
             ),
             SizedBox(width: 8.w),
-            _buildQuickActionButton(
-              icon: Icons.ios_share_rounded,
-              isActive: false,
-              isCompact: isCompact,
-              onTap: () async {
-                final authProvider = context.read<AuthProvider>();
-                final userName = authProvider.displayName;
-                
-                EliteSnackbar.show(context, "GENERATING SHAREABLE LINK...");
-
-                final link = await provider.generateStackShareLink(widget.stack, userName);
-                
-                if (link != null) {
-                  await Share.share(
-                    "CHECK OUT THIS SUPPLEMENT STACK SHARED BY $userName IN HEAVY DUTY:\n\n$link",
-                    subject: "SUPPLEMENT STACK SHARED BY $userName",
-                  );
-                }
+            Consumer<AuthProvider>(
+              builder: (context, authProv, _) {
+                final bool isPro = authProv.isPro;
+                return _buildQuickActionButton(
+                  icon: isPro ? Icons.ios_share_rounded : Icons.lock_rounded,
+                  isActive: false,
+                  isCompact: isCompact,
+                  onTap: () async {
+                    if (!isPro) {
+                      context.push(AppRoutes.proUpgrade);
+                      return;
+                    }
+                    final userName = authProv.displayName;
+                    final link = await provider.generateStackShareLink(widget.stack, userName);
+                    
+                    if (link != null) {
+                      await Share.share(
+                        "CHECK OUT THIS SUPPLEMENT STACK SHARED BY $userName IN RUGGED:\n\n$link",
+                        subject: "SUPPLEMENT STACK SHARED BY $userName",
+                      );
+                    }
+                  },
+                );
               },
             ),
             SizedBox(width: 8.w),
@@ -383,18 +402,16 @@ class _StackerCardState extends State<StackerCard> {
             children: [
               Text(
                 "STACK COMPONENTS",
-                style: AppTextStyles.labelSmall.copyWith(
+                style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                   color: AppColors.textSecondary,
-                  fontSize: isCompact ? 9.sp : 9.0,
                   letterSpacing: 1.5,
                   fontWeight: FontWeight.w500,
                 ),
               ),
               Text(
                 activeCount < 2 ? "INVALID STACK" : "REACTIVATION REQUIRED",
-                style: AppTextStyles.labelSmall.copyWith(
+                style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                   color: AppColors.crimson,
-                  fontSize: isCompact ? 8.sp : 8.0,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -429,21 +446,19 @@ class _StackerCardState extends State<StackerCard> {
                   Expanded(
                     child: Text(
                       item.name.toUpperCase(),
-                      style: AppTextStyles.labelSmall.copyWith(
+                      style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                         color: isActive
                             ? AppColors.white.withValues(alpha: 0.6)
                             : AppColors.white,
                         fontWeight: FontWeight.w500,
-                        fontSize: isCompact ? 10.sp : 9.0,
                       ),
                     ),
                   ),
                   if (!isActive)
                     Text(
                       item.name == "Deleted Item" ? "DELETED" : "INACTIVE",
-                      style: AppTextStyles.labelSmall.copyWith(
+                      style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                         color: AppColors.crimson,
-                        fontSize: isCompact ? 8.sp : 8.0,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -456,9 +471,8 @@ class _StackerCardState extends State<StackerCard> {
               padding: EdgeInsets.only(top: isCompact ? 12.h : 10.0),
               child: Text(
                 "A stack must have at least 2 active supplements. Please modify this stack to continue.",
-                style: AppTextStyles.labelSmall.copyWith(
+                style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                   color: AppColors.textSecondary,
-                  fontSize: isCompact ? 9.sp : 8.0,
                   fontStyle: FontStyle.italic,
                 ),
                 textAlign: TextAlign.center,
@@ -511,8 +525,7 @@ class _StackerCardState extends State<StackerCard> {
               SizedBox(width: 12.w),
               Text(
                 "LOG DATE & TIME",
-                style: AppTextStyles.labelSmall.copyWith(
-                  fontSize: isCompact ? 10.sp : 9.0,
+                style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                   color: AppColors.textSecondary,
                   fontWeight: FontWeight.w500,
                 ),
@@ -520,8 +533,7 @@ class _StackerCardState extends State<StackerCard> {
               const Spacer(),
               Text(
                 formatted,
-                style: AppTextStyles.labelSmall.copyWith(
-                  fontSize: isCompact ? 11.sp : 10.0,
+                style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                   color: Colors.white,
                 ),
               ),
@@ -545,6 +557,7 @@ class _StackerCardState extends State<StackerCard> {
         children: [
           Expanded(
             child: _drawerBtn(
+              context,
               Icons.edit_document,
               "MODIFY",
               AppColors.textSecondary,
@@ -555,6 +568,7 @@ class _StackerCardState extends State<StackerCard> {
           SizedBox(width: 8.w),
           Expanded(
             child: _drawerBtn(
+              context,
               Icons.delete_sweep_rounded,
               "DELETE",
               AppColors.crimson,
@@ -615,8 +629,7 @@ class _StackerCardState extends State<StackerCard> {
                 SizedBox(height: isCompact ? 16.h : 16.0),
                 Text(
                   "UPDATE PRESET",
-                  style: AppTextStyles.h3.copyWith(
-                    fontSize: isCompact ? 20.sp : 18.0,
+                  style: AppTextStyles.h3.adaptive(context).copyWith(
                     letterSpacing: 1.2,
                     fontWeight: FontWeight.w500,
                   ),
@@ -630,10 +643,9 @@ class _StackerCardState extends State<StackerCard> {
                 Text(
                   "Your current configuration differs from the pinned home screen shortcut. Would you like to update the preset or remove it?",
                   textAlign: TextAlign.center,
-                  style: AppTextStyles.labelSmall.copyWith(
+                  style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                     color: AppColors.textSecondary,
                     height: 1.4,
-                    fontSize: isCompact ? 13.sp : 11.0,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -666,10 +678,9 @@ class _StackerCardState extends State<StackerCard> {
                         alignment: Alignment.center,
                         child: Text(
                           "UPDATE PRESET",
-                          style: AppTextStyles.labelSmall.copyWith(
+                          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w500,
-                            fontSize: isCompact ? 14.sp : 11.0,
                           ),
                         ),
                       ),
@@ -679,6 +690,7 @@ class _StackerCardState extends State<StackerCard> {
                       children: [
                         Expanded(
                           child: _dialogBtn(
+                            context,
                             "CANCEL",
                             Colors.transparent,
                             AppColors.textSecondary,
@@ -689,6 +701,7 @@ class _StackerCardState extends State<StackerCard> {
                         SizedBox(width: isCompact ? 8.w : 6.0),
                         Expanded(
                           child: _dialogBtn(
+                            context,
                             "REMOVE PIN",
                             Colors.transparent,
                             AppColors.crimson,
@@ -745,8 +758,7 @@ class _StackerCardState extends State<StackerCard> {
                 SizedBox(height: isCompact ? 16.h : 16.0),
                 Text(
                   "PIN TO HOME",
-                  style: AppTextStyles.h3.copyWith(
-                    fontSize: isCompact ? 20.sp : 18.0,
+                  style: AppTextStyles.h3.adaptive(context).copyWith(
                     letterSpacing: 1.2,
                     fontWeight: FontWeight.w500,
                   ),
@@ -760,10 +772,9 @@ class _StackerCardState extends State<StackerCard> {
                 Text(
                   "Confirming current configuration as a home screen preset.",
                   textAlign: TextAlign.center,
-                  style: AppTextStyles.labelSmall.copyWith(
+                  style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                     color: AppColors.textSecondary,
                     height: 1.4,
-                    fontSize: isCompact ? 13.sp : 11.0,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -799,8 +810,7 @@ class _StackerCardState extends State<StackerCard> {
                               child: Text(
                                 "${isRecord ? 'RECORD' : 'RESTOCK'} $amount $unit OF ${item.name}"
                                     .toUpperCase(),
-                                style: AppTextStyles.labelSmall.copyWith(
-                                  fontSize: isCompact ? 11.sp : 10.0,
+                                style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -820,6 +830,7 @@ class _StackerCardState extends State<StackerCard> {
                   children: [
                     Expanded(
                       child: _dialogBtn(
+                        context,
                         "CANCEL",
                         Colors.transparent,
                         AppColors.textSecondary,
@@ -830,6 +841,7 @@ class _StackerCardState extends State<StackerCard> {
                     SizedBox(width: isCompact ? 12.w : 12.0),
                     Expanded(
                       child: _dialogBtn(
+                        context,
                         "CONFIRM",
                         AppColors.crimson,
                         Colors.white,
@@ -888,8 +900,7 @@ class _StackerCardState extends State<StackerCard> {
                 SizedBox(height: isCompact ? 16.h : 16.0),
                 Text(
                   "CONFIRM EXECUTION",
-                  style: AppTextStyles.h3.copyWith(
-                    fontSize: isCompact ? 20.sp : 18.0,
+                  style: AppTextStyles.h3.adaptive(context).copyWith(
                     letterSpacing: 1.2,
                     fontWeight: FontWeight.w500,
                   ),
@@ -903,10 +914,9 @@ class _StackerCardState extends State<StackerCard> {
                 Text(
                   "Record all items in '${widget.stack.name.toUpperCase()}' for the selected date/time?",
                   textAlign: TextAlign.center,
-                  style: AppTextStyles.labelSmall.copyWith(
+                  style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                     color: AppColors.textSecondary,
                     height: 1.4,
-                    fontSize: isCompact ? 13.sp : 11.0,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -919,6 +929,7 @@ class _StackerCardState extends State<StackerCard> {
                   children: [
                     Expanded(
                       child: _dialogBtn(
+                        context,
                         "CANCEL",
                         Colors.transparent,
                         AppColors.textSecondary,
@@ -929,6 +940,7 @@ class _StackerCardState extends State<StackerCard> {
                     SizedBox(width: isCompact ? 12.w : 12.0),
                     Expanded(
                       child: _dialogBtn(
+                        context,
                         "EXECUTE",
                         AppColors.crimson,
                         Colors.white,
@@ -984,8 +996,7 @@ class _StackerCardState extends State<StackerCard> {
               Expanded(
                 child: Text(
                   item.name.toUpperCase(),
-                  style: AppTextStyles.labelSmall.copyWith(
-                    fontSize: isCompact ? 11.sp : 10.0,
+                  style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -1068,8 +1079,7 @@ class _StackerCardState extends State<StackerCard> {
           alignment: Alignment.center,
           child: Text(
             label,
-            style: AppTextStyles.buttonPrimary.copyWith(
-              fontSize: isCompact ? 13.sp : 12.0,
+            style: AppTextStyles.buttonPrimary.adaptive(context).copyWith(
               color: canExecute ? Colors.white : Colors.white24,
             ),
           ),
@@ -1119,8 +1129,7 @@ class _StackerCardState extends State<StackerCard> {
           ),
           child: Text(
             label.toUpperCase(),
-            style: AppTextStyles.labelSmall.copyWith(
-              fontSize: isCompact ? 9.sp : 8.0,
+            style: AppTextStyles.labelSmall.adaptive(context).copyWith(
               color: active ? Colors.white : AppColors.textSecondary,
             ),
           ),
@@ -1146,8 +1155,7 @@ class _StackerCardState extends State<StackerCard> {
           ),
           child: Text(
             label,
-            style: AppTextStyles.labelSmall.copyWith(
-              fontSize: isCompact ? 9.sp : 8.0,
+            style: AppTextStyles.labelSmall.adaptive(context).copyWith(
               color: isActive ? AppColors.crimson : AppColors.textSecondary,
             ),
           ),
@@ -1166,8 +1174,7 @@ class _StackerCardState extends State<StackerCard> {
       controller: _controllers[id],
       textAlign: TextAlign.center,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      style: AppTextStyles.labelSmall.copyWith(
-        fontSize: isCompact ? 14.sp : 13.0,
+      style: AppTextStyles.labelSmall.adaptive(context).copyWith(
         fontWeight: FontWeight.w500,
       ),
       decoration: const InputDecoration(
@@ -1178,7 +1185,7 @@ class _StackerCardState extends State<StackerCard> {
     ),
   );
 
-  Widget _drawerBtn(IconData i, String l, Color c, VoidCallback o, bool isCompact) =>
+  Widget _drawerBtn(BuildContext context, IconData i, String l, Color c, VoidCallback o, bool isCompact) =>
       GestureDetector(
         onTap: o,
         child: Container(
@@ -1195,9 +1202,8 @@ class _StackerCardState extends State<StackerCard> {
               SizedBox(width: 8.w),
               Text(
                 l,
-                style: AppTextStyles.labelSmall.copyWith(
+                style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                   color: c,
-                  fontSize: isCompact ? 10.sp : 9.0,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1233,6 +1239,7 @@ class _StackerCardState extends State<StackerCard> {
     );
 
     if (confirm == true) {
+      if (!context.mounted) return;
       final calorieProvider = context.read<CalorieProvider>();
       context.read<SupplementProvider>().deleteStack(
         widget.stack.id,
@@ -1243,7 +1250,7 @@ class _StackerCardState extends State<StackerCard> {
     }
   }
 
-  Widget _dialogBtn(String label, Color bg, Color text, VoidCallback onTap, {required bool isCompact}) =>
+  Widget _dialogBtn(BuildContext context, String label, Color bg, Color text, VoidCallback onTap, {required bool isCompact}) =>
       GestureDetector(
         onTap: onTap,
         child: Container(
@@ -1260,10 +1267,9 @@ class _StackerCardState extends State<StackerCard> {
           alignment: Alignment.center,
           child: Text(
             label,
-            style: AppTextStyles.labelSmall.copyWith(
+            style: AppTextStyles.labelSmall.adaptive(context).copyWith(
               color: text,
               fontWeight: FontWeight.w500,
-              fontSize: isCompact ? 13.sp : 11.0,
             ),
           ),
         ),

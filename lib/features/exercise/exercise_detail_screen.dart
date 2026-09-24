@@ -1,42 +1,48 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/constants/dimensions.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/features/tracker/cycle_tracker/provider/cycle_provider.dart';
-import 'package:heavy_duty/features/tracker/cycle_tracker/model/exercise_log.dart';
-import 'package:heavy_duty/features/exercise/provider/exercise_provider.dart';
-import 'package:heavy_duty/features/exercise/model/exercise_template.dart';
-import 'package:heavy_duty/features/exercise/widgets/exercise_analytical_graph.dart';
-import 'package:heavy_duty/features/exercise/widgets/expandable_about_text.dart';
-import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
-import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
-import 'package:heavy_duty/core/utils/adaptive_utils.dart';
+import 'package:go_router/go_router.dart';
+import 'package:rugged/core/navigation/app_routes.dart';
+import 'package:rugged/core/constants/dimensions.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/core/widgets/elite_refresh_indicator.dart';
+import 'package:rugged/features/exercise/model/exercise_template.dart';
+import 'package:rugged/features/exercise/provider/exercise_provider.dart';
+import 'package:rugged/features/tracker/cycle_tracker/model/exercise_log.dart';
+import 'package:rugged/features/tracker/cycle_tracker/provider/cycle_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:rugged/features/exercise/widgets/exercise_analytical_graph.dart';
+import 'package:rugged/core/ads/locked_analytics_overlay.dart';
+import 'package:rugged/features/auth/provider/auth_provider.dart';
+import 'package:rugged/features/exercise/widgets/expandable_about_text.dart';
+import 'package:rugged/core/utils/adaptive_utils.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:shimmer/shimmer.dart';
 
 class ExerciseDetailScreen extends StatefulWidget {
-  final String exerciseId;
-  final String exerciseName;
-  final int intensity;
+  final String id;
+  final String name;
+  final String muscles;
   final String imagePath;
   final String about;
-  final double? initialAspectRatio;
+  final int intensity;
   final bool isEmbedded;
+  final double? initialAspectRatio;
 
   const ExerciseDetailScreen({
     super.key,
-    required this.exerciseId,
-    required this.exerciseName,
-    required this.intensity,
-    required this.imagePath,
-    this.about = "",
-    this.initialAspectRatio,
+    String? id,
+    String? exerciseId,
+    String? name,
+    String? exerciseName,
+    this.muscles = '',
+    this.imagePath = '',
+    this.about = '',
+    this.intensity = 1,
     this.isEmbedded = false,
-  });
+    this.initialAspectRatio,
+  })  : id = id ?? exerciseId ?? '',
+        name = name ?? exerciseName ?? '';
 
   @override
   State<ExerciseDetailScreen> createState() => _ExerciseDetailScreenState();
@@ -44,187 +50,148 @@ class ExerciseDetailScreen extends StatefulWidget {
 
 class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   final List<String> _allMuscles = [
-    'Chest', 'Back', 'Legs', 'Calf', 'Abdominals', 'Shoulder', 'Biceps', 'Triceps'
+    'Chest', 'Triceps', 'Back', 'Biceps', 'Legs', 'Calf', 'Abdominals', 'Shoulder'
   ];
-
-  double? _imageAspectRatio;
-
-  @override
-  void initState() {
-    super.initState();
-    _imageAspectRatio = widget.initialAspectRatio;
-  }
-
-  void _resolveImageRatio(String url) {
-    if (url.isEmpty || !url.startsWith('http')) return;
-    
-    final image = Image.network(url);
-    image.image.resolve(const ImageConfiguration()).addListener(
-      ImageStreamListener((ImageInfo info, bool _) {
-        if (mounted) {
-          setState(() {
-            _imageAspectRatio = info.image.width / info.image.height;
-          });
-        }
-      }),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
+    final cycleProv = Provider.of<CycleProvider>(context);
+    final exProvider = Provider.of<ExerciseProvider>(context);
+
+    final template = exProvider.templates.firstWhere(
+      (t) => t.id == widget.id || t.name.toUpperCase() == widget.name.toUpperCase(),
+      orElse: () => ExerciseTemplate(
+        id: widget.id,
+        name: widget.name,
+        targetMuscles: widget.muscles,
+        aboutTheMovement: widget.about,
+      ),
+    );
+
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Consumer2<CycleProvider, ExerciseProvider>(
-        builder: (context, cycleProv, exProvider, _) {
-          final template = exProvider.templates.firstWhere(
-            (t) => t.id == widget.exerciseId,
-            orElse: () {
-              final cleanName = widget.exerciseName.trim().toUpperCase();
-              return exProvider.templates.firstWhere(
-                (t) => t.name.trim().toUpperCase() == cleanName,
-                orElse: () => ExerciseTemplate(
-                  id: widget.exerciseId,
-                  name: widget.exerciseName,
-                  intensity: widget.intensity,
-                  aboutTheMovement: widget.about,
-                ),
-              );
-            },
-          );
+      body: SafeArea(
+        top: !widget.isEmbedded,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final double paneWidth = constraints.maxWidth;
+            final double deviceWidth = MediaQuery.of(context).size.width;
 
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              final double paneWidth = constraints.maxWidth;
-              final double deviceWidth = MediaQuery.of(context).size.width;
-              final bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
-              
-              final bool isTabletOrFoldable = deviceWidth >= 600;
-              final bool isCompact = paneWidth < 600 && !isLandscape && !isTabletOrFoldable;
+            final bool isTabletOrFoldable = deviceWidth >= 600;
 
-              // AUTO-POP ON ROTATION TO LANDSCAPE (ONLY IF NOT EMBEDDED)
-              final bool isCurrent = ModalRoute.of(context)?.isCurrent ?? false;
-              if (isCurrent && isLandscape && isTabletOrFoldable && !widget.isEmbedded) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (Navigator.canPop(context)) Navigator.pop(context);
-                });
+            final double hPad = isTabletOrFoldable
+                ? (paneWidth - kMaxContentWidth).clamp(24.0, double.infinity) / 2
+                : 20.w;
+
+            final cleanNameForLogs = template.name.trim().toUpperCase();
+            final relevantLogs = cycleProv.logs.where((log) {
+              try {
+                final exerciseDef = cycleProv.exercises.firstWhere((e) => e.id == log.exerciseId);
+                if (exerciseDef.name.toUpperCase() != cleanNameForLogs) return false;
+                final workout = cycleProv.getWorkoutForExercise(log.exerciseId);
+                return workout != null && workout.completedAt != null;
+              } catch (e) {
+                return false;
               }
+            }).toList()..sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
-              final double hPad = isTabletOrFoldable
-                  ? (paneWidth - kMaxContentWidth).clamp(24.0, double.infinity) / 2
-                  : 20.w;
-
-              // ADAPTIVE PHOTO HEIGHT LOGIC
-              // On tablets/foldables, we allow more height to avoid cropping, especially in portrait.
-              final double maxTabletHeight = isLandscape ? 450.0 : 600.0;
-              final double standardHeight = isTabletOrFoldable ? 350.0 : 250.h;
-
-              double dynamicHeight = standardHeight;
-              
-              // Use the best available aspect ratio
-              final double? effectiveRatio = _imageAspectRatio ?? template.aspectRatio;
-
-              if (effectiveRatio != null && effectiveRatio > 0) {
-                double targetHeight = paneWidth / effectiveRatio;
-                if (isTabletOrFoldable) {
-                  // Generous clamping for tablets
-                  dynamicHeight = targetHeight.clamp(250.0, maxTabletHeight);
-                } else {
-                  // Standard phone clamping
-                  dynamicHeight = targetHeight.clamp(200.h, 450.h);
-                }
-              }
-
-              // Trigger dimension resolution if we don't have a value yet
-              if (effectiveRatio == null && (template.imageUrl ?? "").startsWith('http')) {
-                _resolveImageRatio(template.imageUrl!);
-              }
-
-              final cleanNameForLogs = template.name.trim().toUpperCase();
-              final relevantLogs = cycleProv.logs.where((log) {
-                try {
-                  final exerciseDef = cycleProv.exercises.firstWhere((e) => e.id == log.exerciseId);
-                  return exerciseDef.name.toUpperCase() == cleanNameForLogs;
-                } catch (e) {
-                  return false;
-                }
-              }).toList()..sort((a, b) => b.timestamp.compareTo(a.timestamp));
-
-              return RefreshIndicator(
-                onRefresh: () async {
-                  setState(() => _imageAspectRatio = null);
-                  await exProvider.forceRefresh();
-                },
-                color: AppColors.crimson,
-                backgroundColor: AppColors.surface,
-                child: CustomScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-                  slivers: [
-                    _buildSliverAppBar(context, template, exProvider, dynamicHeight, hPad, isTabletOrFoldable),
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: hPad, 
-                          vertical: isTabletOrFoldable ? 16.0 : 20.h
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildIntensityAndAbout(template, isTabletOrFoldable),
-                            SizedBox(height: isTabletOrFoldable ? 24.0 : 30.h),
-                            _buildProgressGraphSection(relevantLogs, isTabletOrFoldable),
-                            SizedBox(height: isTabletOrFoldable ? 24.0 : 30.h),
-                            _buildHistoryLogs(relevantLogs, isTabletOrFoldable),
-                          ],
-                        ),
+            return EliteRefreshIndicator(
+              onRefresh: () async {
+                await exProvider.forceRefresh();
+              },
+              color: AppColors.crimson,
+              backgroundColor: AppColors.surface,
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                slivers: [
+                  _buildHeaderAppBar(context, template, exProvider, hPad, isTabletOrFoldable),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: hPad, 
+                        vertical: isTabletOrFoldable ? 16.0 : 20.h
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildExerciseOverviewCard(context, template, isTabletOrFoldable),
+                          SizedBox(height: isTabletOrFoldable ? 24.0 : 30.h),
+                          _buildProgressGraphSection(context, relevantLogs, isTabletOrFoldable),
+                          SizedBox(height: isTabletOrFoldable ? 24.0 : 30.h),
+                          _buildHistoryLogs(context, relevantLogs, isTabletOrFoldable),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              );
-            },
-          );
-        },
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildSliverAppBar(BuildContext context, ExerciseTemplate template, ExerciseProvider exProvider, double height, double hPad, bool isTablet) {
+  Widget _buildHeaderAppBar(BuildContext context, ExerciseTemplate template, ExerciseProvider exProvider, double hPad, bool isTablet) {
     return SliverAppBar(
-      expandedHeight: height,
+      pinned: true,
       backgroundColor: AppColors.background,
       elevation: 0,
-      pinned: true,
       leading: widget.isEmbedded 
           ? null 
           : IconButton(
               icon: Container(
                 padding: EdgeInsets.all(isTablet ? 8.0 : 8.r),
-                decoration: const BoxDecoration(color: Colors.black38, shape: BoxShape.circle),
+                decoration: const BoxDecoration(color: AppColors.surface, shape: BoxShape.circle),
                 child: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: isTablet ? 16.0 : 18.r),
               ),
               onPressed: () => Navigator.pop(context),
             ),
+      title: Text(
+        template.name.toUpperCase(),
+        style: AppTextStyles.h3.adaptive(context).copyWith(
+          color: Colors.white,
+          letterSpacing: 1.2,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      centerTitle: true,
       actions: [
         if (!template.isDefault) ...[
           Padding(
-            padding: EdgeInsets.only(right: 8.0),
-            child: IconButton(
-              icon: Container(
-                padding: EdgeInsets.all(isTablet ? 8.0 : 8.r),
-                decoration: const BoxDecoration(color: Colors.black38, shape: BoxShape.circle),
-                child: Icon(Icons.ios_share_rounded, color: Colors.white, size: isTablet ? 16.0 : 18.r),
-              ),
-              onPressed: () async {
-                final authProvider = context.read<AuthProvider>();
-                final userName = authProvider.displayName;
-                EliteSnackbar.show(context, "GENERATING SHAREABLE LINK...");
-                final link = await exProvider.generateShareableLink(template, userName);
-                if (link != null) {
-                  await Share.share(
-                    "CHECK OUT THIS EXERCISE SHARED BY $userName IN HEAVY DUTY:\n\n$link",
-                    subject: "EXERCISE SHARED BY $userName",
-                  );
-                }
+            padding: const EdgeInsets.only(right: 8.0),
+            child: Consumer<AuthProvider>(
+              builder: (context, authProv, _) {
+                final bool isPro = authProv.isPro;
+                return IconButton(
+                  icon: Container(
+                    padding: EdgeInsets.all(isTablet ? 8.0 : 8.r),
+                    decoration: BoxDecoration(
+                      color: isPro ? AppColors.surface : AppColors.crimson.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                      border: isPro ? null : Border.all(color: AppColors.crimson.withValues(alpha: 0.4)),
+                    ),
+                    child: Icon(
+                      isPro ? Icons.ios_share_rounded : Icons.lock_rounded, 
+                      color: isPro ? Colors.white : AppColors.crimson, 
+                      size: isTablet ? 16.0 : 18.r
+                    ),
+                  ),
+                  onPressed: () async {
+                    if (!isPro) {
+                      context.push(AppRoutes.proUpgrade);
+                      return;
+                    }
+                    final userName = authProv.displayName;
+                    final link = await exProvider.generateShareableLink(template, userName);
+                    if (link != null) {
+                      await Share.share(
+                        "CHECK OUT THIS EXERCISE SHARED BY $userName IN RUGGED:\n\n$link",
+                        subject: "EXERCISE SHARED BY $userName",
+                      );
+                    }
+                  },
+                );
               },
             ),
           ),
@@ -233,7 +200,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
             child: IconButton(
               icon: Container(
                 padding: EdgeInsets.all(isTablet ? 8.0 : 8.r),
-                decoration: const BoxDecoration(color: Colors.black38, shape: BoxShape.circle),
+                decoration: const BoxDecoration(color: AppColors.surface, shape: BoxShape.circle),
                 child: Icon(Icons.edit_rounded, color: Colors.white, size: isTablet ? 16.0 : 18.r),
               ),
               onPressed: () => _showGlobalEditSheet(template, exProvider, isTablet),
@@ -241,97 +208,112 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
           ),
         ],
       ],
-      flexibleSpace: FlexibleSpaceBar(
-        titlePadding: EdgeInsets.only(left: 40.0, right: 40.0, bottom: isTablet ? 12.0 : 16.h),
-        expandedTitleScale: 1.0,
-        title: Text(
-          template.name.toUpperCase(),
-          textAlign: TextAlign.center,
-          style: AppTextStyles.h3.copyWith(
-            fontSize: isTablet ? 18.0 : 18.sp,
-            color: Colors.white, 
-            letterSpacing: 1.2
-          ),
-        ),
-        centerTitle: true,
-        background: Stack(
-          fit: StackFit.expand,
-          children: [
-            CachedNetworkImage(
-              imageUrl: template.imageUrl ?? '',
-              fit: BoxFit.cover,
-              placeholder: (context, url) => Shimmer.fromColors(
-                baseColor: AppColors.surfaceLight.withOpacity(0.1),
-                highlightColor: AppColors.surfaceLight.withOpacity(0.2),
-                child: Container(color: Colors.white),
-              ),
-              errorWidget: (context, url, error) {
-                final bool isDefault = template.isDefault;
-                return Container(
-                  color: AppColors.background,
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 40.0),
-                      child: Text(
-                        isDefault 
-                            ? 'IMAGE NOT FOUND PULL DOWN TO REFRESH'
-                            : 'IMAGE CAPTURE & UPLOAD FEATURE WILL BE AVAILABLE IN FUTURE UPDATES',
-                        textAlign: TextAlign.center,
-                        style: AppTextStyles.labelSmall.copyWith(
-                          color: AppColors.textSecondary.withValues(alpha: 0.4),
-                          fontSize: isTablet ? 10.0 : 10.sp,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    AppColors.background.withValues(alpha: 0.8),
-                    AppColors.background,
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
-  Widget _buildIntensityAndAbout(ExerciseTemplate template, bool isTablet) {
+  Widget _buildExerciseOverviewCard(BuildContext context, ExerciseTemplate template, bool isTablet) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('METABOLIC DEMAND', style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: isTablet ? 10.0 : null)),
-            _buildFireRating(template.intensity, isTablet),
-          ],
+        Text(
+          'ABOUT',
+          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+            letterSpacing: 1.5,
+            fontWeight: FontWeight.w500,
+          ),
         ),
-        SizedBox(height: isTablet ? 12.0 : 20.h),
+        SizedBox(height: isTablet ? 10.0 : 15.h),
+        // Target Muscle & Type Badges
         Container(
           width: double.infinity,
-          padding: EdgeInsets.all(isTablet ? 16.0 : 16.r),
+          padding: EdgeInsets.all(isTablet ? 20.0 : 20.r),
           decoration: BoxDecoration(
-            color: AppColors.surfaceLight.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(16.r),
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(20.r),
             border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('ABOUT THE MOVEMENT', style: AppTextStyles.labelMedium.copyWith(color: AppColors.crimson, fontSize: isTablet ? 11.0 : null)),
-              SizedBox(height: 8.0),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
+                    decoration: BoxDecoration(
+                      color: template.type == ExerciseType.compound 
+                          ? AppColors.crimson.withValues(alpha: 0.2)
+                          : AppColors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(6.0),
+                      border: Border.all(
+                        color: template.type == ExerciseType.compound 
+                            ? AppColors.crimson.withValues(alpha: 0.3)
+                            : AppColors.white.withValues(alpha: 0.1)
+                      ),
+                    ),
+                    child: Text(
+                      template.type.name.toUpperCase(),
+                      style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+                        color: template.type == ExerciseType.compound ? AppColors.crimson : AppColors.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Text(
+                        'DEMAND: ',
+                        style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w500
+                        )
+                      ),
+                      _buildFireRating(template.intensity, isTablet),
+                    ],
+                  ),
+                ],
+              ),
+              SizedBox(height: isTablet ? 16.0 : 16.h),
+              Text(
+                'TARGET MUSCLES',
+                style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+                  color: AppColors.textSecondary,
+                  letterSpacing: 1.2,
+                )
+              ),
+              SizedBox(height: 6.0),
+              Text(
+                (template.targetMuscles ?? "").toUpperCase(),
+                style: AppTextStyles.h3.adaptive(context).copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: isTablet ? 16.0 : 20.h),
+        // Execution & Form Card
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(isTablet ? 20.0 : 20.r),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(20.r),
+            border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'EXECUTION & FORM GUIDE',
+                style: AppTextStyles.labelMedium.adaptive(context).copyWith(
+                  color: AppColors.crimson,
+                  letterSpacing: 1.2,
+                  fontWeight: FontWeight.w500,
+                )
+              ),
+              SizedBox(height: 12.0),
               Opacity(
                 opacity: (template.aboutTheMovement ?? "").isNotEmpty ? 1.0 : 0.4,
                 child: ExpandableAboutText(
@@ -340,17 +322,6 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                       : "NO COACHING NOTES HAVE BEEN ADDED FOR THIS EXERCISE. YOU CAN ADD THEM BY EDITING THE EXERCISE DETAILS.",
                 ),
               ),
-              if (!template.isDefault) ...[
-                SizedBox(height: isTablet ? 12.0 : 16.h),
-                Divider(color: AppColors.white.withValues(alpha: 0.05)),
-                SizedBox(height: isTablet ? 10.0 : 12.h),
-                Text('TARGET MUSCLES', style: AppTextStyles.labelMedium.copyWith(color: AppColors.crimson, fontSize: isTablet ? 11.0 : null)),
-                SizedBox(height: 8.0),
-                Text(
-                  template.targetMuscles?.toUpperCase() ?? "NOT SPECIFIED",
-                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary, fontSize: isTablet ? 10.0 : 11.sp),
-                ),
-              ],
             ],
           ),
         ),
@@ -358,10 +329,24 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     );
   }
 
+  Widget _buildFireRating(int score, bool isTablet) {
+    return Row(
+      children: List.generate(5, (index) {
+        return Icon(
+          Icons.local_fire_department_rounded,
+          size: isTablet ? 14.0 : 14.r,
+          color: index < score 
+              ? AppColors.crimson 
+              : AppColors.white.withValues(alpha: 0.1),
+        );
+      }),
+    );
+  }
+
   void _showGlobalEditSheet(ExerciseTemplate template, ExerciseProvider exProvider, bool isTablet) {
     final nameController = TextEditingController(text: template.name);
     final aboutController = TextEditingController(text: template.aboutTheMovement);
-    final Set<String> selectedMuscles = template.targetMuscles?.split(', ').toSet() ?? {};
+    final Set<String> selectedMuscles = (template.targetMuscles ?? "").split(', ').where((s) => s.isNotEmpty).toSet();
 
     AdaptiveUtils.showAdaptiveSheet(
       context: context,
@@ -380,10 +365,15 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                   int calculatedIntensity = 1;
                   if (selectedMuscles.isEmpty) {
                     calculatedIntensity = 1;
-                  } else if (selectedMuscles.length == 1) calculatedIntensity = 2;
-                  else if (selectedMuscles.length == 2) calculatedIntensity = 3;
-                  else if (selectedMuscles.length <= 4) calculatedIntensity = 4;
-                  else calculatedIntensity = 5;
+                  } else if (selectedMuscles.length == 1) {
+                    calculatedIntensity = 2;
+                  } else if (selectedMuscles.length == 2) {
+                    calculatedIntensity = 3;
+                  } else if (selectedMuscles.length <= 4) {
+                    calculatedIntensity = 4;
+                  } else {
+                    calculatedIntensity = 5;
+                  }
 
                   bool isReady = selectedMuscles.isNotEmpty && nameController.text.trim().isNotEmpty;
                   String buttonText = nameController.text.isEmpty ? "ENTER EXERCISE NAME" : (selectedMuscles.isEmpty ? "SELECT TARGET MUSCLES" : "SAVE CHANGES");
@@ -412,7 +402,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                                 width: isSheetCompact ? 40.w : 40.0,
                                 height: isSheetCompact ? 4.h : 4.0,
                                 decoration: BoxDecoration(
-                                  color: AppColors.textSecondary.withOpacity(0.2), 
+                                  color: AppColors.textSecondary.withValues(alpha: 0.2), 
                                   borderRadius: BorderRadius.circular(2.r)
                                 ),
                               ),
@@ -435,7 +425,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                                   children: [
                                     Text(
                                       "EDIT EXERCISE", 
-                                      style: AppTextStyles.h3.copyWith(fontSize: isSheetCompact ? null : 18.0)
+                                      style: AppTextStyles.h3.adaptive(context)
                                     ),
                                     if (isSideSheet)
                                       IconButton(
@@ -453,7 +443,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                                 ),
                                 SizedBox(height: isSheetCompact ? 24.h : 20.0),
                                 _buildEditTextField(
-                                  "ABOUT THE MOVEMENT (OPTIONAL)", 
+                                  "EXECUTION & FORM GUIDE", 
                                   aboutController, 
                                   "Describe the proper form...", 
                                   maxLines: 3,
@@ -462,9 +452,8 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                                 SizedBox(height: isSheetCompact ? 24.h : 20.0),
                                 Text(
                                   "TARGET MUSCLES", 
-                                  style: AppTextStyles.labelSmall.copyWith(
+                                  style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                     color: AppColors.textSecondary, 
-                                    fontSize: isSheetCompact ? 10.sp : 10.0,
                                     fontWeight: FontWeight.w500,
                                   )
                                 ),
@@ -492,13 +481,12 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                                         decoration: BoxDecoration(
                                           color: isSelected ? AppColors.crimson : AppColors.surfaceLight.withValues(alpha: 0.2),
                                           borderRadius: BorderRadius.circular(isSheetCompact ? 8.r : 8.0),
-                                          border: Border.all(color: isSelected ? AppColors.crimson : AppColors.white.withOpacity(0.05)),
+                                          border: Border.all(color: isSelected ? AppColors.crimson : AppColors.white.withValues(alpha: 0.05)),
                                         ),
                                         child: Text(
                                           m.toUpperCase(), 
-                                          style: AppTextStyles.labelSmall.copyWith(
+                                          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                             color: isSelected ? Colors.white : AppColors.textSecondary, 
-                                            fontSize: isSheetCompact ? 9.sp : 9.0,
                                             fontWeight: FontWeight.w500,
                                           )
                                         ),
@@ -510,9 +498,9 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                                 Container(
                                   padding: EdgeInsets.all(isSheetCompact ? 16.r : 16.0),
                                   decoration: BoxDecoration(
-                                    color: AppColors.background.withOpacity(0.5),
+                                    color: AppColors.background.withValues(alpha: 0.5),
                                     borderRadius: BorderRadius.circular(isSheetCompact ? 12.r : 12.0),
-                                    border: Border.all(color: AppColors.white.withOpacity(0.03)),
+                                    border: Border.all(color: AppColors.white.withValues(alpha: 0.03)),
                                   ),
                                   child: Column(
                                     children: [
@@ -521,9 +509,8 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                                         children: [
                                           Text(
                                             "TYPE", 
-                                            style: AppTextStyles.labelSmall.copyWith(
+                                            style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                               color: AppColors.textSecondary, 
-                                              fontSize: isSheetCompact ? 10.sp : 10.0,
                                               fontWeight: FontWeight.w500,
                                             )
                                           ),
@@ -533,15 +520,14 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                                               vertical: isSheetCompact ? 2.h : 2.0
                                             ),
                                             decoration: BoxDecoration(
-                                              color: calculatedType == ExerciseType.compound ? AppColors.crimson.withOpacity(0.1) : AppColors.white.withOpacity(0.05),
+                                              color: calculatedType == ExerciseType.compound ? AppColors.crimson.withValues(alpha: 0.1) : AppColors.white.withValues(alpha: 0.05),
                                               borderRadius: BorderRadius.circular(isSheetCompact ? 4.r : 4.0),
                                             ),
                                             child: Text(
                                               calculatedType.name.toUpperCase(),
-                                              style: AppTextStyles.labelSmall.copyWith(
+                                              style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                                 color: calculatedType == ExerciseType.compound ? AppColors.crimson : AppColors.textSecondary,
                                                 fontWeight: FontWeight.w500,
-                                                fontSize: isSheetCompact ? null : 10.0,
                                               ),
                                             ),
                                           ),
@@ -553,9 +539,8 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                                         children: [
                                           Text(
                                             "DEMAND", 
-                                            style: AppTextStyles.labelSmall.copyWith(
+                                            style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                               color: AppColors.textSecondary, 
-                                              fontSize: isSheetCompact ? 10.sp : 10.0,
                                               fontWeight: FontWeight.w500,
                                             )
                                           ),
@@ -589,20 +574,19 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                                     height: isSheetCompact ? 54.h : 48.0,
                                     width: double.infinity,
                                     decoration: BoxDecoration(
-                                      color: isReady ? AppColors.crimson : AppColors.surfaceLight.withOpacity(0.1),
+                                      color: isReady ? AppColors.crimson : AppColors.surfaceLight.withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(isSheetCompact ? 12.r : 12.0),
                                       boxShadow: isReady ? [
-                                        BoxShadow(color: AppColors.crimson.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4)),
+                                        BoxShadow(color: AppColors.crimson.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 4)),
                                       ] : [],
                                     ),
                                     alignment: Alignment.center,
                                     child: Text(
                                       buttonText,
-                                      style: AppTextStyles.labelMedium.copyWith(
-                                        color: isReady ? Colors.white : AppColors.textSecondary.withOpacity(0.5),
+                                      style: AppTextStyles.labelMedium.adaptive(context).copyWith(
+                                        color: isReady ? Colors.white : AppColors.textSecondary.withValues(alpha: 0.5),
                                         fontWeight: FontWeight.w500,
                                         letterSpacing: 1.2,
-                                        fontSize: isSheetCompact ? null : 13.0,
                                       ),
                                     ),
                                   ),
@@ -628,7 +612,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
       children: List.generate(5, (index) => Icon(
         Icons.local_fire_department_rounded,
         size: isCompact ? 16.r : 16.0,
-        color: index < score ? AppColors.crimson : AppColors.white.withOpacity(0.05),
+        color: index < score ? AppColors.crimson : AppColors.white.withValues(alpha: 0.05),
       )),
     );
   }
@@ -639,9 +623,8 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
       children: [
         Text(
           label, 
-          style: AppTextStyles.labelSmall.copyWith(
+          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
             color: AppColors.textSecondary, 
-            fontSize: isCompact ? 10.sp : 10.0,
             fontWeight: FontWeight.w500,
           )
         ),
@@ -649,11 +632,11 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
         TextField(
           controller: controller,
           maxLines: maxLines,
-          style: TextStyle(color: Colors.white, fontSize: isCompact ? null : 14.0),
+          style: AppTextStyles.bodyMedium.adaptive(context).copyWith(color: Colors.white),
           textCapitalization: TextCapitalization.words,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.2), fontSize: isCompact ? 12.sp : 14.0),
+            hintStyle: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary.withValues(alpha: 0.2)),
             filled: true,
             fillColor: AppColors.background.withValues(alpha: 0.5),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0), borderSide: BorderSide.none),
@@ -664,14 +647,14 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     );
   }
 
-  Widget _buildProgressGraphSection(List<ExerciseLog> logs, bool isTablet) {
+  Widget _buildProgressGraphSection(BuildContext context, List<ExerciseLog> logs, bool isTablet) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('PROGRESS ANALYTICS', style: AppTextStyles.labelSmall.copyWith(letterSpacing: 1.5, fontWeight: FontWeight.w500, fontSize: isTablet ? 10.0 : null)),
+            Text('PROGRESS ANALYTICS', style: AppTextStyles.labelSmall.adaptive(context).copyWith(letterSpacing: 1.5, fontWeight: FontWeight.w500)),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
               decoration: BoxDecoration(
@@ -680,7 +663,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
               ),
               child: Text(
                 "DATA TRENDS",
-                style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontSize: isTablet ? 7.0 : 8.sp, fontWeight: FontWeight.w500),
+                style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.crimson, fontWeight: FontWeight.w500),
               ),
             ),
           ],
@@ -697,27 +680,32 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
           child: logs.isEmpty 
             ? SizedBox(
                 height: isTablet ? 120.0 : 200.h,
-                child: Center(child: Text("NO PERFORMANCE DATA RECORDED YET", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.5), fontSize: isTablet ? 9.0 : null))),
+                child: Center(child: Text("NO PERFORMANCE DATA RECORDED YET", style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary.withValues(alpha: 0.5)))),
               )
-            : ExerciseAnalyticalGraph(
-                logs: logs.reversed.toList(),
-                onPointSelected: (idx) {},
+            : LockedAnalyticsOverlay(
+                unlockKey: 'exercise_${widget.id}',
+                height: isTablet ? 240.0 : 220.h,
+                child: ExerciseAnalyticalGraph(
+                  logs: logs.reversed.toList(),
+                  onPointSelected: (idx) {},
+                  isTablet: isTablet,
+                ),
               ),
         ),
       ],
     );
   }
 
-  Widget _buildHistoryLogs(List<ExerciseLog> logs, bool isTablet) {
+  Widget _buildHistoryLogs(BuildContext context, List<ExerciseLog> logs, bool isTablet) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('RECENT SESSIONS', style: AppTextStyles.labelSmall.copyWith(letterSpacing: 1.5, fontSize: isTablet ? 10.0 : null)),
+        Text('RECENT SESSIONS', style: AppTextStyles.labelSmall.adaptive(context).copyWith(letterSpacing: 1.5)),
         SizedBox(height: isTablet ? 10.0 : 15.h),
         if (logs.isEmpty)
            Padding(
              padding: EdgeInsets.symmetric(vertical: isTablet ? 12.0 : 20.h),
-             child: Center(child: Text("NO RECENT SESSIONS FOUND", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withOpacity(0.3), fontSize: isTablet ? 9.0 : null))),
+             child: Center(child: Text("NO RECENT SESSIONS FOUND", style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary.withValues(alpha: 0.3)))),
            )
         else
           ...logs.take(5).map((log) {
@@ -729,19 +717,23 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
               final rDiff = log.positiveReps - prev.positiveReps;
               if (wDiff > 0) {
                 diffText = "+${wDiff.toStringAsFixed(1)}KG LOAD INCREASE";
-              } else if (rDiff > 0) diffText = "+$rDiff REPS INCREASE";
-              else if (wDiff == 0 && rDiff == 0) diffText = "MAINTAINED PERFORMANCE";
-              else diffText = "PERFORMANCE DECREASE";
+              } else if (rDiff > 0) {
+                diffText = "+$rDiff REPS INCREASE";
+              } else if (wDiff == 0 && rDiff == 0) {
+                diffText = "MAINTAINED PERFORMANCE";
+              } else {
+                diffText = "PERFORMANCE DECREASE";
+              }
             } else {
               diffText = "BASELINE SESSION";
             }
-            return _buildLogEntry(log, diffText, isTablet);
+            return _buildLogEntry(context, log, diffText, isTablet);
           }),
       ],
     );
   }
 
-  Widget _buildLogEntry(ExerciseLog log, String note, bool isTablet) {
+  Widget _buildLogEntry(BuildContext context, ExerciseLog log, String note, bool isTablet) {
     return Container(
       margin: EdgeInsets.only(bottom: isTablet ? 8.0 : 12.h),
       padding: EdgeInsets.all(isTablet ? 12.0 : 16.r),
@@ -758,15 +750,15 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(DateFormat('MMM dd').format(log.timestamp).toUpperCase(), style: AppTextStyles.labelMedium.copyWith(fontSize: isTablet ? 10.0 : 12.sp)),
-                  Text(note, style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontSize: isTablet ? 8.0 : 9.sp, fontWeight: FontWeight.w500)),
+                  Text(DateFormat('MMM dd').format(log.timestamp).toUpperCase(), style: AppTextStyles.labelMedium.adaptive(context)),
+                  Text(note, style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.crimson, fontWeight: FontWeight.w500)),
                 ],
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('${double.parse(log.weightKg.toStringAsFixed(3)).toString()} KG', style: AppTextStyles.h3.copyWith(fontSize: isTablet ? 15.0 : 16.sp)),
-                  Text('${log.positiveReps} POS REPS', style: AppTextStyles.labelSmall.copyWith(color: Colors.blueAccent, fontSize: isTablet ? 9.0 : 10.sp, fontWeight: FontWeight.w500)),
+                  Text('${double.parse(log.weightKg.toStringAsFixed(3)).toString()} KG', style: AppTextStyles.h3.adaptive(context)),
+                  Text('${log.positiveReps} POS REPS', style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: Colors.blueAccent, fontWeight: FontWeight.w500)),
                 ],
               ),
             ],
@@ -779,9 +771,9 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                if (log.negativeReps > 0) _miniSpec(log.negativeReps.toString(), "NEG", Colors.tealAccent, isTablet),
-                if (log.staticHoldSeconds > 0) _miniSpec("${log.staticHoldSeconds}S", "STATIC", Colors.orangeAccent, isTablet),
-                if (log.forcedReps > 0) _miniSpec(log.forcedReps.toString(), "FORCED", Colors.purpleAccent, isTablet),
+                if (log.negativeReps > 0) _miniSpec(context, log.negativeReps.toString(), "NEG", Colors.tealAccent, isTablet),
+                if (log.staticHoldSeconds > 0) _miniSpec(context, "${log.staticHoldSeconds}S", "STATIC", Colors.orangeAccent, isTablet),
+                if (log.forcedReps > 0) _miniSpec(context, log.forcedReps.toString(), "FORCED", Colors.purpleAccent, isTablet),
               ],
             ),
           ]
@@ -790,22 +782,12 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     );
   }
 
-  Widget _miniSpec(String val, String label, Color color, bool isTablet) {
+  Widget _miniSpec(BuildContext context, String val, String label, Color color, bool isTablet) {
     return Column(
       children: [
-        Text(val, style: AppTextStyles.labelSmall.copyWith(color: Colors.white, fontWeight: FontWeight.w500, fontSize: isTablet ? 9.0 : 10.sp)),
-        Text(label, style: AppTextStyles.labelSmall.copyWith(color: color, fontSize: isTablet ? 7.0 : 8.sp, fontWeight: FontWeight.w500)),
+        Text(val, style: AppTextStyles.labelMedium.adaptive(context).copyWith(color: color, fontWeight: FontWeight.w500)),
+        Text(label, style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary, fontSize: isTablet ? 10.0 : 10.sp)),
       ],
-    );
-  }
-
-  Widget _buildFireRating(int score, bool isTablet) {
-    return Row(
-      children: List.generate(5, (index) => Icon(
-        Icons.local_fire_department_rounded,
-        size: isTablet ? 12.0 : 14.r,
-        color: index < score ? AppColors.crimson : AppColors.white.withValues(alpha: 0.1),
-      )),
     );
   }
 }

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/features/tracker/hydration/widgets/water_glass_widget.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/features/tracker/hydration/widgets/water_glass_widget.dart';
 
 class WaterTrackerCard extends StatelessWidget {
   final int currentMl;
@@ -36,9 +36,9 @@ class WaterTrackerCard extends StatelessWidget {
       width: double.infinity,
       padding: EdgeInsets.all(isCompact ? 20.r : 20.0),
       decoration: BoxDecoration(
-        color: AppColors.surfaceLight.withOpacity(0.6),
+        color: AppColors.surfaceLight.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(isCompact ? 20.r : 20.0),
-        border: Border.all(color: AppColors.white.withOpacity(0.1)),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.1)),
         boxShadow: [
           BoxShadow(color: Colors.black26, blurRadius: 8, offset: const Offset(0, 4)),
         ],
@@ -59,8 +59,7 @@ class WaterTrackerCard extends StatelessWidget {
                         SizedBox(width: 8.w),
                         Text(
                           'HYDRATION',
-                          style: AppTextStyles.labelSmall.copyWith(
-                            fontSize: isCompact ? 14.sp : 12.0,
+                          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                             letterSpacing: 1.5,
                             fontWeight: FontWeight.w500,
                           ),
@@ -70,17 +69,15 @@ class WaterTrackerCard extends StatelessWidget {
                     SizedBox(height: 8.h),
                     Text(
                       '$displayCurrent / $displayTarget $unit',
-                      style: AppTextStyles.labelSmall.copyWith(
+                      style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                         color: Colors.white,
-                        fontSize: isCompact ? 16.sp : 14.0,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     Text(
                       progress >= 1.0 ? "GOAL REACHED" : "REMAINING: ${useMetric ? (targetMl - currentMl) : ((targetMl - currentMl) * mlToOzFactor).toStringAsFixed(1)} $unit",
-                      style: AppTextStyles.labelSmall.copyWith(
+                      style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                         color: progress >= 1.0 ? Colors.greenAccent : Colors.blueAccent,
-                        fontSize: isCompact ? 12.sp : 10.0,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -93,10 +90,9 @@ class WaterTrackerCard extends StatelessWidget {
                   SizedBox(height: 4.h),
                   Text(
                     "${(progress * 100).toInt()}%",
-                    style: AppTextStyles.labelSmall.copyWith(
+                    style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                       color: progress >= 1.0 ? Colors.greenAccent : Colors.blueAccent,
                       fontWeight: FontWeight.w500,
-                      fontSize: isCompact ? 12.sp : 10.0,
                     ),
                   ),
                 ],
@@ -108,12 +104,14 @@ class WaterTrackerCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _buildBtn(
+                context,
                 useMetric ? "-${minusValueMl}ML" : "-${(minusValueMl * mlToOzFactor).toStringAsFixed(1)}OZ", 
                 -minusValueMl, 
                 true
               ),
               SizedBox(width: 24.w),
               _buildBtn(
+                context,
                 useMetric ? "+${addValueMl}ML" : "+${(addValueMl * mlToOzFactor).toStringAsFixed(1)}OZ", 
                 addValueMl, 
                 false
@@ -125,7 +123,7 @@ class WaterTrackerCard extends StatelessWidget {
     );
   }
 
-  Widget _buildBtn(String label, int amountMl, bool isSub) {
+  Widget _buildBtn(BuildContext context, String label, int amountMl, bool isSub) {
     return GestureDetector(
       onTap: () => onAdjust(amountMl),
       child: Container(
@@ -134,15 +132,14 @@ class WaterTrackerCard extends StatelessWidget {
           color: AppColors.background,
           borderRadius: BorderRadius.circular(isCompact ? 12.r : 12.0),
           border: Border.all(
-            color: isSub ? AppColors.error.withOpacity(0.5) : AppColors.white.withOpacity(0.1),
+            color: isSub ? AppColors.error.withValues(alpha: 0.5) : AppColors.white.withValues(alpha: 0.1),
             width: 1.5,
           ),
         ),
         child: Text(
           label,
-          style: AppTextStyles.labelSmall.copyWith(
+          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
             color: isSub ? AppColors.error : AppColors.white,
-            fontSize: isCompact ? 13.sp : 11.0,
             fontWeight: FontWeight.w500,
           ),
         ),

@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
+import 'package:go_router/go_router.dart';
+import 'package:rugged/core/navigation/app_routes.dart';
+import 'package:rugged/features/auth/provider/auth_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/core/widgets/elite_confirm_dialog.dart';
 import 'package:provider/provider.dart';
-import 'package:heavy_duty/features/main_wrapper.dart';
-import 'package:heavy_duty/core/utils/adaptive_utils.dart';
+import 'package:rugged/features/main_wrapper.dart';
+import 'package:rugged/core/utils/adaptive_utils.dart';
 import 'provider/affirmation_provider.dart';
 import 'model/affirmation.dart';
 
@@ -17,90 +21,196 @@ class AffirmationScreen extends StatefulWidget {
   State<AffirmationScreen> createState() => _AffirmationScreenState();
 }
 
-class _AffirmationScreenState extends State<AffirmationScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _AffirmationScreenState extends State<AffirmationScreen> {
   final TextEditingController _addController = TextEditingController();
   final TextEditingController _speakerController = TextEditingController();
-  
-  final ScrollController _systemScrollController = ScrollController();
-  final ScrollController _customScrollController = ScrollController();
+
+  bool _isSelectionMode = false;
+  final Set<String> _selectedIds = {};
 
   @override
   void initState() {
     super.initState();
     activeSettingsContext.value = "affirmation";
-    _tabController = TabController(length: 2, vsync: this);
   }
 
   @override
   void dispose() {
     activeSettingsContext.value = "";
-    _tabController.dispose();
     _addController.dispose();
     _speakerController.dispose();
-    _systemScrollController.dispose();
-    _customScrollController.dispose();
     super.dispose();
+  }
+
+  void _enterSelectionMode(String initialId) {
+    setState(() {
+      _isSelectionMode = true;
+      _selectedIds.clear();
+      _selectedIds.add(initialId);
+    });
+  }
+
+  void _exitSelectionMode() {
+    setState(() {
+      _isSelectionMode = false;
+      _selectedIds.clear();
+    });
+  }
+
+  void _toggleSelection(String id) {
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+        if (_selectedIds.isEmpty) {
+          _isSelectionMode = false;
+        }
+      } else {
+        _selectedIds.add(id);
+      }
+    });
+  }
+
+
+  void _shareSelectedAffirmations(AffirmationProvider provider) {
+    if (_selectedIds.isEmpty) return;
+
+    final authProv = context.read<AuthProvider>();
+    if (!authProv.isPro) {
+      context.push(AppRoutes.proUpgrade);
+      return;
+    }
+
+    final selectedList = provider.affirmations.where((a) => _selectedIds.contains(a.id)).toList();
+    if (selectedList.isEmpty) return;
+
+    final buffer = StringBuffer();
+    buffer.writeln("DAILY AFFIRMATIONS FROM RUGGED:\n");
+
+    for (int i = 0; i < selectedList.length; i++) {
+      final aff = selectedList[i];
+      buffer.writeln('${i + 1}. "${aff.text.toUpperCase()}"');
+      if (aff.speaker != null && aff.speaker!.isNotEmpty) {
+        buffer.writeln('   — ${aff.speaker!.toUpperCase()}');
+      }
+      if (aff.sharedBy != null && aff.sharedBy!.isNotEmpty) {
+        buffer.writeln('   (Shared by @${aff.sharedBy!.toUpperCase()})');
+      }
+      buffer.writeln();
+    }
+
+    Share.share(buffer.toString().trim(), subject: "AFFIRMATIONS SHARED VIA RUGGED");
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final bool isCompact = constraints.maxWidth < 600;
-            return Column(
-              children: [
-                _buildHeader(isCompact),
-                _buildTabs(isCompact),
-                Expanded(
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildWheelView(isSystem: true, isCompact: isCompact),
-                      _buildWheelView(isSystem: false, isCompact: isCompact),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-      ),
-      floatingActionButton: ListenableBuilder(
-        listenable: _tabController,
-        builder: (context, _) {
-          if (_tabController.index == 1) {
-            return LayoutBuilder(
+    return Consumer<AffirmationProvider>(
+      builder: (context, provider, _) {
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          body: SafeArea(
+            child: LayoutBuilder(
               builder: (context, constraints) {
                 final bool isCompact = constraints.maxWidth < 600;
-                return FloatingActionButton.extended(
-                  onPressed: _showAddBottomSheet,
-                  backgroundColor: AppColors.crimson,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0)),
-                  icon: Icon(Icons.add_rounded, color: Colors.white, size: isCompact ? 24.r : 20.0),
-                  label: Text(
-                    "AFFIRMATION",
-                    style: AppTextStyles.labelSmall.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 1.2,
-                      fontSize: isCompact ? null : 11.0,
+                return Column(
+                  children: [
+                    _buildHeader(provider, isCompact),
+                    Expanded(
+                      child: _buildWheelView(provider, isCompact: isCompact),
                     ),
-                  ),
+                  ],
                 );
               },
-            );
-          }
-          return const SizedBox.shrink();
-        },
-      ),
+            ),
+          ),
+          floatingActionButton: _isSelectionMode
+              ? null
+              : LayoutBuilder(
+                  builder: (context, constraints) {
+                    final bool isCompact = constraints.maxWidth < 600;
+                    return FloatingActionButton.extended(
+                      onPressed: _showAddBottomSheet,
+                      backgroundColor: AppColors.crimson,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0)),
+                      icon: Icon(Icons.add_rounded, color: Colors.white, size: isCompact ? 24.r : 20.0),
+                      label: Text(
+                        "AFFIRMATION",
+                        style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        );
+      },
     );
   }
 
-  Widget _buildHeader(bool isCompact) {
+  Widget _buildHeader(AffirmationProvider provider, bool isCompact) {
+    if (_isSelectionMode) {
+      return Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: isCompact ? 20.w : 24.0, 
+          vertical: isCompact ? 10.h : 12.0
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.close_rounded, color: Colors.white),
+              onPressed: _exitSelectionMode,
+            ),
+            Text(
+              "${_selectedIds.length} SELECTED", 
+              style: AppTextStyles.h2.adaptive(context).copyWith(
+                fontWeight: FontWeight.w500,
+                color: AppColors.crimson,
+              )
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Consumer<AuthProvider>(
+                  builder: (context, authProv, _) {
+                    final bool isPro = authProv.isPro;
+                    return GestureDetector(
+                      onTap: () => _shareSelectedAffirmations(provider),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isCompact ? 14.w : 14.0,
+                          vertical: isCompact ? 8.h : 8.0,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.crimson,
+                          borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(isPro ? Icons.share_rounded : Icons.lock_rounded, color: Colors.white, size: isCompact ? 16.r : 16.0),
+                            SizedBox(width: isCompact ? 6.w : 6.0),
+                            Text(
+                              isPro ? "SHARE" : "GO PRO TO SHARE",
+                              style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 1.0,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
     return Padding(
       padding: EdgeInsets.symmetric(
         horizontal: isCompact ? 20.w : 24.0, 
@@ -115,9 +225,8 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
           ),
           Text(
             "AFFIRMATIONS", 
-            style: AppTextStyles.h2.copyWith(
+            style: AppTextStyles.h2.adaptive(context).copyWith(
               fontWeight: FontWeight.w500,
-              fontSize: isCompact ? null : 20.0,
             )
           ),
           IconButton(
@@ -126,14 +235,14 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
               color: Colors.white.withValues(alpha: 0.5), 
               size: isCompact ? 22.r : 20.0
             ),
-            onPressed: _showSystemInstructions,
+            onPressed: _showInstructions,
           ),
         ],
       ),
     );
   }
 
-  void _showSystemInstructions() {
+  void _showInstructions() {
     showDialog(
       context: context,
       builder: (context) => LayoutBuilder(
@@ -162,8 +271,7 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
                 SizedBox(height: isCompact ? 16.h : 16.0),
                 Text(
                   "AFFIRMATION CONTROLS",
-                  style: AppTextStyles.h3.copyWith(
-                    fontSize: 16.0, // Fixed size
+                  style: AppTextStyles.h3.adaptive(context).copyWith(
                     letterSpacing: 1.2,
                   ),
                   textAlign: TextAlign.center,
@@ -173,11 +281,11 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _instructionRow(Icons.add_circle_outline_rounded, "Tap the '+' button in the CUSTOM tab to add your own quote.", isCompact),
+                _instructionRow(Icons.add_circle_outline_rounded, "Tap '+ AFFIRMATION' at the bottom to add your custom quotes.", isCompact),
                 SizedBox(height: isCompact ? 16.h : 16.0),
-                _instructionRow(Icons.touch_app_rounded, "Long press any custom affirmation to edit or delete it.", isCompact),
+                _instructionRow(Icons.touch_app_rounded, "Long press any affirmation to edit, delete, or multi-select to share.", isCompact),
                 SizedBox(height: isCompact ? 16.h : 16.0),
-                _instructionRow(Icons.sync_rounded, "Your custom affirmations are synced automatically across all your devices.", isCompact),
+                _instructionRow(Icons.sync_rounded, "Your affirmations are synced automatically across all your devices.", isCompact),
               ],
             ),
             actions: [
@@ -198,10 +306,9 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
                           alignment: Alignment.center,
                           child: Text(
                             "DISMISS",
-                            style: AppTextStyles.labelMedium.copyWith(
+                            style: AppTextStyles.labelMedium.adaptive(context).copyWith(
                               color: AppColors.crimson,
                               fontWeight: FontWeight.w500,
-                              fontSize: isCompact ? null : 11.0,
                             ),
                           ),
                         ),
@@ -225,9 +332,8 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
         Expanded(
           child: Text(
             text,
-            style: AppTextStyles.labelMedium.copyWith(
+            style: AppTextStyles.labelMedium.adaptive(context).copyWith(
               color: AppColors.textSecondary,
-              fontSize: isCompact ? null : 11.0,
             ),
           ),
         ),
@@ -235,114 +341,169 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
     );
   }
 
-  Widget _buildTabs(bool isCompact) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: isCompact ? 20.w : 24.0),
-      child: TabBar(
-        controller: _tabController,
-        indicatorColor: AppColors.crimson,
-        labelColor: AppColors.crimson,
-        unselectedLabelColor: AppColors.textSecondary,
-        dividerColor: Colors.transparent,
-        labelStyle: AppTextStyles.labelMedium.copyWith(
-          fontSize: isCompact ? null : 12.0,
-          fontWeight: FontWeight.w500,
-        ),
-        tabs: const [
-          Tab(text: "SYSTEM"),
-          Tab(text: "CUSTOM"),
-        ],
-      ),
-    );
-  }
+  Widget _buildWheelView(AffirmationProvider provider, {required bool isCompact}) {
+    final items = provider.affirmations;
 
-  Widget _buildWheelView({required bool isSystem, required bool isCompact}) {
-    return Consumer<AffirmationProvider>(
-      builder: (context, provider, _) {
-        // Show all in the library scroller
-        final items = isSystem ? provider.allSystemAffirmations : provider.allCustomAffirmations;
-
-        if (items.isEmpty) {
-          return Center(
-            child: Text(
-              isSystem ? "NO SYSTEM DATA" : "NO CUSTOM DATA",
-              style: AppTextStyles.labelSmall.copyWith(
-                color: AppColors.textSecondary.withValues(alpha: 0.3),
-                fontSize: isCompact ? null : 12.0,
+    if (items.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.format_quote_rounded,
+              size: isCompact ? 48.r : 40.0,
+              color: AppColors.crimson.withValues(alpha: 0.4),
+            ),
+            SizedBox(height: isCompact ? 16.h : 16.0),
+            Text(
+              "NO AFFIRMATIONS YET",
+              style: AppTextStyles.h3.adaptive(context).copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
               ),
             ),
-          );
-        }
-
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            final double viewportHeight = constraints.maxHeight;
-            final double itemHeight = viewportHeight * 0.55; 
-
-            return ListWheelScrollView.useDelegate(
-              itemExtent: itemHeight,
-              physics: const FixedExtentScrollPhysics(),
-              diameterRatio: 1.5,
-              perspective: 0.003,
-              squeeze: 1.0,
-              overAndUnderCenterOpacity: 0.2,
-              useMagnifier: true,
-              magnification: 1.15,
-              onSelectedItemChanged: (index) {
-                debugPrint('Active Affirmation Index: $index');
-              },
-              childDelegate: ListWheelChildBuilderDelegate(
-                childCount: items.length,
-                builder: (context, index) {
-                  final aff = items[index];
-                  return Center(
-                    child: _buildItemContent(aff, provider, isCompact),
-                  );
-                },
+            SizedBox(height: isCompact ? 8.h : 8.0),
+            Text(
+              "Tap '+ AFFIRMATION' below to enter your first quote",
+              style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+                color: AppColors.textSecondary,
               ),
-            );
+            ),
+          ],
+        ),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double viewportHeight = constraints.maxHeight;
+        final double itemHeight = viewportHeight * 0.55; 
+
+        return ListWheelScrollView.useDelegate(
+          itemExtent: itemHeight,
+          physics: const FixedExtentScrollPhysics(),
+          diameterRatio: 1.5,
+          perspective: 0.003,
+          squeeze: 1.0,
+          overAndUnderCenterOpacity: 0.2,
+          useMagnifier: true,
+          magnification: 1.15,
+          onSelectedItemChanged: (index) {
+            debugPrint('Active Affirmation Index: $index');
           },
+          childDelegate: ListWheelChildBuilderDelegate(
+            childCount: items.length,
+            builder: (context, index) {
+              final aff = items[index];
+              return Center(
+                child: _buildItemContent(aff, provider, isCompact),
+              );
+            },
+          ),
         );
       },
     );
   }
 
-
   Widget _buildItemContent(Affirmation aff, AffirmationProvider provider, bool isCompact) {
+    final bool isSelected = _selectedIds.contains(aff.id);
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: isCompact ? 40.w : 60.0),
       child: GestureDetector(
-        onLongPress: aff.isCustom ? () => _showAffirmationActions(context, provider, aff) : null,
+        onTap: _isSelectionMode ? () => _toggleSelection(aff.id) : null,
+        onLongPress: () => _showAffirmationActions(context, provider, aff),
         behavior: HitTestBehavior.opaque,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '"${aff.text.toUpperCase()}"',
-              textAlign: TextAlign.center,
-              style: AppTextStyles.displayMedium.copyWith(
-                fontSize: isCompact ? 14.sp : 24.0,
-                height: 1.3,
-                fontWeight: FontWeight.w500,
-                fontStyle: FontStyle.italic,
-                color: Colors.white,
-                letterSpacing: 0.5,
-              ),
-            ),
-            if (aff.speaker != null && aff.speaker!.isNotEmpty) ...[
-              SizedBox(height: isCompact ? 16.h : 16.0),
-              Text(
-                "— ${aff.speaker!.toUpperCase()}",
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: double.infinity,
+          padding: EdgeInsets.all(isCompact ? 16.r : 16.0),
+          decoration: _isSelectionMode
+              ? BoxDecoration(
+                  color: isSelected ? AppColors.crimson.withValues(alpha: 0.1) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(isCompact ? 20.r : 16.0),
+                  border: Border.all(
+                    color: isSelected ? AppColors.crimson : AppColors.white.withValues(alpha: 0.1),
+                    width: isSelected ? 2.0 : 1.0,
+                  ),
+                )
+              : null,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              if (_isSelectionMode)
+                Align(
+                  alignment: Alignment.topRight,
+                  child: Icon(
+                    isSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                    color: isSelected ? AppColors.crimson : AppColors.textSecondary.withValues(alpha: 0.4),
+                    size: isCompact ? 24.r : 20.0,
+                  ),
+                ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                '"${aff.text.toUpperCase()}"',
                 textAlign: TextAlign.center,
-                style: AppTextStyles.labelSmall.copyWith(
-                  color: AppColors.crimson,
+                style: AppTextStyles.displayMedium.adaptive(context).copyWith(
+                  height: 1.3,
                   fontWeight: FontWeight.w500,
-                  letterSpacing: 1.2,
-                  fontSize: isCompact ? null : 12.0,
+                  fontStyle: FontStyle.italic,
+                  color: Colors.white,
+                  letterSpacing: 0.5,
                 ),
               ),
+              if (aff.speaker != null && aff.speaker!.isNotEmpty) ...[
+                SizedBox(height: isCompact ? 16.h : 16.0),
+                Text(
+                  "— ${aff.speaker!.toUpperCase()}",
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+                    color: AppColors.crimson,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ],
+              if (aff.sharedBy != null && aff.sharedBy!.isNotEmpty) ...[
+                SizedBox(height: isCompact ? 12.h : 12.0),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isCompact ? 12.w : 10.0,
+                    vertical: isCompact ? 4.h : 4.0,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.crimson.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20.r),
+                    border: Border.all(color: AppColors.crimson.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.person_pin_rounded,
+                        color: AppColors.crimson,
+                        size: isCompact ? 14.r : 14.0,
+                      ),
+                      SizedBox(width: isCompact ? 6.w : 6.0),
+                      Text(
+                        "SHARED BY @${aff.sharedBy!.toUpperCase()}",
+                        style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+                          color: AppColors.crimson,
+                          fontSize: isCompact ? 10.sp : 10.0,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
+            ],
+          ),
         ),
       ),
     );
@@ -391,7 +552,7 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
                       mainAxisSize: isSideSheet ? MainAxisSize.max : MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (isSideSheet) SizedBox(height: 24.0),
+                        if (isSideSheet) const SizedBox(height: 24.0),
                         if (!isSideSheet) _buildHandle(isSheetCompact),
                         Padding(
                           padding: EdgeInsets.fromLTRB(
@@ -413,14 +574,13 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
                                       children: [
                                         Text(
                                           "MANAGE AFFIRMATION", 
-                                          style: AppTextStyles.h3.copyWith(fontSize: isSheetCompact ? null : 18.0)
+                                          style: AppTextStyles.h3.adaptive(context)
                                         ),
                                         SizedBox(height: isSheetCompact ? 8.h : 6.0),
                                         Text(
                                           "Select an action for your custom quote",
-                                          style: AppTextStyles.labelSmall.copyWith(
+                                          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                             color: AppColors.textSecondary,
-                                            fontSize: isSheetCompact ? null : 11.0,
                                           ),
                                         ),
                                       ],
@@ -435,9 +595,21 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
                               ),
                               SizedBox(height: isSheetCompact ? 32.h : 24.0),
                               _buildActionTile(
+                                icon: Icons.checklist_rounded,
+                                title: "Select Multiple",
+                                subtitle: "Select and share multiple quotes",
+                                color: Colors.blueAccent,
+                                isCompact: isSheetCompact,
+                                onTap: () {
+                                  Navigator.pop(sheetContext);
+                                  _enterSelectionMode(aff.id);
+                                },
+                              ),
+                              SizedBox(height: isSheetCompact ? 16.h : 12.0),
+                              _buildActionTile(
                                 icon: Icons.edit_outlined,
                                 title: "Edit Affirmation",
-                                subtitle: "Modify your custom quote",
+                                subtitle: "Modify your quote",
                                 color: AppColors.crimson,
                                 isCompact: isSheetCompact,
                                 onTap: () {
@@ -457,7 +629,7 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
                                   final confirmed = await EliteConfirmDialog.show(
                                     context,
                                     title: "DELETE AFFIRMATION",
-                                    message: "ARE YOU SURE YOU WANT TO PERMANENTLY REMOVE THIS CUSTOM AFFIRMATION?",
+                                    message: "ARE YOU SURE YOU WANT TO PERMANENTLY REMOVE THIS AFFIRMATION?",
                                   );
                                   if (confirmed == true) {
                                     provider.deleteAffirmation(aff.id);
@@ -504,16 +676,15 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
       ),
       title: Text(
         title,
-        style: AppTextStyles.labelMedium.copyWith(color: color, fontWeight: FontWeight.w500, fontSize: isCompact ? null : 14.0),
+        style: AppTextStyles.labelMedium.adaptive(context).copyWith(color: color, fontWeight: FontWeight.w500),
       ),
       subtitle: Text(
         subtitle,
-        style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.5), fontSize: isCompact ? null : 10.0),
+        style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary.withValues(alpha: 0.5)),
       ),
       onTap: onTap,
     );
   }
-
 
   void _showEditBottomSheet(Affirmation aff) {
     _addController.text = aff.text;
@@ -544,7 +715,7 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
                   child: Column(
                     mainAxisSize: isSideSheet ? MainAxisSize.max : MainAxisSize.min,
                     children: [
-                      if (isSideSheet) SizedBox(height: 24.0),
+                      if (isSideSheet) const SizedBox(height: 24.0),
                       if (!isSideSheet) _buildHandle(isSheetCompact),
                       Flexible(
                         child: SingleChildScrollView(
@@ -563,7 +734,7 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
                                 children: [
                                   Text(
                                     "EDIT AFFIRMATION", 
-                                    style: AppTextStyles.h3.copyWith(fontSize: isSheetCompact ? null : 18.0)
+                                    style: AppTextStyles.h3.adaptive(context)
                                   ),
                                   if (isSideSheet)
                                     IconButton(
@@ -582,7 +753,7 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
                                     controller: _addController,
                                     minLines: 5,
                                     maxLines: 10,
-                                    style: TextStyle(color: Colors.white, fontSize: isSheetCompact ? null : 14.0),
+                                    style: AppTextStyles.labelMedium.adaptive(context).copyWith(color: Colors.white),
                                     inputFormatters: [
                                       TextInputFormatter.withFunction((oldValue, newValue) {
                                         final lineCount = newValue.text.split('\n').length;
@@ -594,11 +765,10 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
                                     ],
                                     decoration: InputDecoration(
                                       hintText: "Enter custom quote...",
-                                      hintStyle: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.5), fontSize: isSheetCompact ? null : 14.0),
+                                      hintStyle: AppTextStyles.labelMedium.adaptive(context).copyWith(color: AppColors.textSecondary.withValues(alpha: 0.5)),
                                       counterText: "$wordCount / 60 WORDS",
-                                      counterStyle: AppTextStyles.labelSmall.copyWith(
+                                      counterStyle: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                         color: wordCount > 60 ? AppColors.error : AppColors.textSecondary,
-                                        fontSize: isSheetCompact ? 10.sp : 10.0,
                                       ),
                                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(isSheetCompact ? 12.r : 10.0)),
                                       focusedBorder: OutlineInputBorder(
@@ -613,63 +783,55 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
                               TextField(
                                 controller: _speakerController,
                                 maxLength: 20,
-                                style: TextStyle(color: Colors.white, fontSize: isSheetCompact ? null : 14.0),
+                                style: TextStyle(color: Colors.white, fontSize: isSheetCompact ? 14.sp : 14.0),
                                 inputFormatters: [LengthLimitingTextInputFormatter(20)],
                                 decoration: InputDecoration(
                                   hintText: "Who is the speaker?",
-                                  hintStyle: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.5), fontSize: isSheetCompact ? null : 14.0),
+                                  hintStyle: AppTextStyles.labelMedium.adaptive(context).copyWith(color: AppColors.textSecondary.withValues(alpha: 0.5)),
                                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(isSheetCompact ? 12.r : 10.0)),
                                   focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12.r),
+                                    borderRadius: BorderRadius.circular(isSheetCompact ? 12.r : 10.0),
                                     borderSide: const BorderSide(color: AppColors.crimson),
                                   ),
-                                  counterStyle: TextStyle(color: AppColors.textSecondary, fontSize: isSheetCompact ? null : 10.0),
                                 ),
                               ),
-                              SizedBox(height: isSheetCompact ? 32.h : 24.0),
-                              SizedBox(
-                                width: double.infinity,
-                                height: isSheetCompact ? 50.h : 44.0,
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.crimson,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(isSheetCompact ? 12.r : 10.0)),
-                                  ),
-                                  onPressed: () {
-                                    final text = _addController.text.trim();
-                                    if (text.isNotEmpty) {
-                                      final wordCount = text.split(RegExp(r'\s+')).where((s) => s.isNotEmpty).length;
-                                      if (wordCount > 60) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text("Quote cannot exceed 60 words"),
-                                            backgroundColor: AppColors.error,
-                                          )
-                                        );
-                                        return;
-                                      }
-
-                                      context.read<AffirmationProvider>().updateAffirmation(
+                              SizedBox(height: isSheetCompact ? 24.h : 20.0),
+                              ListenableBuilder(
+                                listenable: _addController,
+                                builder: (context, _) {
+                                  final text = _addController.text.trim();
+                                  final wordCount = text.isEmpty ? 0 : text.split(RegExp(r'\s+')).where((s) => s.isNotEmpty).length;
+                                  final isValid = text.isNotEmpty && wordCount <= 60;
+                                  return GestureDetector(
+                                    onTap: isValid ? () {
+                                      final provider = context.read<AffirmationProvider>();
+                                      provider.updateAffirmation(
                                         aff.copyWith(
                                           text: text,
                                           speaker: _speakerController.text.trim().isEmpty ? null : _speakerController.text.trim(),
                                         ),
                                       );
-                                      _addController.clear();
-                                      _speakerController.clear();
                                       Navigator.pop(sheetContext);
-                                    }
-                                  },
-                                  child: Text(
-                                    "UPDATE AFFIRMATION", 
-                                    style: AppTextStyles.labelSmall.copyWith(
-                                      color: Colors.white, 
-                                      fontWeight: FontWeight.w500,
-                                      letterSpacing: 1.2,
-                                      fontSize: isSheetCompact ? null : 11.0,
-                                    )
-                                  ),
-                                ),
+                                    } : null,
+                                    child: Container(
+                                      width: double.infinity,
+                                      padding: EdgeInsets.symmetric(vertical: isSheetCompact ? 14.h : 12.0),
+                                      decoration: BoxDecoration(
+                                        color: isValid ? AppColors.crimson : AppColors.surfaceLight.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(isSheetCompact ? 12.r : 10.0),
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        "UPDATE",
+                                        style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+                                          color: isValid ? Colors.white : AppColors.textSecondary.withValues(alpha: 0.3),
+                                          fontWeight: FontWeight.w500,
+                                          letterSpacing: 1.2,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }
                               ),
                             ],
                           ),
@@ -689,6 +851,7 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
   void _showAddBottomSheet() {
     _addController.clear();
     _speakerController.clear();
+
     AdaptiveUtils.showAdaptiveSheet(
       context: context,
       sheetBuilder: (sheetContext, isSideSheet) => LayoutBuilder(
@@ -714,7 +877,7 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
                   child: Column(
                     mainAxisSize: isSideSheet ? MainAxisSize.max : MainAxisSize.min,
                     children: [
-                      if (isSideSheet) SizedBox(height: 24.0),
+                      if (isSideSheet) const SizedBox(height: 24.0),
                       if (!isSideSheet) _buildHandle(isSheetCompact),
                       Flexible(
                         child: SingleChildScrollView(
@@ -732,8 +895,8 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    "ADD CUSTOM AFFIRMATION", 
-                                    style: AppTextStyles.h3.copyWith(fontSize: isSheetCompact ? null : 18.0)
+                                    "ADD AFFIRMATION", 
+                                    style: AppTextStyles.h3.adaptive(context)
                                   ),
                                   if (isSideSheet)
                                     IconButton(
@@ -752,7 +915,7 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
                                     controller: _addController,
                                     minLines: 5,
                                     maxLines: 10,
-                                    style: TextStyle(color: Colors.white, fontSize: isSheetCompact ? null : 14.0),
+                                    style: AppTextStyles.labelMedium.adaptive(context).copyWith(color: Colors.white),
                                     inputFormatters: [
                                       TextInputFormatter.withFunction((oldValue, newValue) {
                                         final lineCount = newValue.text.split('\n').length;
@@ -763,12 +926,11 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
                                       }),
                                     ],
                                     decoration: InputDecoration(
-                                      hintText: "Enter custom quote...",
-                                      hintStyle: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.5), fontSize: isSheetCompact ? null : 14.0),
+                                      hintText: "Enter quote...",
+                                      hintStyle: AppTextStyles.labelMedium.adaptive(context).copyWith(color: AppColors.textSecondary.withValues(alpha: 0.5)),
                                       counterText: "$wordCount / 60 WORDS",
-                                      counterStyle: AppTextStyles.labelSmall.copyWith(
+                                      counterStyle: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                         color: wordCount > 60 ? AppColors.error : AppColors.textSecondary,
-                                        fontSize: isSheetCompact ? 10.sp : 10.0,
                                       ),
                                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(isSheetCompact ? 12.r : 10.0)),
                                       focusedBorder: OutlineInputBorder(
@@ -783,61 +945,53 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
                               TextField(
                                 controller: _speakerController,
                                 maxLength: 20,
-                                style: TextStyle(color: Colors.white, fontSize: isSheetCompact ? null : 14.0),
+                                style: TextStyle(color: Colors.white, fontSize: isSheetCompact ? 14.sp : 14.0),
                                 inputFormatters: [LengthLimitingTextInputFormatter(20)],
                                 decoration: InputDecoration(
                                   hintText: "Who is the speaker?",
-                                  hintStyle: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.5), fontSize: isSheetCompact ? null : 14.0),
+                                  hintStyle: AppTextStyles.labelMedium.adaptive(context).copyWith(color: AppColors.textSecondary.withValues(alpha: 0.5)),
                                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(isSheetCompact ? 12.r : 10.0)),
                                   focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12.r),
+                                    borderRadius: BorderRadius.circular(isSheetCompact ? 12.r : 10.0),
                                     borderSide: const BorderSide(color: AppColors.crimson),
                                   ),
-                                  counterStyle: TextStyle(color: AppColors.textSecondary, fontSize: isSheetCompact ? null : 10.0),
                                 ),
                               ),
-                              SizedBox(height: isSheetCompact ? 32.h : 24.0),
-                              SizedBox(
-                                width: double.infinity,
-                                height: isSheetCompact ? 50.h : 44.0,
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.crimson,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(isSheetCompact ? 12.r : 10.0)),
-                                  ),
-                                  onPressed: () {
-                                    final text = _addController.text.trim();
-                                    if (text.isNotEmpty) {
-                                      final wordCount = text.split(RegExp(r'\s+')).where((s) => s.isNotEmpty).length;
-                                      if (wordCount > 60) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text("Quote cannot exceed 60 words"),
-                                            backgroundColor: AppColors.error,
-                                          )
-                                        );
-                                        return;
-                                      }
-
-                                      context.read<AffirmationProvider>().addAffirmation(
+                              SizedBox(height: isSheetCompact ? 24.h : 20.0),
+                              ListenableBuilder(
+                                listenable: _addController,
+                                builder: (context, _) {
+                                  final text = _addController.text.trim();
+                                  final wordCount = text.isEmpty ? 0 : text.split(RegExp(r'\s+')).where((s) => s.isNotEmpty).length;
+                                  final isValid = text.isNotEmpty && wordCount <= 60;
+                                  return GestureDetector(
+                                    onTap: isValid ? () {
+                                      final provider = context.read<AffirmationProvider>();
+                                      provider.addAffirmation(
                                         text,
-                                        _speakerController.text.trim().isEmpty ? null : _speakerController.text.trim(),
+                                        speaker: _speakerController.text.trim().isEmpty ? null : _speakerController.text.trim(),
                                       );
-                                      _addController.clear();
-                                      _speakerController.clear();
                                       Navigator.pop(sheetContext);
-                                    }
-                                  },
-                                  child: Text(
-                                    "SAVE AFFIRMATION", 
-                                    style: AppTextStyles.labelSmall.copyWith(
-                                      color: Colors.white, 
-                                      fontWeight: FontWeight.w500,
-                                      letterSpacing: 1.2,
-                                      fontSize: isSheetCompact ? null : 11.0,
-                                    )
-                                  ),
-                                ),
+                                    } : null,
+                                    child: Container(
+                                      width: double.infinity,
+                                      padding: EdgeInsets.symmetric(vertical: isSheetCompact ? 14.h : 12.0),
+                                      decoration: BoxDecoration(
+                                        color: isValid ? AppColors.crimson : AppColors.surfaceLight.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(isSheetCompact ? 12.r : 10.0),
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        "ADD",
+                                        style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+                                          color: isValid ? Colors.white : AppColors.textSecondary.withValues(alpha: 0.3),
+                                          fontWeight: FontWeight.w500,
+                                          letterSpacing: 1.2,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }
                               ),
                             ],
                           ),

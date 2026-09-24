@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
 import '../../model/supplement.dart';
 
 class IntakeSheet extends StatefulWidget {
@@ -108,7 +108,7 @@ class _IntakeSheetState extends State<IntakeSheet> {
                   borderRadius: widget.isSideSheet 
                     ? const BorderRadius.horizontal(left: Radius.circular(24.0))
                     : BorderRadius.vertical(top: Radius.circular(isCompact ? 32.r : 24.0)),
-                  border: Border.all(color: AppColors.white.withOpacity(0.05)),
+                  border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
                 ),
                 child: Column(
                   mainAxisSize: widget.isSideSheet ? MainAxisSize.max : MainAxisSize.min,
@@ -243,7 +243,7 @@ class _IntakeSheetState extends State<IntakeSheet> {
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
-              border: Border.all(color: AppColors.white.withOpacity(0.05)),
+              border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
             ),
             child: Row(
               children: [
@@ -315,13 +315,13 @@ class _IntakeSheetState extends State<IntakeSheet> {
           title,
           style: AppTextStyles.labelSmall.copyWith(
             fontWeight: FontWeight.w500,
-            color: isEnabled ? Colors.white : AppColors.textSecondary.withOpacity(0.4),
+            color: isEnabled ? Colors.white : AppColors.textSecondary.withValues(alpha: 0.4),
             fontSize: isCompact ? null : 11.0,
           ),
         ),
         Switch.adaptive(
           value: isEnabled ? value : false,
-          activeColor: AppColors.crimson,
+          activeTrackColor: AppColors.crimson,
           onChanged: isEnabled ? onChanged : null,
         ),
       ],
@@ -362,15 +362,30 @@ class _IntakeSheetState extends State<IntakeSheet> {
   Future<void> _pickDateTime() async {
     final date = await showDatePicker(
       context: context,
+      useRootNavigator: true,
       initialDate: selectedTimestamp,
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
+      builder: (context, child) => Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: child!,
+        ),
+      ),
     );
 
     if (date != null) {
+      if (!mounted) return;
       final time = await showTimePicker(
         context: context,
+        useRootNavigator: true,
         initialTime: TimeOfDay.fromDateTime(selectedTimestamp),
+        builder: (context, child) => Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: child!,
+          ),
+        ),
       );
 
       if (time != null) {
@@ -392,7 +407,7 @@ class _IntakeSheetState extends State<IntakeSheet> {
       Container(
         padding: EdgeInsets.all(isCompact ? 10.r : 10.0),
         decoration: BoxDecoration(
-          color: AppColors.crimson.withOpacity(0.1),
+          color: AppColors.crimson.withValues(alpha: 0.1),
           shape: BoxShape.circle,
         ),
         child: Icon(
@@ -437,7 +452,7 @@ class _IntakeSheetState extends State<IntakeSheet> {
       width: isCompact ? 40.w : 40.0,
       height: isCompact ? 4.h : 4.0,
       decoration: BoxDecoration(
-        color: AppColors.textSecondary.withOpacity(0.4),
+        color: AppColors.textSecondary.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(3.r),
       ),
     ),
@@ -453,12 +468,12 @@ class _IntakeSheetState extends State<IntakeSheet> {
     child: Container(
       padding: EdgeInsets.all(isCompact ? 16.r : 16.0),
       decoration: BoxDecoration(
-        color: AppColors.background.withOpacity(0.5),
+        color: AppColors.background.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(isCompact ? 20.r : 16.0),
         border: Border.all(
           color: isActive
-              ? AppColors.crimson.withOpacity(0.2)
-              : AppColors.white.withOpacity(0.05),
+              ? AppColors.crimson.withValues(alpha: 0.2)
+              : AppColors.white.withValues(alpha: 0.05),
         ),
       ),
       child: child,
@@ -476,7 +491,7 @@ class _IntakeSheetState extends State<IntakeSheet> {
     decoration: BoxDecoration(
       color: AppColors.surface,
       borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
-      border: Border.all(color: AppColors.white.withOpacity(0.05)),
+      border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
     ),
     child: Row(
       mainAxisSize: MainAxisSize.min,
@@ -521,12 +536,12 @@ class _IntakeSheetState extends State<IntakeSheet> {
         decoration: BoxDecoration(
           color: isEnabled
               ? AppColors.crimson
-              : AppColors.crimson.withOpacity(0.1),
+              : AppColors.crimson.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0),
           boxShadow: isEnabled
               ? [
                   BoxShadow(
-                    color: AppColors.crimson.withOpacity(0.3),
+                    color: AppColors.crimson.withValues(alpha: 0.3),
                     blurRadius: 15,
                     offset: const Offset(0, 6),
                   ),
@@ -534,13 +549,13 @@ class _IntakeSheetState extends State<IntakeSheet> {
               : [],
           border: isEnabled
               ? null
-              : Border.all(color: AppColors.crimson.withOpacity(0.2)),
+              : Border.all(color: AppColors.crimson.withValues(alpha: 0.2)),
         ),
         child: Text(
           label,
           style: AppTextStyles.buttonPrimary.copyWith(
             fontSize: isCompact ? 16.sp : 14.0,
-            color: isEnabled ? Colors.white : Colors.white.withOpacity(0.3),
+            color: isEnabled ? Colors.white : Colors.white.withValues(alpha: 0.3),
           ),
         ),
       ),

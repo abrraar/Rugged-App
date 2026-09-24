@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:heavy_duty/core/constants/dimensions.dart';
-import 'package:heavy_duty/features/affirmation/widgets/affirmation_settings_sheet.dart';
-import 'package:heavy_duty/core/utils/adaptive_utils.dart';
+import 'package:rugged/core/constants/dimensions.dart';
+import 'package:rugged/features/affirmation/widgets/affirmation_settings_sheet.dart';
+import 'package:rugged/core/utils/adaptive_utils.dart';
 import 'package:intl/intl.dart';
-import 'package:heavy_duty/core/navigation/app_routes.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/core/widgets/app_bottom_navbar.dart';
+import 'package:rugged/core/navigation/app_routes.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/core/widgets/app_bottom_navbar.dart';
+import 'package:rugged/core/ads/banner_ad_widget.dart';
+import 'package:provider/provider.dart';
+import 'package:rugged/features/auth/provider/auth_provider.dart';
 
 final ValueNotifier<String> activeSettingsContext = ValueNotifier<String>("");
 
@@ -42,7 +45,7 @@ class MainWrapper extends StatelessWidget {
       backgroundColor: AppColors.background,
       body: SafeArea(
         top: false, 
-        bottom: true,
+        bottom: !isCompact,
         child: Row(
           children: [
             // ── NAVIGATION RAIL (MEDIUM & EXPANDED) ───────────────────────────
@@ -79,12 +82,22 @@ class MainWrapper extends StatelessWidget {
       ),
 
       // ── BOTTOM NAVIGATION (COMPACT ONLY) ─────────────────────────────
-      bottomNavigationBar: isCompact
-          ? _CompactBottomNav(
-              currentIndex: currentIndex,
-              onTap: (index) => _onNavTap(context, index),
-            )
-          : null,
+      bottomNavigationBar: Consumer<AuthProvider>(
+        builder: (context, authProv, _) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (!authProv.isPro)
+                EliteBannerAd(), // Fixed Banner Ad at the bottom
+              if (isCompact)
+                _CompactBottomNav(
+                  currentIndex: currentIndex,
+                  onTap: (index) => _onNavTap(context, index),
+                ),
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -173,10 +186,9 @@ class _AdaptiveTopAppBar extends StatelessWidget {
                       const SizedBox(width: 8),
                       Text(
                         formattedDate,
-                        style: AppTextStyles.labelSmall.copyWith(
+                        style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                           color: AppColors.textSecondary,
                           letterSpacing: 1.5,
-                          fontSize: (isCompact ? 10.sp : 11.0).clamp(9, 14),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -185,8 +197,7 @@ class _AdaptiveTopAppBar extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     title,
-                    style: AppTextStyles.displayMedium.copyWith(
-                      fontSize: (isCompact ? 26.sp : 32.0).clamp(24, 42),
+                    style: AppTextStyles.displayMedium.adaptive(context).copyWith(
                       letterSpacing: -0.5,
                       fontWeight: FontWeight.w500,
                     ),
@@ -226,80 +237,104 @@ class _AdaptiveNavigationRail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: Theme.of(context).copyWith(
-        navigationRailTheme: NavigationRailThemeData(
-          indicatorColor: AppColors.crimson.withValues(alpha: 0.12),
-          indicatorShape: const StadiumBorder(), // Soft, faded feel without hard corners
-        ),
-      ),
-      child: NavigationRail(
-        extended: isExpanded,
-        labelType: isExpanded ? NavigationRailLabelType.none : NavigationRailLabelType.selected,
-        backgroundColor: AppColors.background,
-        unselectedIconTheme: IconThemeData(color: AppColors.white.withValues(alpha: 0.2), size: 28),
-        selectedIconTheme: const IconThemeData(color: AppColors.white, size: 32),
-        unselectedLabelTextStyle: const TextStyle(color: Colors.transparent, fontSize: 0),
-        selectedLabelTextStyle: AppTextStyles.labelSmall.copyWith(
-          color: AppColors.white, 
-          fontWeight: FontWeight.w500, 
-          fontSize: 10.0, // Fixed DP for consistency
-          letterSpacing: 1
-        ),
-        onDestinationSelected: onTap,
-        selectedIndex: currentIndex,
-        minWidth: 72, // Standard Material width
-        minExtendedWidth: 200,
-        groupAlignment: -0.8, // Match foldable alignment
-        leading: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 24),
-          child: Image.asset(
-            'lib/assets/images/heavy_duty_app_icon.png',
-            width: 40,
-            height: 40,
+    return Container(
+      width: isExpanded ? 200.0 : 170.0,
+      color: AppColors.background,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24.0),
+            child: Image.asset(
+              'lib/assets/images/rugged_app_icon.png',
+              width: 40,
+              height: 40,
+            ),
           ),
-        ),
-        destinations: [
-          _buildDestination(
+          const SizedBox(height: 12.0),
+          _buildItem(
+            index: 0,
+            label: 'HOME',
             icon: Icons.home_outlined,
             selectedIcon: Icons.home_filled,
-            label: 'HOME',
           ),
-          _buildDestination(
+          const SizedBox(height: 8.0),
+          _buildItem(
+            index: 1,
+            label: 'EXERCISES',
             icon: Icons.fitness_center_outlined,
             selectedIcon: Icons.fitness_center_rounded,
-            label: 'EXERCISES',
           ),
-          _buildDestination(
+          const SizedBox(height: 8.0),
+          _buildItem(
+            index: 2,
+            label: 'TRACKER',
             icon: Icons.edit_note_outlined,
             selectedIcon: Icons.edit_note_rounded,
-            label: 'TRACKER',
           ),
-          _buildDestination(
+          const SizedBox(height: 8.0),
+          _buildItem(
+            index: 3,
+            label: 'PROFILE',
             icon: Icons.person_outline,
             selectedIcon: Icons.person_rounded,
-            label: 'PROFILE',
           ),
         ],
       ),
     );
   }
 
-  NavigationRailDestination _buildDestination({
+  Widget _buildItem({
+    required int index,
+    required String label,
     required IconData icon,
     required IconData selectedIcon,
-    required String label,
   }) {
-    return NavigationRailDestination(
-      icon: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        child: Icon(icon),
+    final bool isSelected = currentIndex == index;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12.0),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: GestureDetector(
+          onTap: () => onTap(index),
+          behavior: HitTestBehavior.opaque,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? AppColors.crimson.withValues(alpha: 0.2)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(24.0),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isSelected ? selectedIcon : icon,
+                  color: isSelected
+                      ? AppColors.white
+                      : AppColors.white.withValues(alpha: 0.3),
+                  size: 22.0,
+                ),
+                const SizedBox(width: 10.0),
+                Text(
+                  label,
+                  style: AppTextStyles.labelSmall.copyWith(
+                    color: isSelected
+                        ? AppColors.white
+                        : AppColors.white.withValues(alpha: 0.3),
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    fontSize: 11.0,
+                    letterSpacing: 1.1,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
-      selectedIcon: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        child: Icon(selectedIcon),
-      ),
-      label: Text(label),
     );
   }
 }
@@ -318,6 +353,7 @@ class _CompactBottomNav extends StatelessWidget {
         border: Border(top: BorderSide(color: AppColors.white.withValues(alpha : 0.05), width: 1)),
       ),
       child: SafeArea(
+        top: false,
         child: AppBottomNavbar(
           currentIndex: currentIndex,
           onTap: onTap,

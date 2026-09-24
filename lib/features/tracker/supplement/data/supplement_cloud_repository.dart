@@ -1,8 +1,7 @@
-// lib/features/tracker/supplement/data/supplement_cloud_repository.dart
-
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../auth/provider/auth_provider.dart';
 import '../model/supplement.dart';
 import '../model/supplement_stack.dart';
 import '../model/supplement_item.dart';
@@ -13,6 +12,7 @@ class SupplementCloudRepository {
 
   /// Helper to get the currently authenticated User's ID safely.
   String? get _currentUserId => _supabase.auth.currentUser?.id;
+  bool get _isPro => AuthProvider().isPro;
 
   // ==========================================
   // 1. SUPPLEMENTS METHODS (Catalog inventory)
@@ -20,6 +20,7 @@ class SupplementCloudRepository {
 
   /// Fetch the private supplement inventory library for the logged-in user
   Future<List<Supplement>?> getAllSupplements() async {
+    if (!_isPro) return null;
     final uid = _currentUserId;
     if (uid == null) return null;
 
@@ -38,6 +39,7 @@ class SupplementCloudRepository {
 
   /// Upsert a supplement (Insert or Update its properties/remaining stock row)
   Future<void> saveSupplement(Supplement supplement) async {
+    if (!_isPro) return;
     final uid = _currentUserId;
     if (uid == null) return;
 
@@ -55,6 +57,7 @@ class SupplementCloudRepository {
 
   /// Delete a supplement record row by its unique ID
   Future<void> deleteSupplement(String id) async {
+    if (!_isPro) return;
     final uid = _currentUserId;
     if (uid == null) return;
 
@@ -75,6 +78,7 @@ class SupplementCloudRepository {
     String supplementId,
     double newStockAmount,
   ) async {
+    if (!_isPro) return;
     final uid = _currentUserId;
     if (uid == null) return;
 
@@ -96,6 +100,7 @@ class SupplementCloudRepository {
 
   /// Fetch all historical usage logs for this user, ordered by timestamp
   Future<List<SupplementItem>?> getAllHistoryEntries() async {
+    if (!_isPro) return null;
     final uid = _currentUserId;
     if (uid == null) return null;
 
@@ -115,6 +120,7 @@ class SupplementCloudRepository {
 
   /// Insert or replace a new log record entry
   Future<void> insertSupplementItem(SupplementItem entry) async {
+    if (!_isPro) return;
     final uid = _currentUserId;
     if (uid == null) return;
 
@@ -132,6 +138,7 @@ class SupplementCloudRepository {
 
   /// Delete a log record row by its unique ID
   Future<void> deleteSupplementItem(String id) async {
+    if (!_isPro) return;
     final uid = _currentUserId;
     if (uid == null) return;
 
@@ -151,6 +158,7 @@ class SupplementCloudRepository {
   Future<List<SupplementStack>?> getAllStacks(
     List<Supplement> allSupplements,
   ) async {
+    if (!_isPro) return null;
     final uid = _currentUserId;
     if (uid == null) return null;
 
@@ -180,6 +188,7 @@ class SupplementCloudRepository {
 
   /// Save or modify routine stack layouts
   Future<void> saveStack(SupplementStack stack) async {
+    if (!_isPro) return;
     final uid = _currentUserId;
     if (uid == null) return;
 
@@ -197,6 +206,7 @@ class SupplementCloudRepository {
 
   /// Delete a routine stack row by its unique ID
   Future<void> deleteStack(String stackId) async {
+    if (!_isPro) return;
     final uid = _currentUserId;
     if (uid == null) return;
 
@@ -217,6 +227,7 @@ class SupplementCloudRepository {
   // ==========================================
 
   Future<SupplementSettings?> getSettings() async {
+    if (!_isPro) return null;
     final uid = _currentUserId;
     if (uid == null) return null;
 
@@ -235,6 +246,7 @@ class SupplementCloudRepository {
   }
 
   Future<void> saveSettings(SupplementSettings settings) async {
+    if (!_isPro) return;
     final uid = _currentUserId;
     if (uid == null) return;
 

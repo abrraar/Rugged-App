@@ -3,13 +3,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:heavy_duty/core/services/connectivity_service.dart';
+import 'package:rugged/core/services/connectivity_service.dart';
 import '../data/sleep_local_repository.dart';
 import '../data/sleep_cloud_repository.dart';
 import '../model/sleep_log.dart';
 import '../model/sleep_settings.dart';
 
-import 'package:heavy_duty/core/providers/sync_provider.dart';
+import 'package:rugged/core/providers/sync_provider.dart';
 
 class SleepProvider with ChangeNotifier {
   SleepLocalRepository? _localRepo;

@@ -1,7 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="org.heavydutyapp">
+    package="com.affulabs.rugged">
 
+    <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
@@ -12,12 +13,15 @@
     <uses-permission android:name="android.permission.DISABLE_KEYGUARD"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
 
-    <application
-        android:label="Heavy Duty"
+        <application
+        android:label="Rugged"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         tools:replace="android:label"
         tools:ignore="UnusedAttribute,MissingRegistration">
+
+        <!-- DISABLE NATIVE DEEP LINKING TO AVOID GLITCHES WITH APP_LINKS PLUGIN -->
+        <meta-data android:name="flutter_deeplinking_enabled" android:value="false" />
 
         <activity
             android:name=".MainActivity"
@@ -41,31 +45,33 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
 
-            <!-- Industrial Custom URI Scheme (heavyduty://heavyduty) -->
+            <!-- ELITE DEEP LINKING SYSTEM -->
+            <!-- Industrial Custom URI Scheme (affulabs://affulabs or affulabs://rugged) -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="heavyduty" android:host="heavyduty" />
+                <data android:scheme="affulabs" android:host="affulabs" />
+                <data android:scheme="affulabs" android:host="rugged" />
             </intent-filter>
 
-            <!-- App Links: Direct App Entry for Auth & Sharing -->
+            <!-- App Links: Verified Direct App Entry -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" />
-                <data android:host="heavydutyapp.org" />
-                <data android:pathPrefix="/auth/callback" />
-                <data android:scheme="https" />
-                <data android:host="heavydutyapp.org" />
-                <data android:pathPrefix="/share" />
+                <data android:scheme="https" android:host="affulabs.com" android:pathPrefix="/rugged/app/" />
+                <data android:scheme="https" android:host="www.affulabs.com" android:pathPrefix="/rugged/app/" />
             </intent-filter>
         </activity>
 
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-4330528996980931~6870936739"/>
 
         <!-- Notification Receivers -->
         <receiver

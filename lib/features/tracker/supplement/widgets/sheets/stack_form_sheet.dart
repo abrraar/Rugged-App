@@ -2,11 +2,11 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/features/tracker/supplement/model/supplement.dart';
-import 'package:heavy_duty/features/tracker/supplement/model/supplement_stack.dart';
-import 'package:heavy_duty/features/tracker/supplement/provider/supplement_provider.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/features/tracker/supplement/model/supplement.dart';
+import 'package:rugged/features/tracker/supplement/model/supplement_stack.dart';
+import 'package:rugged/features/tracker/supplement/provider/supplement_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 
@@ -206,7 +206,7 @@ class _StackFormSheetState extends State<StackFormSheet> {
               color: Colors.transparent,
               child: Container(
                 height: widget.isSideSheet ? double.infinity : null,
-                constraints: BoxConstraints(
+                constraints: widget.isSideSheet ? null : BoxConstraints(
                   maxHeight: MediaQuery.of(context).size.height * 0.9,
                 ),
                 padding: EdgeInsets.only(
@@ -217,7 +217,7 @@ class _StackFormSheetState extends State<StackFormSheet> {
                   borderRadius: widget.isSideSheet 
                     ? const BorderRadius.horizontal(left: Radius.circular(24.0))
                     : BorderRadius.vertical(top: Radius.circular(isCompact ? 32.r : 24.0)),
-                  border: Border.all(color: AppColors.white.withOpacity(0.05)),
+                  border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
                 ),
                 child: Column(
                   mainAxisSize: widget.isSideSheet ? MainAxisSize.max : MainAxisSize.min,
@@ -242,7 +242,7 @@ class _StackFormSheetState extends State<StackFormSheet> {
                                   Container(
                                     padding: EdgeInsets.all(isCompact ? 10.r : 10.0),
                                     decoration: BoxDecoration(
-                                      color: AppColors.crimson.withOpacity(0.1),
+                                      color: AppColors.crimson.withValues(alpha: 0.1),
                                       shape: BoxShape.circle,
                                     ),
                                     child: Icon(
@@ -334,15 +334,15 @@ class _StackFormSheetState extends State<StackFormSheet> {
         padding: EdgeInsets.all(isCompact ? 16.r : 16.0),
         decoration: BoxDecoration(
           color: isDeactivated
-              ? AppColors.crimson.withOpacity(0.04)
-              : AppColors.background.withOpacity(0.5),
+              ? AppColors.crimson.withValues(alpha: 0.04)
+              : AppColors.background.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(isCompact ? 20.r : 16.0),
           border: Border.all(
             color: isSelected
-                ? AppColors.crimson.withOpacity(0.5)
+                ? AppColors.crimson.withValues(alpha: 0.5)
                 : (isDeactivated
-                      ? AppColors.crimson.withOpacity(0.2)
-                      : AppColors.white.withOpacity(0.05)),
+                      ? AppColors.crimson.withValues(alpha: 0.2)
+                      : AppColors.white.withValues(alpha: 0.05)),
           ),
         ),
         child: Row(
@@ -354,7 +354,7 @@ class _StackFormSheetState extends State<StackFormSheet> {
               color: isSelected
                   ? AppColors.crimson
                   : (isDeactivated
-                        ? AppColors.crimson.withOpacity(0.4)
+                        ? AppColors.crimson.withValues(alpha: 0.4)
                         : AppColors.textSecondary),
               size: isCompact ? 24.r : 24.0,
             ),
@@ -376,7 +376,7 @@ class _StackFormSheetState extends State<StackFormSheet> {
                       color: isSelected
                           ? Colors.white
                           : (isDeactivated
-                                ? AppColors.crimson.withOpacity(0.7)
+                                ? AppColors.crimson.withValues(alpha: 0.7)
                                 : AppColors.textSecondary),
                     ),
                   ),
@@ -427,12 +427,12 @@ class _StackFormSheetState extends State<StackFormSheet> {
           decoration: BoxDecoration(
             color: validAction
                 ? AppColors.crimson
-                : AppColors.background.withOpacity(0.5),
+                : AppColors.background.withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0),
             boxShadow: validAction
                 ? [
                     BoxShadow(
-                      color: AppColors.crimson.withOpacity(0.3),
+                      color: AppColors.crimson.withValues(alpha: 0.3),
                       blurRadius: 15,
                       offset: const Offset(0, 6),
                     ),
@@ -455,9 +455,9 @@ class _StackFormSheetState extends State<StackFormSheet> {
   Widget _buildTextField(String label, TextEditingController controller, bool isCompact) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.background.withOpacity(0.5),
+        color: AppColors.background.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(isCompact ? 20.r : 16.0),
-        border: Border.all(color: AppColors.white.withOpacity(0.05)),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
       ),
       padding: EdgeInsets.symmetric(
         horizontal: isCompact ? 16.w : 16.0, 
@@ -493,7 +493,7 @@ class _StackFormSheetState extends State<StackFormSheet> {
       width: isCompact ? 40.w : 40.0,
       height: isCompact ? 4.h : 4.0,
       decoration: BoxDecoration(
-        color: AppColors.textSecondary.withOpacity(0.4),
+        color: AppColors.textSecondary.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(3.r),
       ),
     ),

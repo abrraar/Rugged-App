@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/features/auth/provider/auth_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:heavy_duty/core/widgets/elite_settings_app_bar.dart';
+import 'package:rugged/core/widgets/elite_settings_app_bar.dart';
 import 'package:intl/intl.dart';
+
+import '../../core/widgets/elite_snackbar.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -16,7 +18,6 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
-  final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
   late TextEditingController _heightController;
   DateTime? _selectedBirthday;
@@ -90,15 +91,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (!isNetworkError) {
         debugPrint("EditProfile: Non-network auto-save error: $e");
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              "AUTO-SAVE FAILED: ${e.toString().toUpperCase()}",
-              style: AppTextStyles.labelSmall.copyWith(color: Colors.white),
-            ), 
-            backgroundColor: AppColors.error
-          ),
-        );
+        EliteSnackbar.show(context, "AUTO-SAVE FAILED: ${e.toString().toUpperCase()}", isError: true);
       }
     }
   }
@@ -134,7 +127,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             _GenderSelector(
                               selectedGender: _selectedGender,
                               onChanged: (val) {
-                                setState(() => _selectedGender = val);
+                                setState(() {
+                                  if (_selectedGender == val) {
+                                    _selectedGender = null; // Deselect
+                                  } else {
+                                    _selectedGender = val; // Select
+                                  }
+                                });
                                 _handleSave(); // Save immediately
                               },
                               isCompact: isCompact,
@@ -145,9 +144,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             _SelectorField(
                               hint: _selectedBirthday == null 
                                   ? 'PICK BIRTHDAY' 
-                                  : DateFormat('MMM dd, yyyy').format(_selectedBirthday!).toUpperCase(),
+                                  : DateFormat('dd MMM, yyyy').format(_selectedBirthday!).toUpperCase(),
                               icon: Icons.cake_outlined,
                               onTap: () => _selectBirthday(context),
+                              onClear: _selectedBirthday == null ? null : () {
+                                setState(() => _selectedBirthday = null);
+                                _handleSave();
+                              },
                               isCompact: isCompact,
                             ),
                             SizedBox(height: isCompact ? 20.h : 20.0),
@@ -174,37 +177,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _buildNavigationRow({required String label, required VoidCallback onTap, required bool isCompact}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: isCompact ? 20.w : 20.0, 
-          vertical: isCompact ? 18.h : 18.0
-        ),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceLight.withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              label,
-              style: AppTextStyles.labelSmall.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w500,
-                letterSpacing: 1.0,
-                fontSize: isCompact ? 15.sp : 12.0,
-              ),
-            ),
-            Icon(Icons.arrow_forward_ios_rounded, color: AppColors.crimson, size: isCompact ? 16.r : 16.0),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildLabel(String text, bool isCompact) {
     return Padding(
       padding: EdgeInsets.only(
@@ -213,11 +185,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ),
       child: Text(
         text,
-        style: AppTextStyles.labelSmall.copyWith(
+        style: AppTextStyles.labelSmall.adaptive(context).copyWith(
           color: AppColors.textSecondary,
           letterSpacing: 1.5,
           fontWeight: FontWeight.w500,
-          fontSize: isCompact ? 14.sp : 11.0,
         ),
       ),
     );
@@ -234,15 +205,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       obscureText: obscure,
       onChanged: onChanged,
       keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
-      style: AppTextStyles.inputText.copyWith(
+      style: AppTextStyles.inputText.adaptive(context).copyWith(
         color: Colors.white,
-        fontSize: isCompact ? 16.sp : 14.0,
       ),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(
+        hintStyle: AppTextStyles.inputText.adaptive(context).copyWith(
           color: Colors.white24,
-          fontSize: isCompact ? 16.sp : 14.0,
         ),
         filled: true,
         fillColor: AppColors.surfaceLight.withValues(alpha: 0.3),
@@ -267,14 +236,14 @@ class _GenderSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: _buildGenderButton('MALE', Icons.male_rounded)),
+        Expanded(child: _buildGenderButton(context, 'MALE', Icons.male_rounded)),
         SizedBox(width: isCompact ? 12.w : 12.0),
-        Expanded(child: _buildGenderButton('FEMALE', Icons.female_rounded)),
+        Expanded(child: _buildGenderButton(context, 'FEMALE', Icons.female_rounded)),
       ],
     );
   }
 
-  Widget _buildGenderButton(String gender, IconData icon) {
+  Widget _buildGenderButton(BuildContext context, String gender, IconData icon) {
     final bool isSelected = selectedGender == gender;
     return GestureDetector(
       onTap: () => onChanged(gender),
@@ -293,10 +262,9 @@ class _GenderSelector extends StatelessWidget {
             SizedBox(width: isCompact ? 8.w : 8.0),
             Text(
               gender, 
-              style: AppTextStyles.labelSmall.copyWith(
+              style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                 color: isSelected ? Colors.white : AppColors.textSecondary, 
-                fontWeight: isSelected ? FontWeight.w500 : FontWeight.w500,
-                fontSize: isCompact ? 14.sp : 11.0,
+                fontWeight: FontWeight.w500,
               )
             ),
           ],
@@ -310,35 +278,56 @@ class _SelectorField extends StatelessWidget {
   final String hint;
   final IconData icon;
   final VoidCallback onTap;
+  final VoidCallback? onClear;
   final bool isCompact;
-  const _SelectorField({required this.hint, required this.icon, required this.onTap, this.isCompact = true});
+  const _SelectorField({
+    required this.hint, 
+    required this.icon, 
+    required this.onTap, 
+    this.onClear,
+    this.isCompact = true
+  });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: isCompact ? 16.w : 16.0, 
-          vertical: isCompact ? 16.h : 16.0
-        ),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceLight.withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: AppColors.crimson, size: isCompact ? 20.r : 20.0),
-            SizedBox(width: isCompact ? 12.w : 12.0),
-            Text(
-              hint, 
-              style: AppTextStyles.labelSmall.copyWith(
-                color: Colors.white70,
-                fontSize: isCompact ? 15.sp : 12.0,
-              )
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceLight.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: onTap,
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isCompact ? 16.w : 16.0, 
+                  vertical: isCompact ? 16.h : 16.0
+                ),
+                child: Row(
+                  children: [
+                    Icon(icon, color: AppColors.crimson, size: isCompact ? 20.r : 20.0),
+                    SizedBox(width: isCompact ? 12.w : 12.0),
+                    Text(
+                      hint, 
+                      style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+                        color: Colors.white70,
+                      )
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ],
-        ),
+          ),
+          if (onClear != null)
+            IconButton(
+              icon: Icon(Icons.close_rounded, color: AppColors.textSecondary.withValues(alpha: 0.3), size: 18.r),
+              onPressed: onClear,
+              padding: EdgeInsets.only(right: 8.w),
+            ),
+        ],
       ),
     );
   }

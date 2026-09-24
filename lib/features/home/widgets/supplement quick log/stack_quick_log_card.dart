@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/features/tracker/supplement/model/supplement_stack.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/features/tracker/supplement/model/supplement_stack.dart';
 
 class StackQuickLogCard extends StatelessWidget {
   final SupplementStack stack;
@@ -29,9 +29,9 @@ class StackQuickLogCard extends StatelessWidget {
               margin: const EdgeInsets.only(right: 12),
               padding: EdgeInsets.all(padding),
               decoration: BoxDecoration(
-                color: AppColors.surfaceLight.withOpacity(0.4),
+                color: AppColors.surfaceLight.withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withOpacity(0.08)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -45,13 +45,12 @@ class StackQuickLogCard extends StatelessWidget {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.crimson.withOpacity(0.15),
+                          color: AppColors.crimson.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           "STACK",
-                          style: AppTextStyles.labelSmall.copyWith(
-                            fontSize: isCompact ? 8 : 10,
+                          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                             color: AppColors.crimson,
                             fontWeight: FontWeight.w500,
                           ),
@@ -66,8 +65,7 @@ class StackQuickLogCard extends StatelessWidget {
                     stack.name.toUpperCase(),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.labelSmall.copyWith(
-                      fontSize: isCompact ? 12 : 15,
+                    style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                       fontWeight: FontWeight.w500,
                       color: Colors.white,
                     ),
@@ -77,7 +75,7 @@ class StackQuickLogCard extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 8),
                     decoration: BoxDecoration(
                       border: Border(
-                        top: BorderSide(color: Colors.white.withOpacity(0.05)),
+                        top: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
                       ),
                     ),
                     child: Row(
@@ -85,8 +83,7 @@ class StackQuickLogCard extends StatelessWidget {
                       children: [
                         Text(
                           "${stack.items.length} ITEMS",
-                          style: AppTextStyles.labelSmall.copyWith(
-                            fontSize: isCompact ? 9 : 11,
+                          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                             color: AppColors.textSecondary,
                           ),
                         ),

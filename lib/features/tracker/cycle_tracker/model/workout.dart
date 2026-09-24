@@ -1,4 +1,4 @@
-import 'dart:convert';
+
 
 import 'package:uuid/uuid.dart';
 import 'exercise.dart';
@@ -64,21 +64,6 @@ class Workout {
       isSynced: (map['is_synced'] as num?)?.toInt() ?? 1,
       updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'].toString()) : null,
     );
-  }
-
-  static List<Exercise> _parseExercises(dynamic json) {
-    if (json == null) return [];
-    
-    List<dynamic> list;
-    if (json is String) {
-      list = jsonDecode(json) as List;
-    } else if (json is List) {
-      list = json;
-    } else {
-      return [];
-    }
-    
-    return list.map((e) => Exercise.fromJson(e as Map<String, dynamic>)).toList();
   }
 
   Map<String, dynamic> toJson() => toMap();

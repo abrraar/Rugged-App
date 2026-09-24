@@ -7,13 +7,11 @@ import '../data/hydration_cloud_repository.dart';
 import '../model/hydration_log.dart';
 import '../model/hydration_settings.dart';
 import '../model/hydration_reminder.dart';
-import 'package:heavy_duty/core/services/notification_service.dart';
-import 'package:heavy_duty/core/services/connectivity_service.dart';
+import 'package:rugged/core/services/notification_service.dart';
+import 'package:rugged/core/services/connectivity_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:rugged/core/providers/sync_provider.dart';
 
-import 'package:heavy_duty/core/providers/sync_provider.dart';
-
-import 'package:heavy_duty/core/providers/sync_provider.dart';
 
 class HydrationProvider with ChangeNotifier {
   HydrationLocalRepository? _localRepo;
@@ -285,7 +283,7 @@ class HydrationProvider with ChangeNotifier {
         if (toDeduct <= 0) break;
         
         if (log.amountMl <= toDeduct) {
-          toDeduct -= log.amountMl as int;
+          toDeduct -= log.amountMl;
           await deleteLog(log.id);
         } else {
           final int newMl = log.amountMl - toDeduct;

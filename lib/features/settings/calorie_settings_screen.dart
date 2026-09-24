@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/core/widgets/elite_settings_app_bar.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/core/widgets/elite_settings_app_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
-import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
+import 'package:rugged/core/widgets/elite_snackbar.dart';
 import '../tracker/calorie/provider/calorie_provider.dart';
 
 class CalorieSettingsScreen extends StatefulWidget {
-  const CalorieSettingsScreen({super.key});
+  final bool isEmbedded;
+  const CalorieSettingsScreen({super.key, this.isEmbedded = false});
 
   @override
   State<CalorieSettingsScreen> createState() => _CalorieSettingsScreenState();
@@ -85,14 +86,13 @@ class _CalorieSettingsScreenState extends State<CalorieSettingsScreen> {
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final bool isCompact = constraints.maxWidth < 600 && !isLargeScreen;
-                final bool isWideLandscape = isLargeScreen && MediaQuery.of(context).orientation == Orientation.landscape;
 
                 return Column(
                   children: [
                     EliteSettingsAppBar(
                       title: "CALORIE SETTINGS", 
                       isCompact: isCompact,
-                      showBackButton: !isWideLandscape,
+                      showBackButton: !widget.isEmbedded,
                     ),
 
                     Expanded(
@@ -172,12 +172,11 @@ class _CalorieSettingsScreenState extends State<CalorieSettingsScreen> {
                                 Center(
                                   child: Text(
                                     "TOTAL: ${settings.proteinPercent + settings.carbPercent + settings.fatPercent}% / 100%",
-                                    style: AppTextStyles.labelSmall.copyWith(
+                                    style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                       color: (settings.proteinPercent + settings.carbPercent + settings.fatPercent) == 100 
                                           ? Colors.greenAccent 
                                           : AppColors.crimson,
                                       fontWeight: FontWeight.w500,
-                                      fontSize: isLargeScreen ? 12.0 : null,
                                     ),
                                   ),
                                 ),
@@ -238,8 +237,7 @@ class _CalorieSettingsScreenState extends State<CalorieSettingsScreen> {
         controller: controller,
         keyboardType: TextInputType.number,
         maxLength: maxLength,
-        style: AppTextStyles.labelSmall.copyWith(
-          fontSize: isLargeScreen ? 12.0 : 12.sp, 
+        style: AppTextStyles.labelSmall.adaptive(context).copyWith(
           color: AppColors.white, 
           fontWeight: FontWeight.w500
         ),
@@ -248,8 +246,7 @@ class _CalorieSettingsScreenState extends State<CalorieSettingsScreen> {
           counterText: "",
           border: InputBorder.none,
           suffixText: suffix,
-          suffixStyle: AppTextStyles.labelSmall.copyWith(
-            fontSize: isLargeScreen ? 10.0 : 10.sp, 
+          suffixStyle: AppTextStyles.labelSmall.adaptive(context).copyWith(
             color: AppColors.textSecondary
           ),
         ),
@@ -266,11 +263,10 @@ class _CalorieSettingsScreenState extends State<CalorieSettingsScreen> {
       ),
       child: Text(
         title,
-        style: AppTextStyles.labelSmall.copyWith(
+        style: AppTextStyles.labelSmall.adaptive(context).copyWith(
           color: AppColors.crimson,
           fontWeight: FontWeight.w500,
           letterSpacing: 1.5,
-          fontSize: isLargeScreen ? 11.0 : null,
         ),
       ),
     );
@@ -291,14 +287,12 @@ class _CalorieSettingsScreenState extends State<CalorieSettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: AppTextStyles.labelSmall.copyWith(
+                Text(title, style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                   color: AppColors.white, 
                   fontWeight: FontWeight.w500,
-                  fontSize: isLargeScreen ? 12.0 : null,
                 )),
-                Text(subtitle, style: AppTextStyles.labelSmall.copyWith(
+                Text(subtitle, style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                   color: AppColors.textSecondary, 
-                  fontSize: isLargeScreen ? 10.0 : 10.sp, 
                   letterSpacing: 0
                 )),
               ],
@@ -325,14 +319,12 @@ class _CalorieSettingsScreenState extends State<CalorieSettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: AppTextStyles.labelSmall.copyWith(
+                Text(title, style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                   color: AppColors.white, 
                   fontWeight: FontWeight.w500,
-                  fontSize: isLargeScreen ? 12.0 : null,
                 )),
-                Text(subtitle, style: AppTextStyles.labelSmall.copyWith(
+                Text(subtitle, style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                   color: AppColors.textSecondary, 
-                  fontSize: isLargeScreen ? 10.0 : 10.sp, 
                   letterSpacing: 0
                 )),
               ],

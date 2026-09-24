@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../auth/provider/auth_provider.dart';
 import '../model/training_cycle.dart';
 import '../model/workout.dart';
 import '../model/exercise.dart';
@@ -9,10 +10,12 @@ class CycleCloudRepository {
   SupabaseClient get _supabase => Supabase.instance.client;
 
   String? get _currentUserId => _supabase.auth.currentUser?.id;
+  bool get _isPro => AuthProvider().isPro;
 
   // --- Deep Retrieval ---
 
   Future<List<TrainingCycle>?> getAllCycles() async {
+    if (!_isPro) return null;
     final uid = _currentUserId;
     if (uid == null) return null;
 
@@ -48,6 +51,7 @@ class CycleCloudRepository {
   // --- Individual Syncs ---
 
   Future<void> insertCycle(TrainingCycle cycle) async {
+    if (!_isPro) return;
     final uid = _currentUserId;
     if (uid == null) return;
 
@@ -59,6 +63,7 @@ class CycleCloudRepository {
   }
 
   Future<void> insertWorkout(Workout workout) async {
+    if (!_isPro) return;
     final uid = _currentUserId;
     if (uid == null) return;
 
@@ -70,6 +75,7 @@ class CycleCloudRepository {
   }
 
   Future<void> insertExercise(Exercise exercise) async {
+    if (!_isPro) return;
     final uid = _currentUserId;
     if (uid == null) return;
 
@@ -81,6 +87,7 @@ class CycleCloudRepository {
   }
 
   Future<void> deleteWorkout(String id) async {
+    if (!_isPro) return;
     final uid = _currentUserId;
     if (uid == null) return;
 
@@ -88,6 +95,7 @@ class CycleCloudRepository {
   }
 
   Future<void> deleteExercise(String id) async {
+    if (!_isPro) return;
     final uid = _currentUserId;
     if (uid == null) return;
 
@@ -95,6 +103,7 @@ class CycleCloudRepository {
   }
 
   Future<void> deleteCycle(String id) async {
+    if (!_isPro) return;
     final uid = _currentUserId;
     if (uid == null) return;
 
@@ -104,6 +113,7 @@ class CycleCloudRepository {
   // --- Logs ---
 
   Future<List<ExerciseLog>?> getAllLogs() async {
+    if (!_isPro) return null;
     final uid = _currentUserId;
     if (uid == null) return null;
 
@@ -121,6 +131,7 @@ class CycleCloudRepository {
   }
 
   Future<void> insertLog(ExerciseLog log) async {
+    if (!_isPro) return;
     final uid = _currentUserId;
     if (uid == null) return;
 
@@ -129,9 +140,6 @@ class CycleCloudRepository {
     data.remove('is_synced');
     data.remove('updated_at'); // Let database trigger handle this
     
-    // UPSERT STRATEGY: 
-    // id is our unique session identifier. 
-    // Supabase will update if it exists for this user, or insert if new.
     await _supabase.from('exercise_logs').upsert(
       data, 
       onConflict: 'id',
@@ -140,6 +148,7 @@ class CycleCloudRepository {
   }
 
   Future<void> deleteLog(String id) async {
+    if (!_isPro) return;
     final uid = _currentUserId;
     if (uid == null) return;
 
@@ -149,6 +158,7 @@ class CycleCloudRepository {
   // --- Settings ---
 
   Future<Map<String, dynamic>?> getSettings() async {
+    if (!_isPro) return null;
     final uid = _currentUserId;
     if (uid == null) return null;
 
@@ -167,6 +177,7 @@ class CycleCloudRepository {
   }
 
   Future<void> saveSettings(Map<String, dynamic> settings) async {
+    if (!_isPro) return;
     final uid = _currentUserId;
     if (uid == null) return;
 
@@ -176,7 +187,6 @@ class CycleCloudRepository {
     data.remove('id'); 
     data.remove('is_synced');
     
-    // Upsert using user_id as the unique constraint to ensure we update existing record
     await _supabase.from('hit_settings').upsert(
       data, 
       onConflict: 'user_id'

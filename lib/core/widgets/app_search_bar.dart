@@ -3,9 +3,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/constants/dimensions.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
+import 'package:rugged/core/constants/dimensions.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
 
 class AppSearchBar extends StatelessWidget {
   final TextEditingController? controller;
@@ -43,10 +43,10 @@ class AppSearchBar extends StatelessWidget {
             child: Container(
               height: isCompact ? 44.h : 48.0,
               decoration: BoxDecoration(
-                color: AppColors.surfaceLight.withOpacity(0.15),
+                color: AppColors.surfaceLight.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(10.r),
                 border: Border.all(
-                  color: AppColors.white.withOpacity(0.05),
+                  color: AppColors.white.withValues(alpha: 0.05),
                   width: 0.8,
                 ),
               ),
@@ -57,16 +57,14 @@ class AppSearchBar extends StatelessWidget {
                 inputFormatters: [
                   if (maxLength != null) LengthLimitingTextInputFormatter(maxLength),
                 ],
-                style: AppTextStyles.inputText.copyWith(
+                style: AppTextStyles.inputText.adaptive(context).copyWith(
                   color: AppColors.white,
-                  fontSize: isCompact ? 14.sp : 15.0,
                 ),
                 decoration: InputDecoration(
                   counterText: "",
                   hintText: hintText,
-                  hintStyle: AppTextStyles.inputHint.copyWith(
-                    color: AppColors.textSecondary.withOpacity(0.4),
-                    fontSize: isCompact ? 14.sp : 15.0,
+                  hintStyle: AppTextStyles.inputHint.adaptive(context).copyWith(
+                    color: AppColors.textSecondary.withValues(alpha: 0.4),
                   ),
                   prefixIcon: Icon(
                     Icons.search_rounded,
@@ -114,12 +112,12 @@ class AppSearchBar extends StatelessWidget {
         margin: EdgeInsets.only(left: isCompact ? 6.w : 8.0),
         padding: EdgeInsets.all(isCompact ? 8.r : 10.0),
         decoration: BoxDecoration(
-          color: AppColors.surfaceLight.withOpacity(0.3),
+          color: AppColors.surfaceLight.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(8.r),
         ),
         child: Icon(
           icon,
-          color: AppColors.white.withOpacity(0.9),
+          color: AppColors.white.withValues(alpha: 0.9),
           size: isCompact ? 20.r : 22.0,
         ),
       ),

@@ -1,6 +1,7 @@
 // lib/core/database/database_helper.dart
 
 import 'dart:async';
+import 'package:flutter/cupertino.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -23,7 +24,24 @@ class DatabaseHelper {
       version: 1,
       onCreate: _createDB,
       onConfigure: _onConfigure,
+      onOpen: (db) async {
+        try { await db.execute('ALTER TABLE profiles ADD COLUMN pro_plan_tier TEXT;'); } catch (_) {}
+        try { await db.execute('ALTER TABLE profiles ADD COLUMN pro_start_date TEXT;'); } catch (_) {}
+        try { await db.execute('ALTER TABLE profiles ADD COLUMN pro_expiry_date TEXT;'); } catch (_) {}
+      },
     );
+  }
+
+  /// ELITE PURGE SYSTEM: Deletes the entire database file for a specific user.
+  Future<void> deleteUserDatabase(String userId) async {
+    final dbName = 'user_${userId}_tracker_v1.db';
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, dbName);
+    
+    if (await databaseExists(path)) {
+      debugPrint("DatabaseHelper: PERMANENTLY ERASING DATABASE AT $path");
+      await deleteDatabase(path);
+    }
   }
 
   Future _onConfigure(Database db) async {
@@ -202,6 +220,7 @@ class DatabaseHelper {
         fat_percent INTEGER DEFAULT 15,
         track_macros BOOLEAN DEFAULT TRUE,
         show_remaining BOOLEAN DEFAULT TRUE,
+        visible_metrics_json TEXT,
         is_synced INTEGER DEFAULT 1,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
@@ -375,6 +394,7 @@ class DatabaseHelper {
         visible_metrics_json TEXT,
         workout_reminders_enabled INTEGER DEFAULT 0,
         workout_reminder_interval INTEGER DEFAULT 2,
+        smart_auto_date_enabled INTEGER DEFAULT 1,
         is_synced INTEGER DEFAULT 1,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
@@ -411,7 +431,7 @@ class DatabaseHelper {
         user_id TEXT,
         text TEXT NOT NULL,
         speaker TEXT,
-        is_custom INTEGER DEFAULT 1,
+        shared_by TEXT,
         display_order INTEGER DEFAULT 0,
         created_at TEXT NOT NULL,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -426,8 +446,6 @@ class DatabaseHelper {
         user_id TEXT,
         rotation_minutes INTEGER DEFAULT 60,
         rotation_mode TEXT DEFAULT 'random',
-        show_system INTEGER DEFAULT 1,
-        show_custom INTEGER DEFAULT 1,
         order_direction TEXT DEFAULT 'asc',
         custom_order_json TEXT,
         is_synced INTEGER DEFAULT 1,
@@ -460,6 +478,7 @@ class DatabaseHelper {
         gender TEXT,
         height REAL,
         weight REAL,
+        is_pro INTEGER DEFAULT 0,
         is_synced INTEGER DEFAULT 1,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
@@ -479,6 +498,7 @@ class DatabaseHelper {
         fat_reminders_json TEXT,
         muscle_reminders_enabled INTEGER DEFAULT 0,
         muscle_reminders_json TEXT,
+        visible_metrics_json TEXT,
         is_synced INTEGER DEFAULT 1,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP

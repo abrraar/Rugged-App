@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:heavy_duty/features/tracker/cycle_tracker/model/cycle_settings.dart';
+import 'package:rugged/features/tracker/cycle_tracker/model/cycle_settings.dart';
 
 enum HeightUnit { cm, ftIn }
 
@@ -57,6 +57,8 @@ class BodyCompSettings {
   final bool muscleRemindersEnabled;
   final List<BodyCompReminder> muscleReminders;
 
+  final Set<String> visibleMetrics;
+
   final int isSynced;
   final DateTime? updatedAt;
   final String? userId;
@@ -70,6 +72,7 @@ class BodyCompSettings {
     this.fatReminders = const [],
     this.muscleRemindersEnabled = false,
     this.muscleReminders = const [],
+    this.visibleMetrics = const {"weight", "fat", "muscle"},
     this.isSynced = 1,
     this.updatedAt,
     this.userId,
@@ -87,6 +90,7 @@ class BodyCompSettings {
       'fat_reminders_json': jsonEncode(fatReminders.map((r) => r.toMap()).toList()),
       'muscle_reminders_enabled': muscleRemindersEnabled ? 1 : 0,
       'muscle_reminders_json': jsonEncode(muscleReminders.map((r) => r.toMap()).toList()),
+      'visible_metrics_json': jsonEncode(visibleMetrics.toList()),
       'is_synced': isSynced,
       'updated_at': updatedAt?.toIso8601String(),
     };
@@ -101,6 +105,21 @@ class BodyCompSettings {
       } catch (e) {
         debugPrint("Error parsing reminders: $e");
         return [];
+      }
+    }
+
+    final rawMetrics = map['visible_metrics_json'];
+    Set<String> metrics = {"weight", "fat", "muscle"};
+    if (rawMetrics != null) {
+      try {
+        if (rawMetrics is String) {
+          final List<dynamic> decoded = jsonDecode(rawMetrics);
+          metrics = Set<String>.from(decoded);
+        } else if (rawMetrics is List) {
+          metrics = Set<String>.from(rawMetrics);
+        }
+      } catch (e) {
+        debugPrint("Error decoding body comp visible metrics: $e");
       }
     }
 
@@ -119,6 +138,7 @@ class BodyCompSettings {
       fatReminders: parseReminders(map['fat_reminders_json']),
       muscleRemindersEnabled: map['muscle_reminders_enabled'] == 1,
       muscleReminders: parseReminders(map['muscle_reminders_json']),
+      visibleMetrics: metrics,
       isSynced: (map['is_synced'] as num?)?.toInt() ?? 1,
       updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'].toString()) : null,
       userId: map['user_id'] as String?,
@@ -134,6 +154,7 @@ class BodyCompSettings {
     List<BodyCompReminder>? fatReminders,
     bool? muscleRemindersEnabled,
     List<BodyCompReminder>? muscleReminders,
+    Set<String>? visibleMetrics,
     int? isSynced,
     DateTime? updatedAt,
     String? userId,
@@ -147,10 +168,10 @@ class BodyCompSettings {
       fatReminders: fatReminders ?? this.fatReminders,
       muscleRemindersEnabled: muscleRemindersEnabled ?? this.muscleRemindersEnabled,
       muscleReminders: muscleReminders ?? this.muscleReminders,
+      visibleMetrics: visibleMetrics ?? this.visibleMetrics,
       isSynced: isSynced ?? this.isSynced,
       updatedAt: updatedAt ?? this.updatedAt,
       userId: userId ?? this.userId,
     );
   }
 }
-

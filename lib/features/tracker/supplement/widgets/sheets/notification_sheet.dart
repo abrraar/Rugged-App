@@ -3,9 +3,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/features/tracker/supplement/provider/supplement_provider.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/features/tracker/supplement/provider/supplement_provider.dart';
 import 'package:provider/provider.dart';
 import '../../model/supplement.dart';
 
@@ -180,13 +180,13 @@ class _NotificationSheetState extends State<NotificationSheet> {
                 color: Colors.transparent,
                 child: Container(
                   height: widget.isSideSheet ? double.infinity : null,
-                  constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
+                  constraints: widget.isSideSheet ? null : BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
                   decoration: BoxDecoration(
                     color: AppColors.surface,
                     borderRadius: widget.isSideSheet 
                       ? const BorderRadius.horizontal(left: Radius.circular(24.0))
                       : BorderRadius.vertical(top: Radius.circular(isCompact ? 32.r : 24.0)),
-                    border: Border.all(color: AppColors.white.withOpacity(0.05)),
+                    border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
                   ),
                   child: Column(
                     mainAxisSize: widget.isSideSheet ? MainAxisSize.max : MainAxisSize.min,
@@ -292,9 +292,9 @@ class _NotificationSheetState extends State<NotificationSheet> {
       margin: EdgeInsets.only(bottom: isCompact ? 20.h : 16.0),
       padding: EdgeInsets.all(isCompact ? 20.r : 16.0),
       decoration: BoxDecoration(
-        color: AppColors.background.withOpacity(0.5),
+        color: AppColors.background.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(isCompact ? 24.r : 16.0),
-        border: Border.all(color: AppColors.white.withOpacity(0.05)),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -312,7 +312,7 @@ class _NotificationSheetState extends State<NotificationSheet> {
                   _intervalControllers[index].dispose();
                   _intervalControllers.removeAt(index);
                 }),
-                icon: Icon(Icons.delete_outline_rounded, color: AppColors.crimson.withOpacity(0.7), size: isCompact ? 20.r : 20.0),
+                icon: Icon(Icons.delete_outline_rounded, color: AppColors.crimson.withValues(alpha: 0.7), size: isCompact ? 20.r : 20.0),
               ),
             ],
           ),
@@ -322,7 +322,7 @@ class _NotificationSheetState extends State<NotificationSheet> {
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0),
-              border: Border.all(color: AppColors.crimson.withOpacity(0.2)),
+              border: Border.all(color: AppColors.crimson.withValues(alpha: 0.2)),
             ),
             child: Row(
               children: [
@@ -344,7 +344,7 @@ class _NotificationSheetState extends State<NotificationSheet> {
               ],
             ),
           ),
-          Divider(color: AppColors.white.withOpacity(0.05), height: isCompact ? 32.h : 24.0),
+          Divider(color: AppColors.white.withValues(alpha: 0.05), height: isCompact ? 32.h : 24.0),
 
           if (isSchedule) ...[
             _buildDayPicker(reminder, index, isCompact),
@@ -438,9 +438,9 @@ class _NotificationSheetState extends State<NotificationSheet> {
     return Container(
       padding: EdgeInsets.all(isCompact ? 20.r : 16.0),
       decoration: BoxDecoration(
-        color: AppColors.background.withOpacity(0.5),
+        color: AppColors.background.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(isCompact ? 24.r : 16.0),
-        border: Border.all(color: AppColors.white.withOpacity(0.05)),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -577,7 +577,7 @@ class _NotificationSheetState extends State<NotificationSheet> {
           child: Container(
             width: isCompact ? 36.r : 32.0, 
             height: isCompact ? 36.r : 32.0,
-            decoration: BoxDecoration(color: isSelected ? AppColors.crimson : AppColors.surface, shape: BoxShape.circle, border: Border.all(color: AppColors.white.withOpacity(0.05))),
+            decoration: BoxDecoration(color: isSelected ? AppColors.crimson : AppColors.surface, shape: BoxShape.circle, border: Border.all(color: AppColors.white.withValues(alpha: 0.05))),
             alignment: Alignment.center,
             child: Text(weekDays[i], style: AppTextStyles.labelSmall.copyWith(color: isSelected ? Colors.white : AppColors.textSecondary, fontSize: isCompact ? 10.sp : 10.0)),
           ),
@@ -604,7 +604,7 @@ class _NotificationSheetState extends State<NotificationSheet> {
             onTap: reminder.days.isNotEmpty ? () => _selectTime(reminder) : null,
             child: Container(
                 padding: EdgeInsets.symmetric(horizontal: isCompact ? 12.w : 12.0, vertical: isCompact ? 8.h : 8.0),
-                decoration: BoxDecoration(color: AppColors.crimson.withOpacity(0.1), borderRadius: BorderRadius.circular(20.r)),
+                decoration: BoxDecoration(color: AppColors.crimson.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20.r)),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -621,7 +621,17 @@ class _NotificationSheetState extends State<NotificationSheet> {
   }
 
   Future<void> _selectTime(SupplementReminder reminder) async {
-    final picked = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+    final picked = await showTimePicker(
+      context: context,
+      useRootNavigator: true,
+      initialTime: TimeOfDay.now(),
+      builder: (context, child) => Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: child!,
+        ),
+      ),
+    );
     if (picked != null && !reminder.times.contains(picked)) {
       setState(() => reminder.times.add(picked));
     }
@@ -632,7 +642,7 @@ class _NotificationSheetState extends State<NotificationSheet> {
       children: [
         Container(
           padding: EdgeInsets.all(isCompact ? 10.r : 10.0), 
-          decoration: BoxDecoration(color: AppColors.crimson.withOpacity(0.1), shape: BoxShape.circle), 
+          decoration: BoxDecoration(color: AppColors.crimson.withValues(alpha: 0.1), shape: BoxShape.circle), 
           child: Icon(Icons.notifications_active_rounded, color: AppColors.crimson, size: isCompact ? 22.r : 22.0)
         ),
         SizedBox(width: isCompact ? 12.w : 12.0),
@@ -668,7 +678,7 @@ class _NotificationSheetState extends State<NotificationSheet> {
             SizedBox(width: isCompact ? 8.w : 8.0),
             Text(l, style: AppTextStyles.labelSmall.copyWith(letterSpacing: 1.5, fontWeight: FontWeight.w500, color: Colors.white, fontSize: isCompact ? null : 11.0)),
             const Spacer(),
-            Transform.scale(scale: 0.8, child: Switch.adaptive(value: v, activeColor: AppColors.crimson, onChanged: o)),
+            Transform.scale(scale: 0.8, child: Switch.adaptive(value: v, activeTrackColor: AppColors.crimson, onChanged: o)),
           ],
         ),
       );
@@ -678,7 +688,7 @@ class _NotificationSheetState extends State<NotificationSheet> {
     child: Container(
       margin: EdgeInsets.only(top: isCompact ? 12.h : 10.0),
       padding: EdgeInsets.symmetric(vertical: isCompact ? 14.h : 14.0),
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0), border: Border.all(color: AppColors.white.withOpacity(0.05)), color: AppColors.white.withOpacity(0.02)),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0), border: Border.all(color: AppColors.white.withValues(alpha: 0.05)), color: AppColors.white.withValues(alpha: 0.02)),
       alignment: Alignment.center,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -695,9 +705,9 @@ class _NotificationSheetState extends State<NotificationSheet> {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: isCompact ? 14.w : 14.0, vertical: isCompact ? 12.h : 10.0),
       decoration: BoxDecoration(
-        color: AppColors.crimson.withOpacity(0.08),
+        color: AppColors.crimson.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
-        border: Border.all(color: AppColors.crimson.withOpacity(0.15), width: 1.0),
+        border: Border.all(color: AppColors.crimson.withValues(alpha: 0.15), width: 1.0),
       ),
       child: Row(
         children: [
@@ -709,5 +719,5 @@ class _NotificationSheetState extends State<NotificationSheet> {
     );
   }
 
-  Widget _buildHandle(bool isCompact) => Center(child: Container(margin: EdgeInsets.symmetric(vertical: isCompact ? 12.h : 10.0), width: isCompact ? 40.w : 40.0, height: isCompact ? 4.h : 4.0, decoration: BoxDecoration(color: AppColors.textSecondary.withOpacity(0.3), borderRadius: BorderRadius.circular(2.r))));
+  Widget _buildHandle(bool isCompact) => Center(child: Container(margin: EdgeInsets.symmetric(vertical: isCompact ? 12.h : 10.0), width: isCompact ? 40.w : 40.0, height: isCompact ? 4.h : 4.0, decoration: BoxDecoration(color: AppColors.textSecondary.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2.r))));
 }

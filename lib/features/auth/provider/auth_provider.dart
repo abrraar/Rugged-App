@@ -1,19 +1,24 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/database/database_helper.dart';
 import '../../profile/model/user_email.dart';
 import '../../profile/data/profile_local_repository.dart';
 
-import 'package:heavy_duty/features/profile/model/profile_model.dart';
-import 'package:heavy_duty/core/services/connectivity_service.dart';
+import 'package:rugged/features/profile/model/profile_model.dart';
+import 'package:rugged/core/services/connectivity_service.dart';
 
-import 'package:heavy_duty/core/providers/sync_provider.dart';
+import 'package:rugged/core/providers/sync_provider.dart';
+
+enum SignUpMode { email, username, both }
 
 class AuthProvider with ChangeNotifier {
   static AuthProvider _instance = AuthProvider._internal();
   factory AuthProvider() => _instance;
+  static void setMockInstance(AuthProvider mock) => _instance = mock;
 
   AuthProvider._internal() {
     _initRecoveryState();
@@ -45,29 +50,129 @@ class AuthProvider with ChangeNotifier {
   UserProfile? _userProfile;
   bool _isPasswordRecoveryMode = false;
   bool _isInitializing = true;
+  bool _isProfileLoading = false;
 
   Timer? _globalCooldownTimer;
   int _emailCooldownSeconds = 0;
 
   User? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
-  bool get isInitializing => _isInitializing;
+  bool get isInitializing => _isInitializing || _isProfileLoading;
   bool get isAuthenticated => _currentUser != null;
   bool get isEmailVerified => _currentUser?.emailConfirmedAt != null;
-  bool get isProfileComplete => _currentUser?.userMetadata?['full_name'] != null;
+  bool get isProfileComplete {
+    if (_currentUser == null) return false;
+    
+    // ELITE ONBOARDING CHECK:
+    // We strictly look for the 'onboarding_completed' flag in user metadata.
+    // This is set ONLY when the user hits 'Confirm' on the profile screen.
+    // This prevents database-level timestamps from accidentally skipping onboarding.
+    final metadata = _currentUser!.userMetadata;
+    return metadata?['onboarding_completed'] == true;
+  }
   bool get isPasswordRecoveryMode => _isPasswordRecoveryMode;
+  bool get isUsernameOnly => _currentUser?.email?.endsWith('@internal.affulabs.com') ?? false;
+
+  /// ELITE SECURITY CHECK: Verifies if the user is a Google Auth user.
+  bool get isGoogleUser {
+    if (_currentUser == null) return false;
+    final providers = _currentUser!.appMetadata['providers'];
+    return providers is List && providers.contains('google');
+  }
+
+  /// ELITE SECURITY CHECK: Verifies if the user has set a unique username.
+  bool get hasUsername {
+    if (_currentUser == null) return false;
+    final userMeta = _currentUser!.userMetadata;
+    
+    // ELITE SOURCE OF TRUTH: 
+    // We only trust the 'has_username' flag in metadata.
+    // We ignore the database 'username' column because it may contain 
+    // an auto-generated email prefix from Supabase.
+    final bool hasFlag = userMeta?['has_username'] == true;
+    
+    debugPrint("AuthProvider: hasUsername check -> $hasFlag (Flag: ${userMeta?['has_username']})");
+    return hasFlag;
+  }
+
+  String get username {
+    if (!hasUsername) return '';
+
+    // If flag is true, we can safely return the chosen username from DB or Meta
+    final result = _userProfile?.username ?? _currentUser?.userMetadata?['username'] ?? '';
+    return result;
+  }
+
+  /// ELITE SECURITY CHECK: Verifies if the user has a password set.
+  /// If they only have OAuth identities (like Google), this returns false.
+  /// ELITE SECURITY CHECK: Verifies if the user has a password set.
+  bool get hasPassword {
+    if (_currentUser == null) {
+      debugPrint("AuthProvider: hasPassword -> FALSE (No User)");
+      return false;
+    }
+    
+    final identities = _currentUser!.identities;
+    final providers = _currentUser!.appMetadata['providers'];
+    final userMeta = _currentUser!.userMetadata;
+
+    debugPrint("AuthProvider: Checking Password Status...");
+    debugPrint(" - Identities: ${identities?.map((id) => id.provider).toList()}");
+    debugPrint(" - AppMetadata Providers: $providers");
+    debugPrint(" - UserMetadata: $userMeta");
+
+    // 1. Check Custom Metadata Flag (ELITE INSTANT UPDATE)
+    if (userMeta?['has_app_password'] == true) {
+      debugPrint(" - Result: TRUE (via has_app_password flag)");
+      return true;
+    }
+
+    // 2. Check identities list (Standard fallback)
+    if (identities != null && identities.any((id) => id.provider == 'email')) {
+      debugPrint(" - Result: TRUE (via identities)");
+      return true;
+    }
+
+    // 3. Check app_metadata providers list (Robust fallback)
+    if (providers is List && (providers.contains('email') || providers.contains('password'))) {
+      debugPrint(" - Result: TRUE (via appMetadata)");
+      return true;
+    }
+    
+    debugPrint(" - Result: FALSE");
+    return false;
+  }
+
   int get emailCooldownSeconds => _emailCooldownSeconds;
   String? get pendingEmail => _pendingEmail;
   String? get pendingUsername => _pendingUsername;
 
   String get displayName => _userProfile?.fullName ?? _currentUser?.userMetadata?['full_name'] ?? 'User';
-  String get username => _userProfile?.username ?? _currentUser?.userMetadata?['username'] ?? 'username';
   double? get height => _userProfile?.height ?? (_currentUser?.userMetadata?['height'] as num?)?.toDouble();
   String? get gender => _userProfile?.gender ?? _currentUser?.userMetadata?['gender']?.toString();
   DateTime? get birthday => _userProfile?.birthday ?? (_currentUser?.userMetadata?['birthday'] != null ? DateTime.tryParse(_currentUser?.userMetadata?['birthday'].toString() ?? "") : null);
 
   List<UserEmail> get userEmails => _userEmails;
   UserProfile? get userProfile => _userProfile;
+
+  /// ELITE PRO CHECK: Verifies if the user has active Pro entitlements.
+  bool get isPro => _userProfile?.isPro ?? false;
+
+  String get activeProTierName {
+    final raw = _userProfile?.proPlanTier;
+    if (raw == null || raw.isEmpty) return '12-Month Pro Pass';
+    if (raw == '1-Year Pro Pass') return '12-Month Pro Pass';
+    return raw;
+  }
+
+  DateTime get activeProStartDate => _userProfile?.proStartDate ?? (_userProfile?.updatedAt ?? DateTime.now().subtract(const Duration(days: 30)));
+
+  DateTime get activeProExpiryDate => _userProfile?.proExpiryDate ?? (
+    activeProTierName.contains('1-Month') ? activeProStartDate.add(const Duration(days: 30)) :
+    activeProTierName.contains('3-Month') ? activeProStartDate.add(const Duration(days: 90)) :
+    activeProTierName.contains('6-Month') ? activeProStartDate.add(const Duration(days: 180)) :
+    activeProStartDate.add(const Duration(days: 365))
+  );
 
   void cancelPasswordRecovery() {
     if (_isPasswordRecoveryMode) {
@@ -96,6 +201,13 @@ class AuthProvider with ChangeNotifier {
       }
       notifyListeners();
     });
+  }
+
+  /// ELITE COOLDOWN CHECK: Only enforces cooldown for real email registrations.
+  /// Shadow emails (username-only) bypass the wait.
+  bool isCooldownActive(SignUpMode mode) {
+    if (mode == SignUpMode.username) return false;
+    return _emailCooldownSeconds > 0;
   }
 
   Future<void> _initRecoveryState() async {
@@ -141,9 +253,13 @@ class AuthProvider with ChangeNotifier {
       }
 
       if (_currentUser != null) {
-        _initializeProfileRepo(_currentUser!.id);
+        // ONLY re-initialize if the user ID has changed to prevent "ghost" redirects during token refreshes
+        if (_profileRepo == null || _profileRepo!.userId != _currentUser!.id) {
+          _initializeProfileRepo(_currentUser!.id);
+        }
       } else {
         _profileRepo = null;
+        _userProfile = null; // Clear profile on sign out
         _userEmails = [];
       }
       notifyListeners();
@@ -151,9 +267,18 @@ class AuthProvider with ChangeNotifier {
   }
 
   void _initializeProfileRepo(String userId) async {
+    _userProfile = null; // Reset profile state before loading new user data
+    _isProfileLoading = true;
+    notifyListeners();
+    
     _profileRepo = ProfileLocalRepository(userId: userId);
-    _loadUserEmails();
-    _loadUserProfile();
+    await Future.wait([
+      _loadUserEmails(),
+      _loadUserProfile(),
+    ]);
+    
+    _isProfileLoading = false;
+    notifyListeners();
   }
 
   Future<void> _loadUserProfile() async {
@@ -233,10 +358,12 @@ class AuthProvider with ChangeNotifier {
       emailMap[e.email.toLowerCase()] = e;
     }
 
-    // Always ensure the current primary auth email is in the list
+    // Always ensure the current primary auth email is in the list (unless it's a shadow email)
     if (_currentUser?.email != null) {
       final String primaryEmail = _currentUser!.email!.toLowerCase();
-      if (!emailMap.containsKey(primaryEmail)) {
+      final bool isShadow = primaryEmail.endsWith('@internal.affulabs.com');
+      
+      if (!isShadow && !emailMap.containsKey(primaryEmail)) {
         final primary = UserEmail(email: _currentUser!.email!, isVerified: true);
         await _profileRepo!.insertEmail(primary);
         emailMap[primaryEmail] = primary;
@@ -278,16 +405,18 @@ class AuthProvider with ChangeNotifier {
       debugPrint("AuthProvider: Email upload sync failed: $e");
     }
 
-    // 3. Sync from Supabase user_emails table
+    // ELITE SYNC: To ensure deleted items are removed, we perform a clean sync.
     try {
       final cloudData = await _supabase
           .from('user_emails')
           .select()
           .eq('user_id', _currentUser!.id);
 
-      // ELITE SYNC: To ensure deleted items are removed, we perform a clean sync.
-      // We will collect the cloud IDs and remove any local records not present in the cloud.
-      final List<UserEmail> cloudEmails = cloudData.map((d) => UserEmail.fromMap(d)).toList();
+      final List<UserEmail> cloudEmails = cloudData
+          .map((d) => UserEmail.fromMap(d))
+          .where((e) => !e.email.toLowerCase().endsWith('@internal.affulabs.com')) // Hide Shadow Emails
+          .toList();
+      
       final cloudIds = cloudEmails.map((e) => e.id).toSet();
       
       final localEmails = await _profileRepo!.getEmails();
@@ -470,7 +599,7 @@ class AuthProvider with ChangeNotifier {
       // Confirmation links will be sent to both old and new addresses.
       await _supabase.auth.updateUser(
         UserAttributes(email: newEmail.trim()),
-        emailRedirectTo: kIsWeb ? null : 'heavyduty://heavyduty/email_change',
+        emailRedirectTo: kIsWeb ? null : 'https://affulabs.com/rugged/app/email_change',
       );
       _startGlobalCooldown();
     } catch (e) {
@@ -537,17 +666,21 @@ class AuthProvider with ChangeNotifier {
     debugPrint("AuthProvider: Initiating sign up for $email (Username: $username)");
     
     try {
+      // 1. Prepare Metadata (Only add flag if username is actually provided)
+      final Map<String, dynamic> metadata = {};
+      if (username != null && username.isNotEmpty) {
+        metadata['username'] = username;
+        metadata['has_username'] = true; // ELITE INSTANT FLAG
+      }
+
       final response = await _supabase.auth.signUp(
         email: email,
         password: password,
-        data: username != null ? {'username': username} : null,
-        emailRedirectTo: kIsWeb ? null : 'heavyduty://heavyduty/signup',
+        data: metadata.isNotEmpty ? metadata : null,
+        emailRedirectTo: kIsWeb ? null : 'https://affulabs.com/rugged/app/signup',
       );
 
-      debugPrint("AuthProvider: Supabase sign up response received.");
-      debugPrint("AuthProvider: User ID: ${response.user?.id}");
-      debugPrint("AuthProvider: Session present: ${response.session != null}");
-      debugPrint("AuthProvider: Identities: ${response.user?.identities?.length ?? 0}");
+      _currentUser = response.user;
 
       // If identities is empty, it means the user already exists (Supabase security masking)
       if (response.user?.identities != null && response.user!.identities!.isEmpty) {
@@ -555,10 +688,40 @@ class AuthProvider with ChangeNotifier {
         throw "THIS EMAIL IS ALREADY REGISTERED. PLEASE LOG IN.";
       }
 
-      if (response.session != null && response.user?.emailConfirmedAt != null) {
+      // ELITE SHADOW EMAIL AUTO-LOGIN:
+      // If this is a shadow email, we expect it to be auto-verified by the DB trigger.
+      // If the session is missing, we attempt a quick signIn to capture the session.
+      if (email.endsWith('@internal.affulabs.com') && response.session == null) {
+        debugPrint("AuthProvider: Shadow email detected. Attempting immediate sign-in...");
+        try {
+          final signinResponse = await _supabase.auth.signInWithPassword(email: email, password: password);
+          _currentUser = signinResponse.user;
+        } catch (e) {
+          debugPrint("AuthProvider: Shadow auto-signin failed (Verification trigger might be missing or old domain): $e");
+        }
+      }
+
+      if (_currentUser != null && response.session != null) {
         debugPrint("AuthProvider: User already verified or auto-confirmed.");
       } else {
         debugPrint("AuthProvider: Confirmation email should have been sent to $email");
+      }
+
+      // --- INITIAL PROFILE CREATION ---
+      if (_currentUser != null) {
+        try {
+          await _supabase.from('profiles').upsert({
+            'id': _currentUser!.id,
+            'email': _currentUser!.email,
+            'username': username,
+          });
+          debugPrint("AuthProvider: Initial profile record created successfully for $username");
+          
+          // Re-initialize to load the fresh profile
+          _initializeProfileRepo(_currentUser!.id);
+        } catch (e) {
+          debugPrint("AuthProvider: Initial profile upsert failed: $e");
+        }
       }
 
       _startGlobalCooldown();
@@ -578,24 +741,30 @@ class AuthProvider with ChangeNotifier {
   // ==========================================
   Future<void> signIn(String identifier, String password) async {
     _setLoading(true);
+    String email = identifier;
     try {
-      String email = identifier;
-
       // 1. Resolve Username to Email if necessary
       if (!identifier.contains('@')) {
         debugPrint("AuthProvider: Resolving email for username: $identifier");
 
-        final List<dynamic> response = await _supabase.rpc(
-            'get_email_by_username',
-            params: {'input_username': identifier}
-        );
+        try {
+          final List<dynamic> response = await _supabase.rpc(
+              'get_email_by_username',
+              params: {'input_username': identifier}
+          );
 
-        if (response.isEmpty) {
-          throw "USERNAME NOT FOUND";
+          if (response.isNotEmpty) {
+            email = response.first['resolved_email'];
+            debugPrint("AuthProvider: Resolved to email: $email");
+          } else {
+            // FALLBACK: If RPC returns empty, try the shadow email format directly
+            debugPrint("AuthProvider: Username not found in profiles. Trying shadow email fallback...");
+            email = '$identifier@internal.affulabs.com';
+          }
+        } catch (e) {
+          debugPrint("AuthProvider: RPC resolution failed. Using shadow email fallback...");
+          email = '$identifier@internal.affulabs.com';
         }
-
-        email = response.first['resolved_email'];
-        debugPrint("AuthProvider: Resolved to email: $email");
       }
 
       // 2. Perform Native Supabase Auth
@@ -609,6 +778,16 @@ class AuthProvider with ChangeNotifier {
         _syncEmailToProfile();
       }
       notifyListeners();
+    } on AuthException catch (e) {
+      _setLoading(false);
+      final message = e.message.toLowerCase();
+      if (message.contains("email not confirmed")) {
+        if (email.endsWith('@internal.affulabs.com')) {
+          throw "SHADOW EMAIL NOT AUTO-VERIFIED. PLEASE ENSURE YOUR SUPABASE DATABASE TRIGGER IS UPDATED TO THE NEW DOMAIN (@internal.affulabs.com).";
+        }
+        throw "EMAIL VERIFICATION REQUIRED FOR PASSWORD LOGIN. CHECK YOUR INBOX.";
+      }
+      rethrow;
     } catch (e) {
       _setLoading(false);
       rethrow;
@@ -628,8 +807,12 @@ class AuthProvider with ChangeNotifier {
 
   Future<void> refreshUser() async {
     try {
-      final response = await _supabase.auth.refreshSession();
+      debugPrint("AuthProvider: Refreshing user data from server...");
+      // ELITE USER SYNC: We use getUser() to fetch the fresh user record 
+      // directly from the server, which includes updated identities.
+      final response = await _supabase.auth.getUser();
       _currentUser = response.user;
+      debugPrint("AuthProvider: Server refresh complete. New identities: ${_currentUser?.identities?.map((id) => id.provider).toList()}");
       notifyListeners();
     } catch (e) {
       debugPrint("Error refreshing user: $e");
@@ -648,6 +831,43 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  // ==========================================
+  // DELETE ACCOUNT METHOD (PLAY STORE COMPLIANCE)
+  // ==========================================
+  Future<void> deleteAccount() async {
+    final userId = _currentUser?.id;
+    if (userId == null) return;
+
+    _setLoading(true);
+    try {
+      // 1. DELETE FROM CLOUD
+      // We attempt to call a database function to purge all records including the Auth user.
+      try {
+        await _supabase.rpc('delete_user_account');
+      } catch (e) {
+        debugPrint("AuthProvider: Cloud RPC delete failed: $e");
+        // Fallback: Delete from public profiles table
+        await _supabase.from('profiles').delete().eq('id', userId);
+      }
+
+      // 2. CLEAR LOCAL DATABASE FILE
+      await DatabaseHelper.instance.deleteUserDatabase(userId);
+      
+      // 3. WIPE ALL LOCAL SETTINGS
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+
+      // 4. FINALIZE SIGN OUT
+      await signOut();
+      
+    } catch (e) {
+      debugPrint("AuthProvider: CRITICAL DELETE ERROR: $e");
+      rethrow;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   Future<void> resendOTP(String email, {bool isRecovery = false}) async {
     if (_emailCooldownSeconds > 0) {
       debugPrint("AuthProvider: Resend rejected - Cooldown active");
@@ -659,7 +879,7 @@ class AuthProvider with ChangeNotifier {
       await _supabase.auth.resend(
         type: isRecovery ? OtpType.recovery : OtpType.signup,
         email: email,
-        emailRedirectTo: kIsWeb ? null : (isRecovery ? 'heavyduty://change-password' : 'heavyduty://confirm-email'),
+        emailRedirectTo: kIsWeb ? null : (isRecovery ? 'https://affulabs.com/rugged/app/reset-password' : 'https://affulabs.com/rugged/app/confirm-email'),
       );
       debugPrint("AuthProvider: Resend call to Supabase successful for $email");
       _startGlobalCooldown();
@@ -712,8 +932,8 @@ class AuthProvider with ChangeNotifier {
       // 2. Proceed with Supabase Reset
       // We append the source parameter to the redirectTo URL
       final String redirectUrl = source != null 
-          ? 'heavyduty://heavyduty/recovery?source=$source'
-          : 'heavyduty://heavyduty/recovery';
+          ? 'https://affulabs.com/rugged/app/reset-password?source=$source'
+          : 'https://affulabs.com/rugged/app/reset-password';
 
       await _supabase.auth.resetPasswordForEmail(
         email.trim(), 
@@ -733,30 +953,79 @@ class AuthProvider with ChangeNotifier {
   // PASSWORD RECOVERY / SIGNUP: VERIFY OTP TOKENS
   // ==========================================
   Future<void> verifyOTPCode(String email, String token, {bool isRecovery = false}) async {
+    final sw = Stopwatch()..start();
+    debugPrint("AuthProvider: [0ms] verifyOTPCode START for $email");
     _setLoading(true);
+    
     try {
+      debugPrint("AuthProvider: [${sw.elapsedMilliseconds}ms] Calling Supabase verifyOTP...");
       final response = await _supabase.auth.verifyOTP(
         email: email,
         token: token,
         type: isRecovery ? OtpType.recovery : OtpType.signup,
       );
+      debugPrint("AuthProvider: [${sw.elapsedMilliseconds}ms] Supabase verifyOTP SUCCESS.");
 
-      // If this is a new signup verification, ensure the username and email 
-      // are propagated to the profiles table for future lookups.
-      if (!isRecovery && response.user != null && _pendingUsername != null) {
-        debugPrint("AuthProvider: Persisting pending username to profiles table: $_pendingUsername");
-        // Ensure _currentUser is updated before calling profile update to avoid null check errors
-        _currentUser = response.user;
-        await updateUserProfile(username: _pendingUsername);
+      _currentUser = response.user;
+
+      // ELITE OPTIMIZATION: We trigger the secondary tasks in the background
+      // so the user can transition to the next screen immediately.
+      if (!isRecovery && _currentUser != null) {
+        final userId = _currentUser!.id;
+        final userEmail = _currentUser!.email;
+        final pendingUsername = _pendingUsername;
+
+        debugPrint("AuthProvider: [${sw.elapsedMilliseconds}ms] Triggering background profile seeding...");
+        
+        // We DO NOT 'await' this. We let it run in the background.
+        unawaited(() async {
+          try {
+            await _supabase.from('profiles').upsert({
+              'id': userId,
+              'email': userEmail,
+              'username': ?pendingUsername,
+            });
+
+            if (pendingUsername != null) {
+              await _supabase.auth.updateUser(UserAttributes(
+                data: {
+                  'username': pendingUsername,
+                  'has_username': true,
+                }
+              ));
+            }
+            
+            await refreshUser();
+            debugPrint("AuthProvider: [BG] Background tasks COMPLETE.");
+          } catch (e) {
+            debugPrint("AuthProvider: [BG] ERROR in background tasks: $e");
+          }
+        }());
       }
 
+      // ONLY clear pending data after we are 100% sure we've refreshed and notified
       _pendingEmail = null;
       _pendingUsername = null;
+      
+      // Reset loading BEFORE notifying to unlock the UI
+      _setLoading(false);
+      
+      // We notify listeners immediately after verifyOTP so the Router sees 'isAuthenticated'
+      debugPrint("AuthProvider: [${sw.elapsedMilliseconds}ms] Notifying listeners for immediate transition.");
+      notifyListeners();
+
+      return; // Exit early to avoid the finally block re-triggering notification
+
     } catch (e) {
+      debugPrint("AuthProvider: [${sw.elapsedMilliseconds}ms] ERROR in verifyOTPCode: $e");
       _setLoading(false);
       rethrow;
+    } finally {
+      // Ensure loading is false, but we handled the success case specifically above
+      if (_isLoading) _setLoading(false);
+      sw.stop();
+      debugPrint("AuthProvider: [FINAL] verifyOTPCode method finished in ${sw.elapsedMilliseconds}ms.");
     }
-    _setLoading(false);
   }
 
   // ==========================================
@@ -764,11 +1033,24 @@ class AuthProvider with ChangeNotifier {
   // ==========================================
   Future<void> updateUserPassword(String newPassword) async {
     _setLoading(true);
+    debugPrint("AuthProvider: Initiating password update with has_app_password flag...");
     try {
-      await _supabase.auth.updateUser(UserAttributes(password: newPassword));
+      // 1. Update password AND set a metadata flag for instant UI detection
+      final response = await _supabase.auth.updateUser(UserAttributes(
+        password: newPassword,
+        data: {'has_app_password': true}, // ELITE INSTANT FLAG
+      ));
+      
+      _currentUser = response.user;
+      debugPrint("AuthProvider: Update response received. Metadata: ${_currentUser?.userMetadata}");
+      
+      // 2. Refresh local state
+      await refreshUser();
+      
       _isPasswordRecoveryMode = false;
       notifyListeners();
     } catch (e) {
+      debugPrint("AuthProvider: Password update FAILED: $e");
       _setLoading(false);
       rethrow;
     }
@@ -785,26 +1067,31 @@ class AuthProvider with ChangeNotifier {
       final String? userEmail = user.email;
       final now = DateTime.now();
 
-      // 1. Prepare Update
-      final Map<String, dynamic> profileUpdate = {};
-      if (name != null) profileUpdate['full_name'] = name;
-      if (username != null) profileUpdate['username'] = username;
-      if (height != null) profileUpdate['height'] = height;
-      if (userEmail != null) profileUpdate['email'] = userEmail;
+      // 1. Prepare Database Update (Strictly table columns only)
+      final Map<String, dynamic> dbUpdate = {};
+      if (name != null) dbUpdate['full_name'] = name;
+      if (username != null) dbUpdate['username'] = username;
+      if (height != null) dbUpdate['height'] = height;
+      if (userEmail != null) dbUpdate['email'] = userEmail;
 
       if (extraMetadata != null) {
         if (extraMetadata['birthday'] != null) {
-          // Store only the date part YYYY-MM-DD to avoid time zone issues and parsing errors
           final bday = DateTime.tryParse(extraMetadata['birthday']);
           if (bday != null) {
-            profileUpdate['birthday'] = bday.toIso8601String().split('T')[0];
+            dbUpdate['birthday'] = bday.toIso8601String().split('T')[0];
           }
         }
-        if (extraMetadata['gender'] != null) profileUpdate['gender'] = extraMetadata['gender'];
-        if (extraMetadata['weight'] != null) profileUpdate['weight'] = extraMetadata['weight'];
+        if (extraMetadata['gender'] != null) dbUpdate['gender'] = extraMetadata['gender'];
+        if (extraMetadata['weight'] != null) dbUpdate['weight'] = extraMetadata['weight'];
       }
 
-      // 2. OPTIMISTIC LOCAL SAVE (isSynced = 0)
+      // 2. Prepare Auth Metadata Update (For instant UI flags)
+      final Map<String, dynamic> metaUpdate = {
+        'onboarding_completed': true,
+      };
+      if (username != null) metaUpdate['has_username'] = true;
+
+      // 3. OPTIMISTIC LOCAL SAVE (isSynced = 0)
       final currentLocal = await _profileRepo?.getProfile();
       final updatedLocal = UserProfile(
         id: userId,
@@ -821,15 +1108,16 @@ class AuthProvider with ChangeNotifier {
       _userProfile = updatedLocal;
       notifyListeners();
 
-      // 3. PUSH TO CLOUD
-      await _supabase.from('profiles').upsert({'id': userId, ...profileUpdate});
+      // 4. PUSH TO CLOUD
+      // A. Update Auth Metadata first (Flags)
+      await _supabase.auth.updateUser(UserAttributes(data: metaUpdate));
+
+      // B. Update Profiles Table (Data)
+      await _supabase.from('profiles').upsert({'id': userId, ...dbUpdate});
       
-      // 4. MARK SYNCED
+      // 5. MARK SYNCED
       await _profileRepo?.saveProfile(updatedLocal.copyWith(isSynced: 1));
       _userProfile = updatedLocal.copyWith(isSynced: 1);
-
-      // 5. Fallback sync to Auth Metadata (Legacy support)
-      await _supabase.auth.updateUser(UserAttributes(data: profileUpdate));
 
       notifyListeners();
     } catch (e) {
@@ -838,6 +1126,158 @@ class AuthProvider with ChangeNotifier {
     } finally {
       _setLoading(false);
     }
+  }
+
+  // ==========================================
+  // ENABLE PRO ACCESS (PRO UPGRADE)
+  // ==========================================
+  Future<void> enableProAccess({String tier = '1-Year Pro Pass', int durationDays = 365}) async {
+    final userId = _currentUser?.id;
+    if (userId == null) throw "USER SESSION NOT FOUND";
+
+    _setLoading(true);
+    try {
+      final now = DateTime.now();
+      final expiry = now.add(Duration(days: durationDays));
+
+      // 1. Update Cloud (Supabase)
+      try {
+        await _supabase.from('profiles').update({
+          'is_pro': true,
+          'pro_plan_tier': tier,
+          'pro_start_date': now.toIso8601String(),
+          'pro_expiry_date': expiry.toIso8601String(),
+        }).eq('id', userId);
+      } catch (_) {
+        await _supabase.from('profiles').update({'is_pro': true}).eq('id', userId);
+      }
+
+      // 2. Update Local Repository
+      if (_userProfile != null) {
+        final updatedLocal = _userProfile!.copyWith(
+          isPro: true,
+          proPlanTier: tier,
+          proStartDate: now,
+          proExpiryDate: expiry,
+          isSynced: 1,
+        );
+        await _profileRepo?.saveProfile(updatedLocal);
+        _userProfile = updatedLocal;
+      }
+
+      // 3. Mark in SharedPreferences for fast startup check
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('is_pro_active', true);
+      await prefs.setString('pro_plan_tier', tier);
+
+      debugPrint("AuthProvider: ELITE ACCESS ACTIVATED ($tier) for $userId");
+      notifyListeners();
+    } catch (e) {
+      debugPrint("AuthProvider: PRO UPGRADE FAILED: $e");
+      rethrow;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // ==========================================
+  // SIGN UP WITH USERNAME (Shadow Email)
+  // ==========================================
+  Future<void> signUpWithUsername(String username, String password) async {
+    final shadowEmail = '$username@internal.affulabs.com';
+    await signUp(shadowEmail, password, username: username);
+  }
+
+  // ==========================================
+  // GOOGLE SIGN IN
+  // ==========================================
+  Future<void> signInWithGoogle() async {
+    _setLoading(true);
+    try {
+      debugPrint("AuthProvider: [signInWithGoogle] STEP 1: Starting Google Sign-In...");
+      // 1. Initialize and Trigger the Google Sign-In selector (Supabase official 7.x way)
+      const scopes = ['email', 'profile'];
+      final googleSignIn = GoogleSignIn.instance;
+
+      debugPrint("AuthProvider: [signInWithGoogle] STEP 2: Initializing GoogleSignIn with serverClientId...");
+      await googleSignIn.initialize(
+        serverClientId: '441257144462-eoid7g4j3nldb3qjnmecvp5eis9dmh6v.apps.googleusercontent.com',
+      );
+
+      debugPrint("AuthProvider: [signInWithGoogle] STEP 3: Authenticating with Google...");
+      final GoogleSignInAccount googleUser;
+      try {
+        googleUser = await googleSignIn.authenticate();
+        debugPrint("AuthProvider: [signInWithGoogle] STEP 4: Google auth successful. User: ${googleUser.email}");
+      } on GoogleSignInException catch (e) {
+        debugPrint("AuthProvider: [signInWithGoogle] ERROR: GoogleSignInException caught!");
+        debugPrint("AuthProvider: [signInWithGoogle] CODE: ${e.code}");
+        debugPrint("AuthProvider: [signInWithGoogle] MESSAGE: ${e.description}");
+        debugPrint("AuthProvider: [signInWithGoogle] ERROR DETAILS: ${e.details}");
+        if (e.code == GoogleSignInExceptionCode.canceled) {
+          debugPrint("AuthProvider: [signInWithGoogle] User canceled sign in.");
+          _setLoading(false);
+          return;
+        }
+        rethrow;
+      } catch (e, stacktrace) {
+        debugPrint("AuthProvider: [signInWithGoogle] ERROR during googleSignIn.authenticate(): $e");
+        debugPrint("AuthProvider: [signInWithGoogle] STACKTRACE: $stacktrace");
+        rethrow;
+      }
+
+      debugPrint("AuthProvider: [signInWithGoogle] STEP 5: Requesting authorization for scopes...");
+      // 2. Authorize scopes to obtain the access token for Supabase
+      final authorization =
+          await googleUser.authorizationClient.authorizationForScopes(scopes) ??
+          await googleUser.authorizationClient.authorizeScopes(scopes);
+          
+      debugPrint("AuthProvider: [signInWithGoogle] STEP 6: Authorization obtained. Access Token length: ${authorization.accessToken.length}");
+
+      final idToken = googleUser.authentication.idToken;
+      debugPrint("AuthProvider: [signInWithGoogle] STEP 7: ID Token extracted. Length: ${idToken?.length ?? 0}");
+
+      if (idToken == null) {
+        debugPrint("AuthProvider: [signInWithGoogle] ERROR: GOOGLE ID TOKEN NOT FOUND");
+        throw 'GOOGLE ID TOKEN NOT FOUND';
+      }
+
+      debugPrint("AuthProvider: [signInWithGoogle] STEP 8: Authenticating with Supabase...");
+      // 3. Authenticate with Supabase using ID Token and Access Token
+      final response = await _supabase.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
+        accessToken: authorization.accessToken,
+      );
+
+      debugPrint("AuthProvider: [signInWithGoogle] STEP 9: Supabase auth successful. User ID: ${response.user?.id}");
+
+      _currentUser = response.user;
+      if (_currentUser != null) {
+        debugPrint("AuthProvider: [signInWithGoogle] STEP 10: Upserting user profile...");
+        _initializeProfileRepo(_currentUser!.id);
+        
+        // Auto-heal profiles table with ID and Email
+        // We intentionally do NOT force the profile to be "complete" here
+        // so the Router redirects them to CreateAccPersoScreen.
+        await _supabase.from('profiles').upsert({
+          'id': _currentUser!.id,
+          'email': _currentUser!.email,
+        });
+
+        debugPrint("AuthProvider: [signInWithGoogle] STEP 11: Loading user profile...");
+        // Force a state refresh so isProfileComplete is re-evaluated by the router
+        await _loadUserProfile();
+        debugPrint("AuthProvider: [signInWithGoogle] STEP 12: Google Sign-In Complete!");
+      }
+      notifyListeners();
+    } catch (e, stackTrace) {
+      debugPrint("AuthProvider: [signInWithGoogle] FATAL ERROR: $e");
+      debugPrint("AuthProvider: [signInWithGoogle] STACKTRACE: $stackTrace");
+      _setLoading(false);
+      rethrow;
+    }
+    _setLoading(false);
   }
 
   void _setLoading(bool value) {

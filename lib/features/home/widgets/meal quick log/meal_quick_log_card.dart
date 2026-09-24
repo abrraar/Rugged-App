@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/features/tracker/calorie/model/saved_meal.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/features/tracker/calorie/model/saved_meal.dart';
 
 class MealQuickLogCard extends StatelessWidget {
   final SavedMeal meal;
@@ -24,9 +24,9 @@ class MealQuickLogCard extends StatelessWidget {
           margin: EdgeInsets.only(right: 16.w),
           padding: EdgeInsets.all(16.r),
           decoration: BoxDecoration(
-            color: AppColors.surfaceLight.withOpacity(0.6),
+            color: AppColors.surfaceLight.withValues(alpha: 0.6),
             borderRadius: BorderRadius.circular(24.r),
-            border: Border.all(color: Colors.white.withOpacity(0.1)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
             boxShadow: [
               BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 3)),
             ],
@@ -38,13 +38,12 @@ class MealQuickLogCard extends StatelessWidget {
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
                 decoration: BoxDecoration(
-                  color: Colors.greenAccent.withOpacity(0.2),
+                  color: Colors.greenAccent.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8.r),
                 ),
                 child: Text(
                   "LOG MEAL",
-                  style: AppTextStyles.labelSmall.copyWith(
-                    fontSize: 10.sp,
+                  style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                     fontWeight: FontWeight.w500,
                     color: Colors.greenAccent,
                   ),
@@ -56,8 +55,7 @@ class MealQuickLogCard extends StatelessWidget {
                 children: [
                   Text(
                     meal.name.toUpperCase(),
-                    style: AppTextStyles.labelSmall.copyWith(
-                      fontSize: 14.sp,
+                    style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                       fontWeight: FontWeight.w500,
                       color: Colors.white,
                     ),
@@ -72,8 +70,7 @@ class MealQuickLogCard extends StatelessWidget {
                       SizedBox(width: 4.w),
                       Text(
                         "${meal.calories.toInt()} KCAL",
-                        style: AppTextStyles.labelSmall.copyWith(
-                          fontSize: 11.sp,
+                        style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                           color: Colors.white70,
                         ),
                       ),
@@ -85,16 +82,16 @@ class MealQuickLogCard extends StatelessWidget {
               Container(
                 padding: EdgeInsets.only(top: 8.h),
                 decoration: BoxDecoration(
-                  border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1))),
+                  border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildMiniMacro("${meal.protein?.toInt() ?? '-'}P", Colors.blueAccent),
+                    _buildMiniMacro(context, "${meal.protein?.toInt() ?? '-'}P", Colors.blueAccent),
                     SizedBox(width: 8.w),
-                    _buildMiniMacro("${meal.carbs?.toInt() ?? '-'}C", Colors.greenAccent),
+                    _buildMiniMacro(context, "${meal.carbs?.toInt() ?? '-'}C", Colors.greenAccent),
                     SizedBox(width: 8.w),
-                    _buildMiniMacro("${meal.fats?.toInt() ?? '-'}F", Colors.orangeAccent),
+                    _buildMiniMacro(context, "${meal.fats?.toInt() ?? '-'}F", Colors.orangeAccent),
                   ],
                 ),
               ),
@@ -105,11 +102,10 @@ class MealQuickLogCard extends StatelessWidget {
     );
   }
 
-  Widget _buildMiniMacro(String label, Color color) {
+  Widget _buildMiniMacro(BuildContext context, String label, Color color) {
     return Text(
       label,
-      style: AppTextStyles.labelSmall.copyWith(
-        fontSize: 10.sp,
+      style: AppTextStyles.labelSmall.adaptive(context).copyWith(
         color: color,
         fontWeight: FontWeight.w500,
       ),

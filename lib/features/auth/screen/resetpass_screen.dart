@@ -3,12 +3,12 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/navigation/app_routes.dart';
-import 'package:heavy_duty/core/constants/dimensions.dart';
-import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
-import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
-import 'package:heavy_duty/features/auth/widgets/auth_components.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/navigation/app_routes.dart';
+import 'package:rugged/core/constants/dimensions.dart';
+import 'package:rugged/core/widgets/elite_snackbar.dart';
+import 'package:rugged/features/auth/provider/auth_provider.dart';
+import 'package:rugged/features/auth/widgets/auth_components.dart';
 
 class ResetPassScreen extends StatefulWidget {
   const ResetPassScreen({super.key});
@@ -89,9 +89,8 @@ class _ResetPassScreenState extends State<ResetPassScreen> {
         authProv.cancelPasswordRecovery();
         await authProv.signOut(); // Security: Exit the temporary recovery session
         
-        if (mounted) {
-          context.go(AppRoutes.forgotPass);
-        }
+        if (!context.mounted) return;
+        context.go(AppRoutes.forgotPass);
       },
       child: Scaffold(
         backgroundColor: AppColors.background,
@@ -138,7 +137,7 @@ class _ResetPassScreenState extends State<ResetPassScreen> {
                   title: 'NEW\nSTRENGTH',
                   subtitle: 'SET YOUR NEW SECURE PASSWORD',
                 ),
-                SizedBox(height: 60.h),
+                SizedBox(height: 40.h),
                 _buildResetPassForm(isLoading),
               ],
             ),

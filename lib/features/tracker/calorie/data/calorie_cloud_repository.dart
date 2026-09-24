@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../auth/provider/auth_provider.dart';
 import '../model/calorie_log.dart';
 import '../model/calorie_settings.dart';
 import '../model/saved_meal.dart';
@@ -9,10 +10,12 @@ class CalorieCloudRepository {
   SupabaseClient get _supabase => Supabase.instance.client;
 
   String? get _currentUserId => _supabase.auth.currentUser?.id;
+  bool get _isPro => AuthProvider().isPro;
 
   // --- Logs ---
 
   Future<List<CalorieLog>?> getAllLogs() async {
+    if (!_isPro) return null;
     final uid = _currentUserId;
     if (uid == null) return null;
 
@@ -31,6 +34,7 @@ class CalorieCloudRepository {
   }
 
   Future<void> insertLog(CalorieLog log) async {
+    if (!_isPro) return;
     final uid = _currentUserId;
     if (uid == null) return;
 
@@ -72,6 +76,7 @@ class CalorieCloudRepository {
   }
 
   Future<void> deleteLog(String id) async {
+    if (!_isPro) return;
     final uid = _currentUserId;
     if (uid == null) return;
 
@@ -86,6 +91,7 @@ class CalorieCloudRepository {
   // --- Settings ---
 
   Future<CalorieSettings?> getSettings() async {
+    if (!_isPro) return null;
     final uid = _currentUserId;
     if (uid == null) return null;
 
@@ -106,6 +112,7 @@ class CalorieCloudRepository {
   }
 
   Future<void> saveSettings(CalorieSettings settings) async {
+    if (!_isPro) return;
     final uid = _currentUserId;
     if (uid == null) {
       debugPrint("CalorieCloudRepo: No current user ID. Cannot save settings.");
@@ -138,6 +145,7 @@ class CalorieCloudRepository {
   // --- Saved Meals ---
 
   Future<List<SavedMeal>?> getSavedMeals() async {
+    if (!_isPro) return null;
     final uid = _currentUserId;
     if (uid == null) return null;
 
@@ -156,6 +164,7 @@ class CalorieCloudRepository {
   }
 
   Future<void> insertSavedMeal(SavedMeal meal) async {
+    if (!_isPro) return;
     final uid = _currentUserId;
     if (uid == null) return;
 
@@ -206,6 +215,7 @@ class CalorieCloudRepository {
   }
 
   Future<void> deleteSavedMeal(String id) async {
+    if (!_isPro) return;
     final uid = _currentUserId;
     if (uid == null) return;
 

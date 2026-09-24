@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/features/tracker/supplement/model/supplement.dart';
-import 'package:heavy_duty/features/tracker/supplement/provider/supplement_provider.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/features/tracker/supplement/model/supplement.dart';
+import 'package:rugged/features/tracker/supplement/provider/supplement_provider.dart';
 import 'package:provider/provider.dart';
 
 class TrackerCard extends StatefulWidget {
@@ -34,16 +34,15 @@ class _TrackerCardState extends State<TrackerCard> {
     final provider = Provider.of<SupplementProvider>(context);
 
     // Dynamic stock text calculation with safety fallback checks
-    String stockText;
+    String weightStockText;
+    String? servingsStockText;
     if (widget.supplement.remainingStock == null) {
-      stockText = "NO STOCK VALUE ENTERED";
+      weightStockText = "NO STOCK VALUE ENTERED";
     } else {
-      String formattedServings = provider.getRemainingServings(
-        widget.supplement,
-      );
-      stockText =
-          "${widget.supplement.remainingStock!.toInt()}${widget.supplement.weightUnit} |"
-          " $formattedServings left";
+      weightStockText =
+          "${widget.supplement.remainingStock!.toInt()}${widget.supplement.weightUnit}";
+      servingsStockText =
+          "${provider.getRemainingServings(widget.supplement)} left";
     }
 
     // Expiry and Days Remaining calculation variables
@@ -108,10 +107,9 @@ class _TrackerCardState extends State<TrackerCard> {
               children: [
                 Text(
                   widget.supplement.name.toUpperCase(),
-                  style: AppTextStyles.labelMedium.copyWith(
+                  style: AppTextStyles.labelMedium.adaptive(context).copyWith(
                     letterSpacing: 0.5,
                     fontWeight: FontWeight.w500,
-                    fontSize: isCompact ? 13.sp : 13.0,
                   ),
                 ),
 
@@ -134,9 +132,8 @@ class _TrackerCardState extends State<TrackerCard> {
                         SizedBox(width: isCompact ? 4.w : 4.0),
                         Text(
                           "SHARED BY ${widget.supplement.sharedBy!.toUpperCase()}",
-                          style: AppTextStyles.labelSmall.copyWith(
+                          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                             color: Colors.blueAccent,
-                            fontSize: isCompact ? 10.sp : 9.0,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -162,9 +159,8 @@ class _TrackerCardState extends State<TrackerCard> {
                             _showIngredients
                                 ? "Hide Ingredients"
                                 : "Show Ingredients",
-                            style: AppTextStyles.labelSmall.copyWith(
+                            style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                               color: AppColors.white,
-                              fontSize: isCompact ? 11.sp : 10.0,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -194,9 +190,8 @@ class _TrackerCardState extends State<TrackerCard> {
                             padding: EdgeInsets.only(bottom: isCompact ? 2.h : 2.0),
                             child: Text(
                               "• ${ingredient.name}: ${ingredient.amount.toInt()}${ingredient.unit}",
-                              style: AppTextStyles.labelSmall.copyWith(
+                              style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                 color: AppColors.textSecondary,
-                                fontSize: isCompact ? 11.sp : 10.0,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -209,32 +204,44 @@ class _TrackerCardState extends State<TrackerCard> {
                 SizedBox(height: isCompact ? 4.h : 4.0),
                 Text(
                   "1 ${widget.supplement.servingUnit} (${widget.supplement.weightPerServing.toStringAsFixed(1)}${widget.supplement.weightUnit})",
-                  style: AppTextStyles.labelSmall.copyWith(
+                  style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                     color: AppColors.white,
                     fontWeight: FontWeight.w500,
-                    fontSize: isCompact ? 12.sp : 11.0,
                   ),
                 ),
-                Row(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      "Stock: ",
-                      style: AppTextStyles.labelSmall.copyWith(
-                        color: AppColors.textSecondary,
-                        fontSize: isCompact ? 11.sp : 10.0,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: 0.5,
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: "Stock: ",
+                            style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          TextSpan(
+                            text: weightStockText,
+                            style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+                              color: widget.supplement.remainingStock == null
+                                  ? AppColors.textSecondary.withValues(alpha: 0.6)
+                                  : provider.getStockColor(widget.supplement),
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    if (stockText.isNotEmpty) ...[
-                      SizedBox(height: isCompact ? 4.h : 4.0),
+                    if (servingsStockText != null) ...[
+                      SizedBox(height: isCompact ? 2.h : 2.0),
                       Text(
-                        stockText,
-                        style: AppTextStyles.labelSmall.copyWith(
-                          color: widget.supplement.remainingStock == null
-                              ? AppColors.textSecondary.withValues(alpha: 0.6)
-                              : provider.getStockColor(widget.supplement),
-                          fontSize: isCompact ? 11.sp : 10.0,
+                        servingsStockText,
+                        style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+                          color: provider.getStockColor(widget.supplement),
                           fontWeight: FontWeight.w500,
                           letterSpacing: 0.5,
                         ),
@@ -248,9 +255,8 @@ class _TrackerCardState extends State<TrackerCard> {
                   SizedBox(height: isCompact ? 2.h : 2.0),
                   Text(
                     expiryText,
-                    style: AppTextStyles.labelSmall.copyWith(
+                    style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                       color: expiryColor,
-                      fontSize: isCompact ? 11.sp : 10.0,
                       fontWeight: FontWeight.w500,
                       letterSpacing: 0.5,
                     ),

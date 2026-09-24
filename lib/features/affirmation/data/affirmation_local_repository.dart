@@ -1,5 +1,5 @@
 import 'package:sqflite/sqflite.dart';
-import 'package:heavy_duty/core/database/database_helper.dart';
+import 'package:rugged/core/database/database_helper.dart';
 import '../model/affirmation.dart';
 import '../model/affirmation_settings.dart';
 

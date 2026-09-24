@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
 
 class CycleStatusCard extends StatelessWidget {
   final String activeCycle;
@@ -28,9 +28,9 @@ class CycleStatusCard extends StatelessWidget {
       width: double.infinity,
       padding: EdgeInsets.all(isCompact ? 20.r : 20.0),
       decoration: BoxDecoration(
-        color: AppColors.surfaceLight.withOpacity(0.6),
+        color: AppColors.surfaceLight.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(isCompact ? 20.r : 20.0),
-        border: Border.all(color: AppColors.white.withOpacity(0.1)),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.1)),
         boxShadow: [
           BoxShadow(color: Colors.black26, blurRadius: 8, offset: const Offset(0, 4)),
         ],
@@ -48,9 +48,8 @@ class CycleStatusCard extends StatelessWidget {
                   SizedBox(width: 8.w),
                   Text(
                     'CYCLE STATUS',
-                    style: AppTextStyles.labelSmall.copyWith(
+                    style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                       letterSpacing: 1.5,
-                      fontSize: isCompact ? 13.sp : 11.0,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -60,14 +59,13 @@ class CycleStatusCard extends StatelessWidget {
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                   decoration: BoxDecoration(
-                    color: workOutputGrowth > 0 ? Colors.green.withOpacity(0.2) : AppColors.crimson.withOpacity(0.2),
+                    color: workOutputGrowth > 0 ? Colors.green.withValues(alpha: 0.2) : AppColors.crimson.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8.r),
                   ),
                   child: Text(
                     "${workOutputGrowth > 0 ? "+" : ""}${(workOutputGrowth * 100).toStringAsFixed(1)}% STRENGTH PROGRESS",
-                    style: AppTextStyles.labelSmall.copyWith(
+                    style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                       color: workOutputGrowth > 0 ? Colors.greenAccent : AppColors.crimson,
-                      fontSize: isCompact ? 10.sp : 9.0,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -78,9 +76,10 @@ class CycleStatusCard extends StatelessWidget {
           SizedBox(height: 16.h),
           
           // Data Rows
-          _buildStatusRow('Active Routine', activeCycle.toUpperCase(), isCompact),
+          _buildStatusRow(context, 'Active Routine', activeCycle.toUpperCase(), isCompact),
           SizedBox(height: 10.h),
           _buildStatusRow(
+            context,
             'Overall Progress',
             '$completedWorkouts OF $totalWorkouts COMPLETED',
             isCompact,
@@ -94,7 +93,7 @@ class CycleStatusCard extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 8.h,
-              backgroundColor: AppColors.background.withOpacity(0.5),
+              backgroundColor: AppColors.background.withValues(alpha: 0.5),
               color: AppColors.crimson,
             ),
           ),
@@ -103,23 +102,21 @@ class CycleStatusCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusRow(String label, String value, bool isCompact) {
+  Widget _buildStatusRow(BuildContext context, String label, String value, bool isCompact) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
-          style: AppTextStyles.labelSmall.copyWith(
+          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
             color: AppColors.textSecondary,
-            fontSize: isCompact ? 12.sp : 10.0,
             fontWeight: FontWeight.w500,
           ),
         ),
         Text(
           value,
-          style: AppTextStyles.labelMedium.copyWith(
+          style: AppTextStyles.labelMedium.adaptive(context).copyWith(
             color: AppColors.white,
-            fontSize: isCompact ? 14.sp : 12.0,
             fontWeight: FontWeight.w500,
           ),
         ),

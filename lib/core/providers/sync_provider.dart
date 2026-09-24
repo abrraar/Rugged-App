@@ -2,7 +2,7 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:heavy_duty/core/services/connectivity_service.dart';
+import 'package:rugged/core/services/connectivity_service.dart';
 
 enum SyncUIState { idle, online, syncing, completed }
 

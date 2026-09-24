@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/features/tracker/calorie/provider/calorie_provider.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/features/tracker/calorie/provider/calorie_provider.dart';
 import 'package:provider/provider.dart';
 import '../../model/saved_meal.dart';
 
@@ -106,7 +106,7 @@ class _CalorieNotificationSheetState extends State<CalorieNotificationSheet> {
                 color: Colors.transparent,
                 child: Container(
                   height: widget.isSideSheet ? double.infinity : null,
-                  constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
+                  constraints: widget.isSideSheet ? null : BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
                   decoration: BoxDecoration(
                     color: AppColors.surface,
                     borderRadius: widget.isSideSheet 
@@ -423,7 +423,17 @@ class _CalorieNotificationSheetState extends State<CalorieNotificationSheet> {
   }
 
   Future<void> _selectTime(CalorieReminder reminder) async {
-    final picked = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+    final picked = await showTimePicker(
+      context: context,
+      useRootNavigator: true,
+      initialTime: TimeOfDay.now(),
+      builder: (context, child) => Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: child!,
+        ),
+      ),
+    );
     if (picked != null && !reminder.times.contains(picked)) {
       setState(() => reminder.times.add(picked));
     }
@@ -438,7 +448,7 @@ class _CalorieNotificationSheetState extends State<CalorieNotificationSheet> {
             SizedBox(width: isCompact ? 8.w : 8.0),
             Text(l, style: AppTextStyles.labelSmall.copyWith(letterSpacing: 1.5, fontWeight: FontWeight.w500, color: Colors.white, fontSize: isCompact ? null : 11.0)),
             const Spacer(),
-            Transform.scale(scale: 0.8, child: Switch.adaptive(value: v, activeColor: AppColors.crimson, onChanged: o)),
+            Transform.scale(scale: 0.8, child: Switch.adaptive(value: v, activeTrackColor: AppColors.crimson, onChanged: o)),
           ],
         ),
       );

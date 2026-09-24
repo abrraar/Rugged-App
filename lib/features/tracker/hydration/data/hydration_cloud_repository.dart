@@ -1,7 +1,6 @@
-// lib/features/tracker/hydration/data/hydration_cloud_repository.dart
-
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../auth/provider/auth_provider.dart';
 import '../model/hydration_log.dart';
 import '../model/hydration_settings.dart';
 
@@ -9,10 +8,12 @@ class HydrationCloudRepository {
   SupabaseClient get _supabase => Supabase.instance.client;
 
   String? get _currentUserId => _supabase.auth.currentUser?.id;
+  bool get _isPro => AuthProvider().isPro;
 
   // --- Logs ---
 
   Future<List<HydrationLog>?> getAllLogs() async {
+    if (!_isPro) return null;
     final uid = _currentUserId;
     if (uid == null) return null;
 
@@ -31,6 +32,7 @@ class HydrationCloudRepository {
   }
 
   Future<void> insertLog(HydrationLog log) async {
+    if (!_isPro) return;
     final uid = _currentUserId;
     if (uid == null) return;
 
@@ -41,6 +43,7 @@ class HydrationCloudRepository {
   }
 
   Future<void> deleteLog(String id) async {
+    if (!_isPro) return;
     final uid = _currentUserId;
     if (uid == null) return;
 
@@ -50,6 +53,7 @@ class HydrationCloudRepository {
   // --- Settings ---
 
   Future<HydrationSettings?> getSettings() async {
+    if (!_isPro) return null;
     final uid = _currentUserId;
     if (uid == null) return null;
 
@@ -70,6 +74,7 @@ class HydrationCloudRepository {
   }
 
   Future<void> saveSettings(HydrationSettings settings) async {
+    if (!_isPro) return;
     final uid = _currentUserId;
     if (uid == null) return;
 

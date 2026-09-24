@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/features/affirmation/affirmation_screen.dart';
-import 'package:heavy_duty/features/affirmation/provider/affirmation_provider.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/features/affirmation/affirmation_screen.dart';
+import 'package:rugged/features/affirmation/provider/affirmation_provider.dart';
 import 'package:provider/provider.dart';
 
 class AffirmationCard extends StatefulWidget {
@@ -25,7 +25,42 @@ class _AffirmationCardState extends State<AffirmationCard> {
         final allAffirmations = provider.affirmations;
         final current = provider.currentAffirmation;
 
-        if (allAffirmations.isEmpty || current == null) return const SizedBox.shrink();
+        if (allAffirmations.isEmpty || current == null) {
+          return GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AffirmationScreen()),
+              );
+            },
+            behavior: HitTestBehavior.opaque,
+            child: Container(
+              width: double.infinity,
+              padding: EdgeInsets.fromLTRB(
+                widget.isCompact ? 16.w : 16.0,
+                widget.isCompact ? 4.h : 4.0, 
+                widget.isCompact ? 16.w : 16.0, 
+                widget.isCompact ? 4.h : 4.0
+              ),
+              decoration: const BoxDecoration(
+                border: Border(
+                  left: BorderSide(
+                    color: AppColors.crimson,
+                    width: 3,
+                  ),
+                ),
+              ),
+              child: Text(
+                '"Tap here to enter your first affirmation..."',
+                style: AppTextStyles.bodySmall.adaptive(context).copyWith(
+                  color: AppColors.textSecondary.withValues(alpha: 0.6),
+                  fontStyle: FontStyle.italic,
+                  height: 1.4,
+                ),
+              ),
+            ),
+          );
+        }
 
         final int currentIndex = allAffirmations.indexWhere((a) => a.id == current.id);
 
@@ -71,7 +106,7 @@ class _AffirmationCardState extends State<AffirmationCard> {
           child: Container(
             width: double.infinity,
             padding: EdgeInsets.fromLTRB(
-              widget.isCompact ? 16.w : 16.0, 
+              widget.isCompact ? 16.w : 16.0,
               widget.isCompact ? 4.h : 4.0, 
               widget.isCompact ? 16.w : 16.0, 
               widget.isCompact ? 4.h : 4.0
@@ -88,6 +123,15 @@ class _AffirmationCardState extends State<AffirmationCard> {
               duration: const Duration(milliseconds: 500),
               switchInCurve: Curves.easeOutCubic,
               switchOutCurve: Curves.easeInCubic,
+              layoutBuilder: (currentChild, previousChildren) {
+                return Stack(
+                  alignment: Alignment.centerLeft,
+                  children: [
+                    ...previousChildren,
+                    ?currentChild,
+                  ],
+                );
+              },
               transitionBuilder: (Widget child, Animation<double> animation) {
                 // Create a cohesive horizontal slide transition
                 final isIncoming = child.key == ValueKey(current.id);
@@ -114,21 +158,19 @@ class _AffirmationCardState extends State<AffirmationCard> {
                 children: [
                   Text(
                     '"${current.text}"',
-                    style: AppTextStyles.bodySmall.copyWith(
+                    style: AppTextStyles.bodySmall.adaptive(context).copyWith(
                       color: AppColors.textSecondary,
                       fontStyle: FontStyle.italic,
                       height: 1.4,
-                      fontSize: widget.isCompact ? 15.sp : 13.0,
                     ),
                   ),
                   if (current.speaker != null && current.speaker!.isNotEmpty) ...[
                     const SizedBox(height: 6),
                     Text(
                       "— ${current.speaker}",
-                      style: AppTextStyles.labelSmall.copyWith(
+                      style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w500,
-                        fontSize: widget.isCompact ? 13.sp : 11.0,
                         letterSpacing: 0.5,
                       ),
                     ),

@@ -3,30 +3,31 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/features/main_wrapper.dart';
-import 'package:heavy_duty/features/tracker/supplement/widgets/cards/supplement_item_card.dart';
-import 'package:heavy_duty/features/tracker/supplement/widgets/cards/library_card.dart';
-import 'package:heavy_duty/features/tracker/supplement/widgets/cards/stacker_card.dart';
-import 'package:heavy_duty/features/tracker/supplement/widgets/sheets/intake_sheet.dart';
-import 'package:heavy_duty/features/tracker/supplement/widgets/sheets/notification_sheet.dart';
-import 'package:heavy_duty/features/tracker/supplement/widgets/sheets/quick_log_sheet.dart';
-import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
-import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
-import 'package:heavy_duty/features/tracker/supplement/widgets/sheets/stack_form_sheet.dart';
-import 'package:heavy_duty/features/tracker/supplement/widgets/sheets/supplement_form_sheet.dart';
-import 'package:heavy_duty/core/utils/adaptive_utils.dart';
+import 'package:rugged/features/main_wrapper.dart';
+import 'package:rugged/features/tracker/supplement/widgets/cards/supplement_item_card.dart';
+import 'package:rugged/features/tracker/supplement/widgets/cards/library_card.dart';
+import 'package:rugged/features/tracker/supplement/widgets/cards/stacker_card.dart';
+import 'package:rugged/features/tracker/supplement/widgets/sheets/intake_sheet.dart';
+import 'package:rugged/features/tracker/supplement/widgets/sheets/notification_sheet.dart';
+import 'package:rugged/features/tracker/supplement/widgets/sheets/quick_log_sheet.dart';
+import 'package:rugged/core/widgets/elite_refresh_indicator.dart';
+import 'package:rugged/core/widgets/elite_confirm_dialog.dart';
+import 'package:rugged/core/widgets/elite_snackbar.dart';
+import 'package:rugged/features/tracker/supplement/widgets/sheets/stack_form_sheet.dart';
+import 'package:rugged/features/tracker/supplement/widgets/sheets/supplement_form_sheet.dart';
+import 'package:rugged/core/utils/adaptive_utils.dart';
 
-import 'package:heavy_duty/features/tracker/calorie/provider/calorie_provider.dart';
+import 'package:rugged/features/tracker/calorie/provider/calorie_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
 import 'package:intl/intl.dart';
 
 import 'model/supplement.dart';
 import 'model/supplement_item.dart';
 import 'model/supplement_stack.dart';
 import 'provider/supplement_provider.dart';
-import 'package:heavy_duty/core/constants/dimensions.dart';
+import 'package:rugged/core/constants/dimensions.dart';
 import 'widgets/cards/tracker_card.dart';
 
 class _HistoryFilter {
@@ -146,10 +147,9 @@ class _SupplementScreenState extends State<SupplementScreen>
                               child: Text(
                                 'SUPPLEMENT TRACKER',
                                 textAlign: TextAlign.center,
-                                style: AppTextStyles.h2.copyWith(
+                                style: AppTextStyles.h2.adaptive(context).copyWith(
                                   color: AppColors.white,
                                   fontWeight: FontWeight.w500,
-                                  fontSize: isCompact ? 20.sp : 20.0,
                                 ),
                               ),
                             ),
@@ -174,9 +174,8 @@ class _SupplementScreenState extends State<SupplementScreen>
                       indicatorSize: TabBarIndicatorSize.tab,
                       indicatorWeight: 3,
                       labelPadding: EdgeInsets.zero,
-                      labelStyle: AppTextStyles.labelMedium.copyWith(
+                      labelStyle: AppTextStyles.labelMedium.adaptive(context).copyWith(
                         fontWeight: FontWeight.w500,
-                        fontSize: isCompact ? 11.sp : 11.0,
                       ),
                       unselectedLabelColor: AppColors.textSecondary.withValues(
                         alpha: 0.4,
@@ -248,9 +247,8 @@ class _SupplementScreenState extends State<SupplementScreen>
                               ),
                               child: Text(
                                 "OPEN LIBRARY",
-                                style: AppTextStyles.labelSmall.copyWith(
+                                style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                   color: AppColors.crimson,
-                                  fontSize: isCompact ? 10.sp : 10.0,
                                 ),
                               ),
                             ),
@@ -264,7 +262,7 @@ class _SupplementScreenState extends State<SupplementScreen>
             ),
           );
         }
-        return RefreshIndicator(
+        return EliteRefreshIndicator(
           onRefresh: () => provider.forceRefresh(),
           color: AppColors.crimson,
           backgroundColor: AppColors.surface,
@@ -345,7 +343,7 @@ class _SupplementScreenState extends State<SupplementScreen>
         final activeCount = provider.activeSupplements.length;
         final stacks = provider.supplementStacks;
 
-        return RefreshIndicator(
+        return EliteRefreshIndicator(
           onRefresh: () => provider.forceRefresh(),
           color: AppColors.crimson,
           backgroundColor: AppColors.surface,
@@ -372,9 +370,8 @@ class _SupplementScreenState extends State<SupplementScreen>
                                     Text(
                                       "SUPPLEMENT STACKING",
                                       textAlign: TextAlign.center,
-                                      style: AppTextStyles.h3.copyWith(
+                                      style: AppTextStyles.h3.adaptive(context).copyWith(
                                         color: AppColors.textSecondary,
-                                        fontSize: isCompact ? 18.sp : 16.0,
                                       ),
                                     ),
                                     Padding(
@@ -387,9 +384,8 @@ class _SupplementScreenState extends State<SupplementScreen>
                                             ? "Activate at least 2 supplements from your library to create a stack."
                                             : "Bundle your active supplements for faster logging.",
                                         textAlign: TextAlign.center,
-                                        style: AppTextStyles.labelSmall.copyWith(
+                                        style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                           color: AppColors.textSecondary.withValues(alpha: 0.6),
-                                          fontSize: isCompact ? 12.sp : 11.0,
                                         ),
                                       ),
                                     ),
@@ -520,7 +516,7 @@ class _SupplementScreenState extends State<SupplementScreen>
           );
         }
 
-        return RefreshIndicator(
+        return EliteRefreshIndicator(
           onRefresh: () => provider.forceRefresh(),
           color: AppColors.crimson,
           backgroundColor: AppColors.surface,
@@ -718,13 +714,13 @@ class _SupplementScreenState extends State<SupplementScreen>
                         _buildHorizontalCalendar(dateSet, isCompact),
                         const Divider(color: Colors.white10, height: 1),
                         Expanded(
-                          child: RefreshIndicator(
+                          child: EliteRefreshIndicator(
                             onRefresh: () => provider.forceRefresh(),
                             color: AppColors.crimson,
                             backgroundColor: AppColors.surface,
                             child: Column(
                               children: [
-                                _buildHistoryHeader(provider, isCompact),
+                                _buildHistoryHeader(context, provider, isCompact),
                                 Expanded(
                                   child: displayedHistory.isEmpty
                                       ? Center(
@@ -822,13 +818,13 @@ class _SupplementScreenState extends State<SupplementScreen>
                 ),
                 const Divider(color: Colors.white10, height: 1),
                 Expanded(
-                  child: RefreshIndicator(
+                  child: EliteRefreshIndicator(
                     onRefresh: () => provider.forceRefresh(),
                     color: AppColors.crimson,
                     backgroundColor: AppColors.surface,
                     child: Column(
                       children: [
-                        _buildHistoryHeader(provider, isCompact),
+                        _buildHistoryHeader(context, provider, isCompact),
                         Expanded(
                           child: displayedHistory.isEmpty
                               ? LayoutBuilder(
@@ -997,10 +993,26 @@ class _SupplementScreenState extends State<SupplementScreen>
                 onTap: () async {
                   final DateTime? picked = await showDatePicker(
                     context: context,
+                    useRootNavigator: true,
                     initialDate: _selectedHistoryDate,
                     firstDate: DateTime(2020),
                     lastDate: DateTime.now(),
-                    builder: (context, child) => child!,
+                    builder: (context, child) => Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 520),
+                        child: Theme(
+                          data: Theme.of(context).copyWith(
+                            colorScheme: const ColorScheme.dark(
+                              primary: AppColors.crimson,
+                              onPrimary: Colors.white,
+                              surface: AppColors.surface,
+                              onSurface: Colors.white,
+                            ),
+                          ),
+                          child: child!,
+                        ),
+                      ),
+                    ),
                   );
                   if (picked != null) {
                     setState(() {
@@ -1011,7 +1023,12 @@ class _SupplementScreenState extends State<SupplementScreen>
                 },
                 child: Text(
                   DateFormat('MMMM yyyy').format(_displayedMonth).toUpperCase(),
-                  style: AppTextStyles.labelMedium.copyWith(color: Colors.white, letterSpacing: 1.5, fontSize: isCompact ? 14.sp : 14.0),
+                  style: AppTextStyles.labelMedium.adaptive(context).copyWith(
+                    color: Colors.white, 
+                    letterSpacing: 1.5,
+                    fontSize: isCompact ? 14.0 : 16.0,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
               IconButton(
@@ -1022,21 +1039,29 @@ class _SupplementScreenState extends State<SupplementScreen>
               ),
             ],
           ),
-          SizedBox(height: isCompact ? 10.h : 8.0),
+          const SizedBox(height: 8.0),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: ["M", "T", "W", "T", "F", "S", "S"].map((d) => Expanded(
-              child: Text(d, textAlign: TextAlign.center, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.5), fontSize: isCompact ? 10.sp : 10.0)),
+              child: Text(
+                d, 
+                textAlign: TextAlign.center, 
+                style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+                  color: AppColors.textSecondary.withValues(alpha: 0.5),
+                  fontSize: isCompact ? 11.0 : 13.0,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             )).toList(),
           ),
-          SizedBox(height: isCompact ? 10.h : 8.0),
+          const SizedBox(height: 8.0),
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 7,
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
+              mainAxisSpacing: 6,
+              crossAxisSpacing: 6,
             ),
             itemCount: daysInMonth + (firstDayOfMonth - 1),
             itemBuilder: (context, index) {
@@ -1059,39 +1084,43 @@ class _SupplementScreenState extends State<SupplementScreen>
                     _selectedHistoryDate = date;
                   });
                 },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  decoration: BoxDecoration(
-                    color: isSelected ? AppColors.crimson : Colors.transparent,
-                    shape: BoxShape.circle,
-                    border: isToday && !isSelected 
-                        ? Border.all(color: AppColors.crimson.withValues(alpha: 0.5))
-                        : null,
-                  ),
-                  alignment: Alignment.center,
-                  child: Stack(
+                child: AspectRatio(
+                  aspectRatio: 1.0,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    decoration: BoxDecoration(
+                      color: isSelected ? AppColors.crimson : Colors.transparent,
+                      shape: BoxShape.circle,
+                      border: isToday && !isSelected 
+                          ? Border.all(color: AppColors.crimson.withValues(alpha: 0.5))
+                          : null,
+                    ),
                     alignment: Alignment.center,
-                    children: [
-                      Text(
-                        day.toString(),
-                        style: AppTextStyles.labelSmall.copyWith(
-                          color: isSelected 
-                              ? Colors.white 
-                              : (isFuture ? Colors.white.withValues(alpha: 0.05) : (hasData ? Colors.white : Colors.white.withValues(alpha: 0.2))),
-                          fontWeight: FontWeight.w500,
-                          fontSize: isCompact ? 12.sp : 12.0,
-                        ),
-                      ),
-                      if (hasData && !isSelected)
-                        Positioned(
-                          bottom: isCompact ? 4.h : 4.0,
-                          child: Container(
-                            width: isCompact ? 3.r : 3.0,
-                            height: isCompact ? 3.r : 3.0,
-                            decoration: const BoxDecoration(color: AppColors.crimson, shape: BoxShape.circle),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          day.toString(),
+                          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+                            fontSize: isCompact ? 13.0 : 15.0,
+                            color: isSelected 
+                                ? Colors.white 
+                                : (isFuture ? Colors.white.withValues(alpha: 0.05) : (hasData ? Colors.white : Colors.white.withValues(alpha: 0.2))),
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                    ],
+                        const SizedBox(height: 2.0),
+                        Container(
+                          width: 4.0,
+                          height: 4.0,
+                          decoration: BoxDecoration(
+                            color: (hasData && !isSelected) ? AppColors.crimson : Colors.transparent,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -1146,8 +1175,7 @@ class _SupplementScreenState extends State<SupplementScreen>
                 children: [
                   Text(
                     DateFormat('EEE').format(dateOnly).toUpperCase(),
-                    style: AppTextStyles.labelSmall.copyWith(
-                      fontSize: isCompact ? 10.sp : 10.0,
+                    style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                       color: isSelected 
                           ? Colors.white 
                           : (hasData ? AppColors.textSecondary : AppColors.textSecondary.withValues(alpha: 0.2)),
@@ -1157,8 +1185,7 @@ class _SupplementScreenState extends State<SupplementScreen>
                   SizedBox(height: isCompact ? 4.h : 4.0),
                   Text(
                     dateOnly.day.toString(),
-                    style: AppTextStyles.h3.copyWith(
-                      fontSize: isCompact ? 16.sp : 16.0,
+                    style: AppTextStyles.h3.adaptive(context).copyWith(
                       color: isSelected 
                           ? Colors.white 
                           : (hasData ? AppColors.white : AppColors.white.withValues(alpha: 0.15)),
@@ -1334,25 +1361,24 @@ class _SupplementScreenState extends State<SupplementScreen>
       children: [
         Container(
           width: 2.5,
-          height: isCompact ? 12.h : 10.0,
+          height: 12.0,
           decoration: BoxDecoration(
             color: AppColors.crimson,
-            borderRadius: BorderRadius.circular(2.r),
+            borderRadius: BorderRadius.circular(2.0),
           ),
         ),
-        SizedBox(width: 8.w),
+        const SizedBox(width: 6.0),
         Text(
           title,
-          style: AppTextStyles.labelSmall.copyWith(
+          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
             color: AppColors.textSecondary.withValues(alpha: 0.8),
-            fontSize: isCompact ? 12.sp : 10.0,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildHistoryHeader(SupplementProvider provider, bool isCompact) {
+  Widget _buildHistoryHeader(BuildContext context, SupplementProvider provider, bool isCompact) {
     return Container(
       padding: EdgeInsets.fromLTRB(isCompact ? 20.r : 20.0, 0, isCompact ? 20.r : 20.0, isCompact ? 12.h : 10.0),
       child: Row(
@@ -1431,9 +1457,8 @@ class _SupplementScreenState extends State<SupplementScreen>
     child: Text(
       m,
       textAlign: TextAlign.center,
-      style: AppTextStyles.labelSmall.copyWith(
+      style: AppTextStyles.labelSmall.adaptive(context).copyWith(
         color: AppColors.textSecondary,
-        fontSize: isCompact ? 14.sp : 12.0,
       ),
     ),
   );
@@ -1453,9 +1478,8 @@ class _SupplementScreenState extends State<SupplementScreen>
         alignment: Alignment.center,
         child: Text(
           l,
-          style: AppTextStyles.buttonPrimary.copyWith(
+          style: AppTextStyles.buttonPrimary.adaptive(context).copyWith(
             color: AppColors.crimson,
-            fontSize: isCompact ? 14.sp : 13.0,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -1534,7 +1558,7 @@ class _SupplementHistoryFilterSheetState extends State<_SupplementHistoryFilterS
                         width: isCompact ? 40.w : 40.0,
                         height: isCompact ? 4.h : 4.0,
                         decoration: BoxDecoration(
-                          color: AppColors.textSecondary.withOpacity(0.3),
+                          color: AppColors.textSecondary.withValues(alpha: 0.3),
                           borderRadius: BorderRadius.circular(2.r),
                         ),
                       ),
@@ -1544,7 +1568,7 @@ class _SupplementHistoryFilterSheetState extends State<_SupplementHistoryFilterS
                     children: [
                       Text(
                         "FILTER HISTORY", 
-                        style: AppTextStyles.h3.copyWith(fontSize: isCompact ? 20.sp : 18.0)
+                        style: AppTextStyles.h3.adaptive(context)
                       ),
                       Row(
                         children: [
@@ -1552,10 +1576,9 @@ class _SupplementHistoryFilterSheetState extends State<_SupplementHistoryFilterS
                             onPressed: () => setState(() => _currentFilter = _HistoryFilter()),
                             child: Text(
                               "RESET",
-                              style: AppTextStyles.labelSmall.copyWith(
+                              style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                 color: AppColors.crimson,
                                 fontWeight: FontWeight.w500,
-                                fontSize: isCompact ? 13.sp : 11.0,
                               ),
                             ),
                           ),
@@ -1648,9 +1671,8 @@ class _SupplementHistoryFilterSheetState extends State<_SupplementHistoryFilterS
                               ),
                               child: Text(
                                 "APPLY FILTERS",
-                                style: AppTextStyles.buttonPrimary.copyWith(
+                                style: AppTextStyles.buttonPrimary.adaptive(context).copyWith(
                                   color: Colors.white,
-                                  fontSize: isCompact ? 14.sp : 13.0,
                                 ),
                               ),
                             ),
@@ -1673,11 +1695,10 @@ class _SupplementHistoryFilterSheetState extends State<_SupplementHistoryFilterS
       padding: EdgeInsets.only(bottom: isCompact ? 12.h : 10.0),
       child: Text(
         label,
-        style: AppTextStyles.labelSmall.copyWith(
+        style: AppTextStyles.labelSmall.adaptive(context).copyWith(
           color: AppColors.textSecondary.withValues(alpha: 0.5),
           letterSpacing: 1.5,
           fontWeight: FontWeight.w500,
-          fontSize: isCompact ? 11.sp : 10.0,
         ),
       ),
     );
@@ -1699,10 +1720,9 @@ class _SupplementHistoryFilterSheetState extends State<_SupplementHistoryFilterS
           child: Center(
             child: Text(
               label,
-              style: AppTextStyles.labelSmall.copyWith(
+              style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                 color: isSelected ? AppColors.crimson : AppColors.textSecondary,
                 fontWeight: FontWeight.w500,
-                fontSize: isCompact ? 11.sp : 10.0,
               ),
             ),
           ),
@@ -1738,9 +1758,8 @@ class _SupplementHistoryFilterSheetState extends State<_SupplementHistoryFilterS
         ),
         child: Text(
           label.toUpperCase(),
-          style: AppTextStyles.labelSmall.copyWith(
+          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
             color: isSelected ? AppColors.crimson : AppColors.textSecondary,
-            fontSize: isCompact ? 10.sp : 9.0,
             fontWeight: FontWeight.w500,
           ),
         ),

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/features/tracker/supplement/model/supplement_item.dart';
+import 'package:rugged/features/tracker/supplement/model/supplement_item.dart';
 import 'package:intl/intl.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
 
 class SupplementItemCard extends StatelessWidget {
   final SupplementItem entry;
@@ -86,8 +86,7 @@ class SupplementItemCard extends StatelessWidget {
                           Flexible(
                             child: Text(
                               entry.supplementName.toUpperCase(),
-                              style: AppTextStyles.labelMedium.copyWith(
-                                fontSize: isCompact ? 13.sp : 13.0,
+                              style: AppTextStyles.labelMedium.adaptive(context).copyWith(
                                 fontWeight: FontWeight.w500,
                               ),
                               maxLines: 1,
@@ -108,9 +107,8 @@ class SupplementItemCard extends StatelessWidget {
                               ),
                               child: Text(
                                 badgeText,
-                                style: AppTextStyles.labelSmall.copyWith(
+                                style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                   color: badgeColor,
-                                  fontSize: isCompact ? 10.sp : 9.0,
                                   fontWeight: FontWeight.w500,
                                   letterSpacing: 0.5,
                                 ),
@@ -122,9 +120,8 @@ class SupplementItemCard extends StatelessWidget {
                     ),
                     Text(
                       DateFormat('HH:mm | MMM d').format(entry.timestamp),
-                      style: AppTextStyles.labelSmall.copyWith(
+                      style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                         color: AppColors.textSecondary,
-                        fontSize: isCompact ? 11.sp : 10.0,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -133,9 +130,8 @@ class SupplementItemCard extends StatelessWidget {
                 SizedBox(height: isCompact ? 4.h : 4.0),
                 Text(
                   entry.details,
-                  style: AppTextStyles.labelSmall.copyWith(
+                  style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                     color: Colors.white70,
-                    fontSize: isCompact ? 11.sp : 10.0,
                     fontWeight: FontWeight.w500,
                     letterSpacing: 0.3,
                   ),

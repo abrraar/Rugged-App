@@ -1,18 +1,18 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/constants/dimensions.dart';
-import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
-import 'package:heavy_duty/features/exercise/provider/exercise_provider.dart';
+import 'package:rugged/core/constants/dimensions.dart';
+import 'package:rugged/core/widgets/elite_confirm_dialog.dart';
+import 'package:rugged/features/exercise/provider/exercise_provider.dart';
+import 'package:rugged/features/tracker/cycle_tracker/provider/cycle_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:shimmer/shimmer.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/app_search_bar.dart';
 import 'exercise_detail_screen.dart';
 import 'model/exercise_template.dart';
-import 'package:heavy_duty/features/exercise/widgets/add_custom_exercise_sheet.dart';
-import 'package:heavy_duty/core/utils/adaptive_utils.dart';
+import 'package:rugged/core/widgets/elite_refresh_indicator.dart';
+import 'package:rugged/features/exercise/widgets/add_custom_exercise_sheet.dart';
+import 'package:rugged/core/utils/adaptive_utils.dart';
 
 class ExerciseScreen extends StatefulWidget {
   const ExerciseScreen({super.key});
@@ -97,7 +97,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
                 },
               ),
             ).then((_) {
-              if (mounted && MediaQuery.of(context).orientation == Orientation.portrait) {
+              if (!context.mounted) return;
+              if (MediaQuery.of(context).orientation == Orientation.portrait) {
                 setState(() => _selectedExerciseId = null);
               }
             });
@@ -113,29 +114,9 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
                 ? (paneWidth - kMaxContentWidth).clamp(24.0, double.infinity) / 2 
                 : 20.w;
 
-            List<ExerciseTemplate> filterList(List<ExerciseTemplate> original) {
-              var list = original.where((t) {
-                final matchesSearch = t.name.toLowerCase().contains(_searchQuery.toLowerCase());
-                final matchesDemand = _selectedDemands.isEmpty || _selectedDemands.contains(t.intensity);
-                
-                bool matchesMuscle = _selectedMuscles.isEmpty;
-                if (!matchesMuscle && t.targetMuscles != null) {
-                  final targets = t.targetMuscles!.split(',').map((m) => m.trim().toUpperCase());
-                  matchesMuscle = _selectedMuscles.any((sm) => targets.contains(sm.toUpperCase()));
-                }
-                
-                return matchesSearch && matchesDemand && matchesMuscle;
-              }).toList();
-
-              list.sort((a, b) => _isAscending 
-                  ? a.name.compareTo(b.name) 
-                  : b.name.compareTo(a.name));
-              
-              return list;
-            }
-
-            final defaultFiltered = filterList(provider.defaultTemplates);
-            final customFiltered = filterList(provider.customTemplates);
+            // --- HIGH INTENSITY PERFORMANCE OPTIMIZATION ---
+            final filteredDefaults = _filterList(provider.defaultTemplates);
+            final filteredCustom = _filterList(provider.customTemplates);
 
             Widget buildMainList(double currentHPad) {
               return Column(
@@ -167,8 +148,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
                     width: double.infinity,
                     height: isTabletOrFoldable ? 44.0 : 48.h,
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceLight.withOpacity(0.1),
-                      border: Border(bottom: BorderSide(color: AppColors.white.withOpacity(0.05))),
+                      color: AppColors.surfaceLight.withValues(alpha: 0.1),
+                      border: Border(bottom: BorderSide(color: AppColors.white.withValues(alpha: 0.05))),
                     ),
                     child: Center(
                       child: ConstrainedBox(
@@ -181,12 +162,11 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
                           indicator: const BoxDecoration(
                             border: Border(bottom: BorderSide(color: AppColors.crimson, width: 2)),
                           ),
-                          labelColor: AppColors.white,
+                          labelColor: AppColors.crimson,
                           unselectedLabelColor: AppColors.textSecondary,
-                          labelStyle: AppTextStyles.labelMedium.copyWith(
+                          labelStyle: AppTextStyles.labelMedium.adaptive(context).copyWith(
                             fontWeight: FontWeight.w500,
                             letterSpacing: 1.2,
-                            fontSize: isTabletOrFoldable ? 11.0 : 12.sp,
                           ),
                           tabs: const [
                             Tab(text: 'DEFAULT EXERCISES'),
@@ -202,8 +182,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
                     child: TabBarView(
                       controller: _tabController,
                       children: [
-                        _buildExerciseList(defaultFiltered, currentHPad, isTabletOrFoldable, isWideLandscape),
-                        _buildExerciseList(customFiltered, currentHPad, isTabletOrFoldable, isWideLandscape),
+                        _buildExerciseList(filteredDefaults, currentHPad, isTabletOrFoldable, isWideLandscape),
+                        _buildExerciseList(filteredCustom, currentHPad, isTabletOrFoldable, isWideLandscape),
                       ],
                     ),
                   ),
@@ -229,7 +209,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
                         Expanded(
                           child: Container(
                             decoration: BoxDecoration(
-                              border: Border(right: BorderSide(color: AppColors.white.withOpacity(0.05))),
+                              border: Border(right: BorderSide(color: AppColors.white.withValues(alpha: 0.05))),
                             ),
                             child: buildMainList(24.0),
                           ),
@@ -252,10 +232,9 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
                                 : Center(
                                     child: Text(
                                       "SELECT AN EXERCISE TO VIEW DETAILS",
-                                      style: AppTextStyles.labelSmall.copyWith(
+                                      style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                         color: AppColors.textSecondary.withValues(alpha: 0.3),
                                         letterSpacing: 2,
-                                        fontSize: 11.0,
                                       ),
                                     ),
                                   ),
@@ -272,7 +251,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
   }
 
   Widget _buildExerciseList(List<ExerciseTemplate> exercises, double hPad, bool isTablet, bool isWideLandscape) {
-    return RefreshIndicator(
+    return EliteRefreshIndicator(
       onRefresh: () => context.read<ExerciseProvider>().forceRefresh(),
       color: AppColors.crimson,
       backgroundColor: AppColors.surface,
@@ -285,9 +264,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
                   child: Center(
                     child: Text(
                       "No exercises found.",
-                      style: AppTextStyles.labelSmall.copyWith(
+                      style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                         color: AppColors.textSecondary,
-                        fontSize: isTablet ? 12.0 : 12.sp,
                       ),
                     ),
                   ),
@@ -296,7 +274,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
             )
           : ListView.separated(
               physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-              cacheExtent: 3000, 
+              cacheExtent: 500, 
               padding: EdgeInsets.symmetric(
                 horizontal: hPad, 
                 vertical: isTablet ? 16.0 : 20.h
@@ -324,10 +302,10 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
           alignment: Alignment.centerRight,
           padding: EdgeInsets.only(right: isTablet ? 24.0 : 24.w),
           decoration: BoxDecoration(
-            color: AppColors.crimson,
+            color: AppColors.error.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(isTablet ? 16.0 : 20.r),
           ),
-          child: Icon(Icons.delete_outline_rounded, color: Colors.white, size: isTablet ? 24.0 : 28.r),
+          child: Icon(Icons.delete_outline_rounded, color: AppColors.error, size: isTablet ? 24.0 : 28.r),
         ),
         child: _buildBaseExerciseCard(exercise, isTablet, isWideLandscape),
       );
@@ -336,7 +314,20 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
   }
 
   Future<bool?> _showDeleteConfirmation(String exerciseName) async {
-    return EliteConfirmDialog.show(
+    final cycleProv = context.read<CycleProvider>();
+    final bool isInUse = cycleProv.isExerciseInUse(exerciseName);
+
+    if (isInUse) {
+      return await EliteConfirmDialog.show(
+        context,
+        title: "EXERCISE IN USE",
+        message: "'${exerciseName.toUpperCase()}' IS CURRENTLY PART OF ONE OR MORE TRAINING CYCLES. REMOVING IT FROM THE LIBRARY WILL NOT DELETE IT FROM EXISTING LOGS, BUT YOU WON'T BE ABLE TO ADD IT TO NEW WORKOUTS.\n\nPROCEED WITH DELETION?",
+        icon: Icons.warning_amber_rounded,
+        confirmText: "DELETE ANYWAY",
+      );
+    }
+
+    return await EliteConfirmDialog.show(
       context,
       title: "DELETE EXERCISE",
       message: "ARE YOU SURE YOU WANT TO PERMANENTLY REMOVE THE '${exerciseName.toUpperCase()}' TEMPLATE?",
@@ -345,22 +336,15 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
   }
 
   Widget _buildBaseExerciseCard(ExerciseTemplate exercise, bool isTablet, bool isWideLandscape) {
-    final bool hasImage = (exercise.imageUrl ?? "").isNotEmpty && (exercise.imageUrl ?? "").startsWith('http');
     final bool isSelected = isWideLandscape && _selectedExerciseId == exercise.id;
     final Color cardBg = isSelected ? AppColors.crimson.withValues(alpha: 0.1) : AppColors.surface;
 
-    // Resolve Aspect Ratio in background
-    if (hasImage && exercise.aspectRatio == null) {
-      final img = Image.network(exercise.imageUrl!);
-      img.image.resolve(const ImageConfiguration()).addListener(
-        ImageStreamListener((info, _) {
-          exercise.aspectRatio = info.image.width / info.image.height;
-        }),
-      );
-    }
-
-    return GestureDetector(
-      key: ValueKey(exercise.id),
+    return _ExerciseCardItem(
+      exercise: exercise,
+      isTablet: isTablet,
+      isWideLandscape: isWideLandscape,
+      isSelected: isSelected,
+      cardBg: cardBg,
       onTap: () {
         if (isWideLandscape) {
           setState(() {
@@ -387,167 +371,32 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
           );
         }
       },
-      child: Container(
-        constraints: BoxConstraints(minHeight: isTablet ? 100.0 : 120.h),
-        decoration: BoxDecoration(
-          color: cardBg,
-          borderRadius: BorderRadius.circular(isTablet ? 16.0 : 20.r),
-          border: isSelected 
-              ? Border.all(color: AppColors.crimson.withValues(alpha: 0.5), width: 1.5)
-              : Border.all(color: AppColors.white.withOpacity(0.01)),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(isTablet ? 16.0 : 20.r),
-          child: Stack(
-            children: [
-              if (hasImage)
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  bottom: 0,
-                  child: ShaderMask(
-                    shaderCallback: (rect) {
-                      return const LinearGradient(
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                        colors: [Colors.transparent, Colors.black],
-                        stops: [0.0, 0.4],
-                      ).createShader(Rect.fromLTRB(0, 0, rect.width, rect.height));
-                    },
-                    blendMode: BlendMode.dstIn,
-                    child: Opacity(
-                      opacity: 0.6,
-                      child: CachedNetworkImage(
-                        imageUrl: exercise.imageUrl ?? '',
-                        fit: BoxFit.fitHeight,
-                        alignment: Alignment.centerRight,
-                        fadeInDuration: Duration.zero,
-                        fadeOutDuration: Duration.zero,
-                        placeholder: (context, url) => Shimmer.fromColors(
-                          baseColor: AppColors.surfaceLight.withOpacity(0.1),
-                          highlightColor: AppColors.surfaceLight.withOpacity(0.2),
-                          child: Container(width: isTablet ? 150.0 : 150.w, color: Colors.white),
-                        ),
-                        errorWidget: (context, url, error) => const SizedBox.shrink(),
-                      ),
-                    ),
-                  ),
-                ),
-              
-              Padding(
-                padding: EdgeInsets.all(isTablet ? 16.0 : 20.r),
-                child: SizedBox(
-                  width: hasImage ? (isTablet ? 250.0 : 200.w) : double.infinity,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        exercise.name.toUpperCase(),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.h3.copyWith(
-                          fontSize: isTablet ? 14.0 : 18.sp,
-                          letterSpacing: 0.5, 
-                          color: AppColors.white
-                        ),
-                      ),
-                      if (exercise.sharedBy != null)
-                        Padding(
-                          padding: EdgeInsets.only(top: isTablet ? 4.0 : 4.h),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                            decoration: BoxDecoration(
-                              color: Colors.blueAccent.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(6.0),
-                              border: Border.all(color: Colors.blueAccent.withOpacity(0.2)),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.share_rounded, color: Colors.blueAccent, size: isTablet ? 10.0 : 10.r),
-                                const SizedBox(width: 4.0),
-                                Text(
-                                  "SHARED BY ${exercise.sharedBy!.toUpperCase()}",
-                                  style: AppTextStyles.labelSmall.copyWith(
-                                    color: Colors.blueAccent,
-                                    fontSize: isTablet ? 7.5 : 8.sp,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      SizedBox(height: isTablet ? 4.0 : 4.h),
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
-                            decoration: BoxDecoration(
-                              color: exercise.type == ExerciseType.compound ? AppColors.crimson.withOpacity(0.2) : AppColors.white.withOpacity(0.05),
-                              borderRadius: BorderRadius.circular(4.0),
-                              border: Border.all(color: exercise.type == ExerciseType.compound ? AppColors.crimson.withOpacity(0.3) : AppColors.white.withOpacity(0.1)),
-                            ),
-                            child: Text(
-                              exercise.type.name.toUpperCase(),
-                              style: AppTextStyles.labelSmall.copyWith(
-                                fontSize: isTablet ? 8.0 : 8.sp,
-                                color: exercise.type == ExerciseType.compound ? AppColors.crimson : AppColors.textSecondary,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8.0),
-                          Expanded(
-                            child: Text(
-                              exercise.targetMuscles?.toUpperCase() ?? "",
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTextStyles.bodySmall.copyWith(
-                                color: AppColors.textSecondary, 
-                                fontSize: isTablet ? 9.5 : 11.sp
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: isTablet ? 6.0 : 8.h),
-                      Row(
-                        children: [
-                          Text('DEMAND: ', style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: isTablet ? 8.5 : 9.sp, fontWeight: FontWeight.w500)),
-                          _buildFireRating(exercise.intensity, isTablet),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              
-              Positioned(
-                right: isTablet ? 16.0 : 15.w,
-                top: 0,
-                bottom: 0,
-                child: Icon(Icons.arrow_forward_ios_rounded, color: AppColors.white.withOpacity(0.2), size: isTablet ? 14.0 : 16.r),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
-  Widget _buildFireRating(int score, bool isTablet) {
-    return Row(
-      children: List.generate(5, (index) {
-        return Icon(
-          Icons.local_fire_department_rounded,
-          size: isTablet ? 12.0 : 14.r,
-          color: index < score 
-              ? AppColors.crimson 
-              : AppColors.white.withOpacity(0.1),
-        );
-      }),
-    );
+  List<ExerciseTemplate> _filterList(List<ExerciseTemplate> original) {
+    if (_searchQuery.isEmpty && _selectedDemands.isEmpty && _selectedMuscles.isEmpty && _isAscending) {
+      return original;
+    }
+    
+    var list = original.where((t) {
+      final matchesSearch = _searchQuery.isEmpty || t.name.toLowerCase().contains(_searchQuery.toLowerCase());
+      final matchesDemand = _selectedDemands.isEmpty || _selectedDemands.contains(t.intensity);
+      
+      bool matchesMuscle = _selectedMuscles.isEmpty;
+      if (!matchesMuscle && t.targetMuscles != null) {
+        final targets = t.targetMuscles!.split(',').map((m) => m.trim().toUpperCase());
+        matchesMuscle = _selectedMuscles.any((sm) => targets.contains(sm.toUpperCase()));
+      }
+      
+      return matchesSearch && matchesDemand && matchesMuscle;
+    }).toList();
+
+    list.sort((a, b) => _isAscending 
+        ? a.name.compareTo(b.name) 
+        : b.name.compareTo(a.name));
+    
+    return list;
   }
 
   void _showFilterOptions(BuildContext context, bool isTablet) {
@@ -590,7 +439,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
                             children: [
                               Text(
                                 "FILTER EXERCISES", 
-                                style: AppTextStyles.h3.copyWith(fontSize: isTablet ? 18.0 : null)
+                                style: AppTextStyles.h3.adaptive(context)
                               ),
                               Row(
                                 children: [
@@ -605,9 +454,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
                                     },
                                     child: Text(
                                       "RESET", 
-                                      style: AppTextStyles.labelSmall.copyWith(
+                                      style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                         color: AppColors.crimson,
-                                        fontSize: isTablet ? 11.0 : null,
                                         fontWeight: FontWeight.w500,
                                       )
                                     ),
@@ -626,9 +474,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
                           // Sort Order
                           Text(
                             "SORT ORDER", 
-                            style: AppTextStyles.labelSmall.copyWith(
+                            style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                               color: AppColors.textSecondary, 
-                              fontSize: isTablet ? 10.0 : 10.sp,
                               fontWeight: FontWeight.w500,
                             )
                           ),
@@ -661,9 +508,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
                           // Metabolic Demand
                           Text(
                             "METABOLIC DEMAND", 
-                            style: AppTextStyles.labelSmall.copyWith(
+                            style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                               color: AppColors.textSecondary, 
-                              fontSize: isTablet ? 10.0 : 10.sp,
                               fontWeight: FontWeight.w500,
                             )
                           ),
@@ -691,9 +537,9 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
                                     vertical: isTablet ? 6.0 : 6.h
                                   ),
                                   decoration: BoxDecoration(
-                                    color: isSelected ? AppColors.crimson : AppColors.surfaceLight.withOpacity(0.1),
+                                    color: isSelected ? AppColors.crimson : AppColors.surfaceLight.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(isTablet ? 8.0 : 8.r),
-                                    border: Border.all(color: isSelected ? AppColors.crimson : AppColors.white.withOpacity(0.05)),
+                                    border: Border.all(color: isSelected ? AppColors.crimson : AppColors.white.withValues(alpha: 0.05)),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
@@ -712,9 +558,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
                           // Muscle Groups
                           Text(
                             "TARGET MUSCLES", 
-                            style: AppTextStyles.labelSmall.copyWith(
+                            style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                               color: AppColors.textSecondary, 
-                              fontSize: isTablet ? 10.0 : 10.sp,
                               fontWeight: FontWeight.w500,
                             )
                           ),
@@ -754,7 +599,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
                               alignment: Alignment.center,
                               child: Text(
                                 "APPLY FILTERS", 
-                                style: AppTextStyles.buttonPrimary.copyWith(fontSize: isTablet ? 14.0 : null)
+                                style: AppTextStyles.buttonPrimary.adaptive(context)
                               ),
                             ),
                           ),
@@ -785,16 +630,15 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
           vertical: isTablet ? 6.0 : 8.h
         ),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.crimson : AppColors.surfaceLight.withOpacity(0.1),
+          color: isSelected ? AppColors.crimson : AppColors.surfaceLight.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(isTablet ? 8.0 : 8.r),
-          border: Border.all(color: isSelected ? AppColors.crimson : AppColors.white.withOpacity(0.05)),
+          border: Border.all(color: isSelected ? AppColors.crimson : AppColors.white.withValues(alpha: 0.05)),
         ),
         child: Text(
           label,
-          style: AppTextStyles.labelSmall.copyWith(
+          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
             color: isSelected ? Colors.white : AppColors.textSecondary,
             fontWeight: FontWeight.w500,
-            fontSize: isTablet ? 9.0 : null,
           ),
         ),
       ),
@@ -807,8 +651,143 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
         margin: EdgeInsets.only(bottom: isTablet ? 20.0 : 24.h),
         width: isTablet ? 40.0 : 40.w,
         height: isTablet ? 4.0 : 4.h,
-        decoration: BoxDecoration(color: AppColors.textSecondary.withOpacity(0.2), borderRadius: BorderRadius.circular(2.r)),
+        decoration: BoxDecoration(color: AppColors.textSecondary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(2.r)),
       ),
+    );
+  }
+}
+
+class _ExerciseCardItem extends StatelessWidget {
+  final ExerciseTemplate exercise;
+  final bool isTablet;
+  final bool isWideLandscape;
+  final bool isSelected;
+  final Color cardBg;
+  final VoidCallback onTap;
+
+  const _ExerciseCardItem({
+    required this.exercise,
+    required this.isTablet,
+    required this.isWideLandscape,
+    required this.isSelected,
+    required this.cardBg,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        constraints: BoxConstraints(minHeight: isTablet ? 90.0 : 100.h),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(isTablet ? 16.0 : 20.r),
+          border: isSelected 
+              ? Border.all(color: AppColors.crimson.withValues(alpha: 0.5), width: 1.5)
+              : Border.all(color: AppColors.white.withValues(alpha: 0.02)),
+        ),
+        padding: EdgeInsets.all(isTablet ? 16.0 : 20.r),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    exercise.name.toUpperCase(),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.h3.adaptive(context).copyWith(
+                      letterSpacing: 0.5, 
+                      color: AppColors.white
+                    ),
+                  ),
+                  if (exercise.sharedBy != null)
+                    Padding(
+                      padding: EdgeInsets.only(top: isTablet ? 4.0 : 4.h),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                        decoration: BoxDecoration(
+                          color: Colors.blueAccent.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6.0),
+                          border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.2)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.share_rounded, color: Colors.blueAccent, size: isTablet ? 10.0 : 10.r),
+                            const SizedBox(width: 4.0),
+                            Text(
+                              "SHARED BY ${exercise.sharedBy!.toUpperCase()}",
+                              style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+                                color: Colors.blueAccent,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  SizedBox(height: isTablet ? 8.0 : 8.h),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
+                        decoration: BoxDecoration(
+                          color: exercise.type == ExerciseType.compound ? AppColors.crimson.withValues(alpha: 0.2) : AppColors.white.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(4.0),
+                          border: Border.all(color: exercise.type == ExerciseType.compound ? AppColors.crimson.withValues(alpha: 0.3) : AppColors.white.withValues(alpha: 0.1)),
+                        ),
+                        child: Text(
+                          exercise.type.name.toUpperCase(),
+                          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+                            color: exercise.type == ExerciseType.compound ? AppColors.crimson : AppColors.textSecondary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8.0),
+                      Expanded(
+                        child: Text(
+                          (exercise.targetMuscles ?? "").toUpperCase(),
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.bodySmall.adaptive(context).copyWith(
+                            color: AppColors.textSecondary, 
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: isTablet ? 6.0 : 8.h),
+                  Row(
+                    children: [
+                      Text('DEMAND: ', style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
+                      _buildFireRating(exercise.intensity, isTablet),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios_rounded, color: AppColors.white.withValues(alpha: 0.2), size: isTablet ? 14.0 : 16.r),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFireRating(int score, bool isTablet) {
+    return Row(
+      children: List.generate(5, (index) {
+        return Icon(
+          Icons.local_fire_department_rounded,
+          size: isTablet ? 12.0 : 14.r,
+          color: index < score 
+              ? AppColors.crimson 
+              : AppColors.white.withValues(alpha: 0.1),
+        );
+      }),
     );
   }
 }

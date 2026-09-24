@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:heavy_duty/core/services/connectivity_service.dart';
-import 'package:heavy_duty/core/services/notification_service.dart';
-import 'package:heavy_duty/features/tracker/cycle_tracker/model/cycle_settings.dart'; // For WeightUnit
+import 'package:rugged/core/services/connectivity_service.dart';
+import 'package:rugged/core/services/notification_service.dart';
+import 'package:rugged/features/tracker/cycle_tracker/model/cycle_settings.dart'; // For WeightUnit
 import '../model/body_comp_log.dart';
 import '../model/body_comp_settings.dart';
 import '../data/body_comp_local_repository.dart';
 import '../data/body_comp_cloud_repository.dart';
 
-import 'package:heavy_duty/core/providers/sync_provider.dart';
+import 'package:rugged/core/providers/sync_provider.dart';
 
 class BodyCompProvider with ChangeNotifier {
   BodyCompLocalRepository? _localRepo;
@@ -31,7 +31,12 @@ class BodyCompProvider with ChangeNotifier {
 
   List<BodyCompLog> get logs => _logs;
   BodyCompSettings get settings => _settings;
+  Set<String> get visibleMetrics => _settings.visibleMetrics;
   bool get isLoading => _isLoading;
+
+  Future<void> setVisibleMetrics(Set<String> metrics) async {
+    await updateSettings(_settings.copyWith(visibleMetrics: metrics));
+  }
 
   void initializeForUser(String userId) {
     _localRepo = BodyCompLocalRepository(userId: userId);
@@ -296,7 +301,7 @@ class BodyCompProvider with ChangeNotifier {
 
     try {
       await _localRepo!.insertLog(localLog);
-      await _syncBodyCompLog(localLog);
+      _syncBodyCompLog(localLog);
     } catch (e) {
       debugPrint("Error saving body comp log locally: $e");
     }

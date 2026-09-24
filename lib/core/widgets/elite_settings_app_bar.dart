@@ -29,7 +29,7 @@ class EliteSettingsAppBar extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(
         color: AppColors.background,
-        border: Border(bottom: BorderSide(color: AppColors.white.withOpacity(0.05), width: 1)),
+        border: Border(bottom: BorderSide(color: AppColors.white.withValues(alpha: 0.05), width: 1)),
       ),
       child: Padding(
         padding: EdgeInsets.symmetric(
@@ -68,10 +68,9 @@ class EliteSettingsAppBar extends StatelessWidget {
                 child: Text(
                   title.toUpperCase(),
                   textAlign: TextAlign.center,
-                  style: AppTextStyles.h2.copyWith(
+                  style: AppTextStyles.h2.adaptive(context).copyWith(
                     color: AppColors.white,
                     fontWeight: FontWeight.w500,
-                    fontSize: isCompact ? null : 18.0,
                   ),
                 ),
               ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_text_styles.dart';
 
 class EliteSnackbar extends StatefulWidget {
   final String message;
@@ -23,7 +24,6 @@ class EliteSnackbar extends StatefulWidget {
     bool isError = false,
   }) {
     final overlay = Overlay.of(context);
-    if (overlay == null) return;
 
     late OverlayEntry overlayEntry;
     bool removed = false;
@@ -102,14 +102,24 @@ class _EliteSnackbarState extends State<EliteSnackbar> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
-    // Use screen-independent dimensions for the root overlay entry
-    final Size screenSize = MediaQuery.of(context).size;
+    final mediaQuery = MediaQuery.of(context);
+    final Size screenSize = mediaQuery.size;
     final bool isCompact = screenSize.width < 600;
+    
+    // ELITE DYNAMIC INSETS:
+    // viewInsets.bottom = Keyboard height
+    // padding.bottom = System Navigation Bar height
+    final double keyboardHeight = mediaQuery.viewInsets.bottom;
+    final double systemNavBarHeight = mediaQuery.padding.bottom;
+    
     final double effectiveMaxWidth = isCompact ? (screenSize.width - 40.0) : 460.0;
-    final double bottomPadding = isCompact ? 40.0 : 30.0;
+    
+    // Add a base margin plus the dynamic system insets
+    final double baseMargin = isCompact ? 24.0 : 30.0;
+    final double finalBottomPadding = baseMargin + systemNavBarHeight + keyboardHeight;
 
     return Positioned(
-      bottom: bottomPadding + _dragOffset,
+      bottom: finalBottomPadding + _dragOffset,
       left: 0,
       right: 0,
       child: Center(
@@ -163,10 +173,8 @@ class _EliteSnackbarState extends State<EliteSnackbar> with SingleTickerProvider
                       Expanded(
                         child: Text(
                           widget.message.toUpperCase(),
-                          style: const TextStyle(
-                            fontFamily: 'Impact',
+                          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                             color: Colors.white,
-                            fontSize: 11.0,
                             fontWeight: FontWeight.w500,
                             letterSpacing: 0.5,
                           ),
@@ -184,12 +192,10 @@ class _EliteSnackbarState extends State<EliteSnackbar> with SingleTickerProvider
                               color: AppColors.crimson.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(6.0),
                             ),
-                            child: const Text(
+                            child: Text(
                               "UNDO",
-                              style: TextStyle(
-                                fontFamily: 'Impact',
+                              style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                 color: AppColors.crimson,
-                                fontSize: 11.0,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),

@@ -3,8 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
 import 'package:provider/provider.dart';
 import '../../provider/hydration_provider.dart';
 import '../../model/hydration_reminder.dart';
@@ -160,7 +160,7 @@ class _HydrationNotificationSheetState extends State<HydrationNotificationSheet>
                       _buildModeSelectorMaster(isCompact),
                       SizedBox(height: isCompact ? 12.h : 10.0),
                       ConstrainedBox(
-                        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.45),
+                        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * (widget.isSideSheet ? 0.75 : 0.45)),
                         child: SingleChildScrollView(
                           physics: const BouncingScrollPhysics(),
                           child: Column(
@@ -377,29 +377,35 @@ class _HydrationNotificationSheetState extends State<HydrationNotificationSheet>
           onTap: () async {
             final picked = await showTimePicker(
               context: context, 
+              useRootNavigator: true,
               initialTime: TimeOfDay.now(),
               builder: (context, child) {
-                return Theme(
-                  data: Theme.of(context).copyWith(
-                    colorScheme: const ColorScheme.dark(
-                      primary: Colors.blueAccent,
-                      onPrimary: Colors.white,
-                      surface: AppColors.surface,
-                      onSurface: Colors.white,
-                    ),
-                    timePickerTheme: Theme.of(context).timePickerTheme.copyWith(
-                      dayPeriodColor: WidgetStateColor.resolveWith((states) {
-                        if (states.contains(WidgetState.selected)) {
-                          return Colors.blueAccent;
-                        }
-                        return Colors.white.withOpacity(0.05);
-                      }),
-                    ),
-                    textButtonTheme: TextButtonThemeData(
-                      style: TextButton.styleFrom(foregroundColor: Colors.blueAccent),
+                return Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 560),
+                    child: Theme(
+                      data: Theme.of(context).copyWith(
+                        colorScheme: const ColorScheme.dark(
+                          primary: Colors.blueAccent,
+                          onPrimary: Colors.white,
+                          surface: AppColors.surface,
+                          onSurface: Colors.white,
+                        ),
+                        timePickerTheme: Theme.of(context).timePickerTheme.copyWith(
+                          dayPeriodColor: WidgetStateColor.resolveWith((states) {
+                            if (states.contains(WidgetState.selected)) {
+                              return Colors.blueAccent;
+                            }
+                            return Colors.white.withValues(alpha: 0.05);
+                          }),
+                        ),
+                        textButtonTheme: TextButtonThemeData(
+                          style: TextButton.styleFrom(foregroundColor: Colors.blueAccent),
+                        ),
+                      ),
+                      child: child!,
                     ),
                   ),
-                  child: child!,
                 );
               },
             );

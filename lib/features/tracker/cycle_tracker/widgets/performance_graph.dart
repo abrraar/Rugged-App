@@ -1,8 +1,8 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
 import 'package:intl/intl.dart';
 
 enum AnalysisMode { daily, weekly, monthly, yearly }
@@ -108,7 +108,7 @@ class _PerformanceGraphState extends State<PerformanceGraph> {
       return Center(
         child: Text(
           widget.visibleMetrics.isEmpty ? "SELECT METRICS TO VIEW ANALYSIS" : "NO DATA FOR SELECTED METRICS",
-          style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.3)),
+          style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary.withValues(alpha: 0.3)),
         ),
       );
     }
@@ -156,12 +156,12 @@ class _PerformanceGraphState extends State<PerformanceGraph> {
           isCurved: true,
           curveSmoothness: 0.35,
           color: meta.color,
-          barWidth: 3.w,
+          barWidth: 2.0,
           isStrokeCapRound: true,
           dotData: FlDotData(
             show: true,
             getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
-              radius: 4.r,
+              radius: 4.0,
               color: barData.color ?? Colors.white,
               strokeWidth: 2,
               strokeColor: AppColors.surface,
@@ -270,11 +270,11 @@ class _PerformanceGraphState extends State<PerformanceGraph> {
 
              return BarTooltipItem(
                "${DateFormat('MMM dd, HH:mm').format(ts).toUpperCase()}\n",
-               AppTextStyles.labelSmall.copyWith(color: AppColors.white, fontWeight: FontWeight.w500),
+               AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.white, fontWeight: FontWeight.w500),
                children: [
-                 TextSpan(text: "${meta.label}: ", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
-                 TextSpan(text: "${rawValue?.toStringAsFixed(1) ?? "0.0"} ${meta.unit}", style: AppTextStyles.labelSmall.copyWith(color: meta.color, fontWeight: FontWeight.w500)),
-                 if (isPct) TextSpan(text: " (${displayValue >= 0 ? '+' : ''}${displayValue.toStringAsFixed(1)}%)", style: AppTextStyles.labelSmall.copyWith(color: displayValue >= 0 ? AppColors.success : AppColors.crimson, fontSize: 9.sp)),
+                 TextSpan(text: "${meta.label}: ", style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
+                 TextSpan(text: "${rawValue?.toStringAsFixed(1) ?? "0.0"} ${meta.unit}", style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: meta.color, fontWeight: FontWeight.w500)),
+                 if (isPct) TextSpan(text: " (${displayValue >= 0 ? '+' : ''}${displayValue.toStringAsFixed(1)}%)", style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: displayValue >= 0 ? AppColors.success : AppColors.crimson)),
                ],
              );
           }
@@ -305,11 +305,11 @@ class _PerformanceGraphState extends State<PerformanceGraph> {
 
             return LineTooltipItem(
               entry.key == 0 ? "${DateFormat('MMM dd, HH:mm').format(ts).toUpperCase()}\n" : "",
-              AppTextStyles.labelSmall.copyWith(color: AppColors.white, fontWeight: FontWeight.w500),
+              AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.white, fontWeight: FontWeight.w500),
               children: [
-                TextSpan(text: "${meta.label}: ", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
-                TextSpan(text: "${rawValue?.toStringAsFixed(1) ?? "0.0"} ${meta.unit}", style: AppTextStyles.labelSmall.copyWith(color: meta.color, fontWeight: FontWeight.w500)),
-                if (isPct) TextSpan(text: " (${displayValue >= 0 ? '+' : ''}${displayValue.toStringAsFixed(1)}%)", style: AppTextStyles.labelSmall.copyWith(color: displayValue >= 0 ? AppColors.success : AppColors.crimson, fontSize: 9.sp)),
+                TextSpan(text: "${meta.label}: ", style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
+                TextSpan(text: "${rawValue?.toStringAsFixed(1) ?? "0.0"} ${meta.unit}", style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: meta.color, fontWeight: FontWeight.w500)),
+                if (isPct) TextSpan(text: " (${displayValue >= 0 ? '+' : ''}${displayValue.toStringAsFixed(1)}%)", style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: displayValue >= 0 ? AppColors.success : AppColors.crimson)),
               ],
             );
           }).toList();
@@ -333,7 +333,7 @@ class _PerformanceGraphState extends State<PerformanceGraph> {
                 meta: meta,
                 child: Text(
                   label,
-                  style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.3), fontSize: 7.sp),
+                  style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary.withValues(alpha: 0.3)),
                 ),
               );
             }
@@ -374,9 +374,8 @@ class _PerformanceGraphState extends State<PerformanceGraph> {
               space: 8,
               child: Text(
                 label,
-                style: AppTextStyles.labelSmall.copyWith(
+                style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                   color: AppColors.textSecondary.withValues(alpha : 0.4),
-                  fontSize: 8.sp,
                   fontWeight: FontWeight.w500,
                 ),
               ),

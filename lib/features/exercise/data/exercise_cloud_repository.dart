@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../auth/provider/auth_provider.dart';
 import '../model/exercise_template.dart';
 
 class ExerciseCloudRepository {
   SupabaseClient get _supabase => Supabase.instance.client;
 
   String? get _currentUserId => _supabase.auth.currentUser?.id;
+  bool get _isPro => AuthProvider().isPro;
 
   Future<List<ExerciseTemplate>> getAllTemplates() async {
+    if (!_isPro) return [];
     final uid = _currentUserId;
     if (uid == null) return [];
 
@@ -20,11 +23,16 @@ class ExerciseCloudRepository {
     return response.map((map) => ExerciseTemplate.fromMap(map)).toList();
   }
 
-  Future<void> insertTemplate(ExerciseTemplate template) async {
+  Future<bool> insertTemplate(ExerciseTemplate template) async {
+    if (!_isPro) {
+      debugPrint("Cloud Exercise: Skipped sync for non-Pro user.");
+      return false;
+    }
+
     final uid = _currentUserId;
     if (uid == null) {
       debugPrint("Cloud Exercise Error: No authenticated user session found.");
-      return;
+      return false;
     }
 
     try {
@@ -44,17 +52,19 @@ class ExerciseCloudRepository {
       await _supabase.from('exercise_templates').upsert(data);
           
       debugPrint("Cloud Exercise: Successfully saved ${template.name} to cloud.");
+      return true;
     } catch (e) {
       debugPrint("Cloud Exercise Error (insertTemplate): $e");
-      // Re-throw so the provider knows the sync failed and keeps it marked as unsynced
       rethrow;
     }
   }
 
   Future<void> deleteTemplate(String id) async {
+    if (!_isPro) return;
     final uid = _currentUserId;
     if (uid == null) return;
 
     await _supabase.from('exercise_templates').delete().eq('id', id).eq('user_id', uid);
   }
 }
+

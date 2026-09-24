@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:heavy_duty/core/constants/dimensions.dart';
+import 'package:rugged/core/constants/dimensions.dart';
 
 enum DeviceScreenType { mobile, tablet, desktop }
 

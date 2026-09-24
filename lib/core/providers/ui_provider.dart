@@ -3,7 +3,7 @@ import '../data/ui_local_repository.dart';
 import '../data/ui_cloud_repository.dart';
 import '../models/ui_settings.dart';
 
-import 'package:heavy_duty/core/providers/sync_provider.dart';
+import 'package:rugged/core/providers/sync_provider.dart';
 
 class UiProvider with ChangeNotifier {
   UiLocalRepository? _localRepo;

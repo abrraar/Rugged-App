@@ -3,8 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
 import '../../model/supplement.dart';
 
 class QuickLogSheet extends StatefulWidget {
@@ -110,7 +110,7 @@ class _QuickLogSheetState extends State<QuickLogSheet> {
                   borderRadius: widget.isSideSheet 
                     ? const BorderRadius.horizontal(left: Radius.circular(24.0))
                     : BorderRadius.vertical(top: Radius.circular(isCompact ? 32.r : 24.0)),
-                  border: Border.all(color: AppColors.white.withOpacity(0.05)),
+                  border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
                 ),
                 padding: EdgeInsets.fromLTRB(
                   isCompact ? 24.w : 24.0, 
@@ -129,7 +129,7 @@ class _QuickLogSheetState extends State<QuickLogSheet> {
                           width: isCompact ? 40.w : 40.0,
                           height: isCompact ? 4.h : 4.0,
                           decoration: BoxDecoration(
-                            color: AppColors.textSecondary.withOpacity(0.3),
+                            color: AppColors.textSecondary.withValues(alpha: 0.3),
                             borderRadius: BorderRadius.circular(2.r),
                           ),
                         ),
@@ -141,7 +141,7 @@ class _QuickLogSheetState extends State<QuickLogSheet> {
                           Container(
                             padding: EdgeInsets.all(isCompact ? 10.r : 10.0),
                             decoration: BoxDecoration(
-                              color: AppColors.crimson.withOpacity(0.1),
+                              color: AppColors.crimson.withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
@@ -184,9 +184,9 @@ class _QuickLogSheetState extends State<QuickLogSheet> {
                       Container(
                         padding: EdgeInsets.all(isCompact ? 12.r : 12.0),
                         decoration: BoxDecoration(
-                          color: AppColors.crimson.withOpacity(0.08),
+                          color: AppColors.crimson.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(isCompact ? 12.r : 12.0),
-                          border: Border.all(color: AppColors.crimson.withOpacity(0.2)),
+                          border: Border.all(color: AppColors.crimson.withValues(alpha: 0.2)),
                         ),
                         child: Row(
                           children: [
@@ -284,12 +284,12 @@ class _QuickLogSheetState extends State<QuickLogSheet> {
       duration: const Duration(milliseconds: 200),
       padding: EdgeInsets.all(isCompact ? 16.r : 16.0),
       decoration: BoxDecoration(
-        color: AppColors.background.withOpacity(0.5),
+        color: AppColors.background.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(isCompact ? 20.r : 16.0),
         border: Border.all(
           color: isActive
-              ? AppColors.crimson.withOpacity(0.2)
-              : Colors.white.withOpacity(0.05),
+              ? AppColors.crimson.withValues(alpha: 0.2)
+              : Colors.white.withValues(alpha: 0.05),
         ),
       ),
       child: Column(
@@ -310,7 +310,7 @@ class _QuickLogSheetState extends State<QuickLogSheet> {
                 scale: 0.8,
                 child: Switch.adaptive(
                   value: isActive,
-                  activeColor: AppColors.crimson,
+                  activeTrackColor: AppColors.crimson,
                   onChanged: onToggleChanged,
                 ),
               ),
@@ -328,7 +328,7 @@ class _QuickLogSheetState extends State<QuickLogSheet> {
                       color: AppColors.surface,
                       borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
                       border: Border.all(
-                        color: AppColors.white.withOpacity(0.05),
+                        color: AppColors.white.withValues(alpha: 0.05),
                       ),
                     ),
                     child: TextField(
@@ -347,7 +347,7 @@ class _QuickLogSheetState extends State<QuickLogSheet> {
                         isDense: true,
                         hintText: "1.0",
                         hintStyle: AppTextStyles.labelSmall.copyWith(
-                          color: AppColors.textSecondary.withOpacity(0.3),
+                          color: AppColors.textSecondary.withValues(alpha: 0.3),
                           fontSize: isCompact ? null : 11.0,
                         ),
                         contentPadding: const EdgeInsets.symmetric(
@@ -384,7 +384,7 @@ class _QuickLogSheetState extends State<QuickLogSheet> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
-        border: Border.all(color: AppColors.white.withOpacity(0.05)),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

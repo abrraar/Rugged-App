@@ -63,7 +63,7 @@ class UpdateProvider with ChangeNotifier {
     NotificationService().showInstantNotification(
       id: 999,
       title: "UPGRADE DETECTED",
-      body: "Master your HIT training with the latest Heavy Duty update.",
+      body: "Master your HIT training with the latest Rugged update.",
       payload: "update_available",
     );
   }

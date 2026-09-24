@@ -4,13 +4,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/core/navigation/app_routes.dart';
-import 'package:heavy_duty/core/constants/dimensions.dart';
-import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
-import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
-import 'package:heavy_duty/features/auth/widgets/auth_components.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/core/navigation/app_routes.dart';
+import 'package:rugged/core/constants/dimensions.dart';
+import 'package:rugged/core/widgets/elite_snackbar.dart';
+import 'package:rugged/features/auth/provider/auth_provider.dart';
+import 'package:rugged/features/auth/widgets/auth_components.dart';
 
 class ForgotPassScreen extends StatefulWidget {
   const ForgotPassScreen({super.key});
@@ -64,7 +64,6 @@ class _ForgotPassScreenState extends State<ForgotPassScreen> {
   @override
   Widget build(BuildContext context) {
     final authProv = context.watch<AuthProvider>();
-    final isLoading = authProv.isLoading;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -175,18 +174,15 @@ class _ForgotPassScreenState extends State<ForgotPassScreen> {
             children: [
               Text(
                 "Remember your password? ",
-                style: AppTextStyles.caption.copyWith(
-                  fontSize: isWideLayout ? 14 : 13.sp,
-                ),
+                style: AppTextStyles.caption.adaptive(context),
               ),
               GestureDetector(
                 onTap: isLoading ? null : () => context.go(AppRoutes.login),
                 child: Text(
                   'LOG IN',
-                  style: AppTextStyles.link.copyWith(
+                  style: AppTextStyles.link.adaptive(context).copyWith(
                     color: AppColors.crimson,
                     fontWeight: FontWeight.w500,
-                    fontSize: isWideLayout ? 14 : 13.sp,
                   ),
                 ),
               ),

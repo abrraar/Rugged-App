@@ -1,8 +1,8 @@
 // lib/features/tracker/supplement/data/supplement_local_repository.dart
 
 import 'dart:convert';
-import 'package:heavy_duty/features/tracker/supplement/model/supplement_item.dart';
-import 'package:heavy_duty/features/tracker/supplement/model/supplement_settings.dart';
+import 'package:rugged/features/tracker/supplement/model/supplement_item.dart';
+import 'package:rugged/features/tracker/supplement/model/supplement_settings.dart';
 import 'package:sqflite/sqflite.dart';
 import '../../../../../core/database/database_helper.dart';
 import '../model/supplement.dart';

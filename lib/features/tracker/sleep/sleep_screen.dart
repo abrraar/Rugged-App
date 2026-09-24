@@ -2,22 +2,25 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
-import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
-import 'package:heavy_duty/features/main_wrapper.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/core/widgets/elite_refresh_indicator.dart';
+import 'package:rugged/core/widgets/elite_confirm_dialog.dart';
+import 'package:rugged/core/widgets/elite_snackbar.dart';
+import 'package:rugged/core/utils/adaptive_utils.dart';
+import 'package:rugged/features/main_wrapper.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:heavy_duty/core/constants/dimensions.dart';
+import 'package:rugged/core/constants/dimensions.dart';
 import 'provider/sleep_provider.dart';
 import 'provider/sleep_alarm_provider.dart';
 import 'model/sleep_log.dart';
 
 import 'widgets/circular_sleep_picker.dart';
 import 'widgets/sleep_analytical_graph.dart';
+import 'package:rugged/core/ads/locked_analytics_overlay.dart';
 
 class SleepScreen extends StatefulWidget {
   const SleepScreen({super.key});
@@ -42,23 +45,12 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
   TimeOfDay _entryWakeTime = const TimeOfDay(hour: 06, minute: 45);
   int _selectedQuality = 4;
   String _entryNote = "";
-  final SleepType _selectedType = SleepType.night;
-  final List<String> _chartLabels = [];
-
-  Color get _activeAccentColor => _selectedType == SleepType.night ? AppColors.crimson : Colors.amber;
-  
-  // Filter/Sort State
-  final bool _showSleep = true;
-  final bool _showNaps = true;
-  final String _sortBy = 'Date'; // 'Date' or 'Duration'
-  final bool _isAscending = false;
 
   // Calendar State
   DateTime _displayedMonth = DateTime.now();
   bool _isCalendarExpanded = false;
 
   // Overlap State
-  SleepLog? _conflictingLog;
   OverlayEntry? _snackbarOverlay;
 
   @override
@@ -124,8 +116,7 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
                     SizedBox(height: isCompact ? 16.h : 16.0),
                     Text(
                       "SLEEP CONTROLS",
-                      style: AppTextStyles.h3.copyWith(
-                        fontSize: isCompact ? 16.sp : 15.0,
+                      style: AppTextStyles.h3.adaptive(context).copyWith(
                         letterSpacing: 1.2,
                       ),
                       textAlign: TextAlign.center,
@@ -168,10 +159,9 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
                         alignment: Alignment.center,
                         child: Text(
                           "GOT IT",
-                          style: AppTextStyles.labelMedium.copyWith(
+                          style: AppTextStyles.labelMedium.adaptive(context).copyWith(
                             color: AppColors.crimson,
                             fontWeight: FontWeight.w500,
-                            fontSize: isCompact ? 13.sp : 12.0,
                           ),
                         ),
                       ),
@@ -194,10 +184,9 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
         Expanded(
           child: Text(
             text,
-            style: AppTextStyles.labelSmall.copyWith(
+            style: AppTextStyles.labelSmall.adaptive(context).copyWith(
               color: AppColors.textSecondary,
               height: 1.4,
-              fontSize: isCompact ? 13.sp : 12.0,
             ),
           ),
         ),
@@ -306,10 +295,9 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
                               child: Text(
                                 'SLEEP PERFORMANCE',
                                 textAlign: TextAlign.center,
-                                style: AppTextStyles.h2.copyWith(
+                                style: AppTextStyles.h2.adaptive(context).copyWith(
                                   color: AppColors.white,
                                   fontWeight: FontWeight.w500,
-                                  fontSize: isCompact ? 20.sp : 18.0,
                                 ),
                               ),
                             ),
@@ -329,9 +317,8 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
                       controller: _tabController,
                       indicatorColor: AppColors.crimson,
                       indicatorSize: TabBarIndicatorSize.tab,
-                      labelStyle: AppTextStyles.labelMedium.copyWith(
+                      labelStyle: AppTextStyles.labelMedium.adaptive(context).copyWith(
                         fontWeight: FontWeight.w500,
-                        fontSize: isCompact ? 11.sp : 11.0,
                       ),
                       unselectedLabelColor: AppColors.textSecondary.withValues(alpha: 0.5),
                       labelColor: AppColors.crimson,
@@ -381,7 +368,7 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
       disabledReason = "SLEEP ALREADY RECORDED FOR THIS DATE";
     }
 
-    return RefreshIndicator(
+    return EliteRefreshIndicator(
       onRefresh: () => provider.forceRefresh(),
       color: AppColors.crimson,
       backgroundColor: AppColors.surface,
@@ -396,13 +383,10 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
                 // --- LEFT COLUMN: LOG SLEEP ---
                 Expanded(
                   child: ListView(
-                    padding: EdgeInsets.symmetric(vertical: 20.0),
+                    padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 24.0),
                     children: [
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 24.0),
-                        child: _buildSectionTitle('LOG SLEEP', isCompact),
-                      ),
-                      SizedBox(height: 16.0),
+                      _buildSectionTitle(context, 'LOG SLEEP', isCompact),
+                      const SizedBox(height: 16.0),
                       CircularSleepPicker(
                         initialBedtime: _entryBedTime,
                         initialWakeTime: _entryWakeTime,
@@ -461,14 +445,14 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
                     ],
                   ),
                 ),
-                VerticalDivider(color: AppColors.white.withOpacity(0.05), width: 1),
+                VerticalDivider(color: AppColors.white.withValues(alpha: 0.05), width: 1),
                 // --- RIGHT COLUMN: ALARM ---
                 Expanded(
                   child: ListView(
-                    padding: EdgeInsets.all(20.0),
+                    padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 24.0),
                     children: [
-                      _buildSectionTitle('ALARM CONFIGURATION', isCompact),
-                      SizedBox(height: 20.0),
+                      _buildSectionTitle(context, 'ALARM CONFIGURATION', isCompact),
+                      const SizedBox(height: 20.0),
                       _buildEnhancedAlarmCard(alarmProvider, isCompact),
                     ],
                   ),
@@ -481,13 +465,14 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
           return SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(height: 12.h),
+                const SizedBox(height: 12.0),
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 24.w),
-                  child: _buildSectionTitle('LOG SLEEP', isCompact),
+                  padding: EdgeInsets.symmetric(horizontal: isCompact ? 20.w : 24.0),
+                  child: _buildSectionTitle(context, 'LOG SLEEP', isCompact),
                 ),
-                SizedBox(height: 16.h),
+                const SizedBox(height: 16.0),
                 CircularSleepPicker(
                   initialBedtime: _entryBedTime,
                   initialWakeTime: _entryWakeTime,
@@ -545,15 +530,15 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
                 ),
                 
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20.w),
+                  padding: EdgeInsets.symmetric(horizontal: isCompact ? 20.w : 24.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SizedBox(height: 40.h),
-                      _buildSectionTitle('ALARM CONFIGURATION', isCompact),
-                      SizedBox(height: 16.h),
+                      const SizedBox(height: 32.0),
+                      _buildSectionTitle(context, 'ALARM CONFIGURATION', isCompact),
+                      const SizedBox(height: 16.0),
                       _buildEnhancedAlarmCard(alarmProvider, isCompact),
-                      SizedBox(height: 40.h),
+                      const SizedBox(height: 32.0),
                     ],
                   ),
                 ),
@@ -568,7 +553,7 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
   Widget _buildTrendsTab(SleepProvider provider, bool isCompact) {
     if (provider.logs.isEmpty) {
       return LayoutBuilder(
-        builder: (context, constraints) => RefreshIndicator(
+        builder: (context, constraints) => EliteRefreshIndicator(
           onRefresh: () => provider.forceRefresh(),
           color: AppColors.crimson,
           child: ListView(
@@ -581,10 +566,9 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
                     children: [
                       Text(
                         "INSUFFICIENT DATA FOR TRENDS",
-                        style: AppTextStyles.labelSmall.copyWith(
+                        style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                           color: AppColors.textSecondary.withValues(alpha: 0.2),
                           letterSpacing: 2,
-                          fontSize: isCompact ? 11.sp : 10.0,
                         ),
                       ),
                     ],
@@ -603,99 +587,79 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
       "duration": sortedLogs.map((l) => l.duration.inMinutes / 60.0).toList(),
     };
 
-    return RefreshIndicator(
+    final double width = MediaQuery.sizeOf(context).width;
+    final bool isLandscape = MediaQuery.orientationOf(context) == Orientation.landscape;
+    final bool isTabletOrFoldable = width >= 600;
+    final bool isWideLandscape = isTabletOrFoldable && isLandscape;
+
+    Widget buildTrendAndOverlayContent() {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SleepAnalyticalGraph(
+            dates: dates,
+            data: data,
+            visibleMetrics: _visibleMetrics,
+            onPointSelected: (idx) {},
+          ),
+        ],
+      );
+    }
+
+    Widget buildComparisonContent() {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionTitle(context, 'DATA COMPARISON', isCompact),
+          SizedBox(height: 24.h),
+          SleepComparisonWidget(
+            idx1: _comparePointA,
+            idx2: _comparePointB,
+            dates: dates,
+            data: data,
+            use24HourClock: provider.settings.use24HourClock,
+            isCompact: isCompact,
+            onPointAChanged: (idx) => setState(() => _comparePointA = idx),
+            onPointBChanged: (idx) => setState(() => _comparePointB = idx),
+          ),
+        ],
+      );
+    }
+
+    return EliteRefreshIndicator(
       onRefresh: () => provider.forceRefresh(),
       color: AppColors.crimson,
       backgroundColor: AppColors.surface,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final bool isWide = constraints.maxWidth > 700;
-
-          if (isWide) {
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // --- LEFT COLUMN: TRENDS ---
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.all(isCompact ? 24.r : 20.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildSectionTitle('SLEEP TRENDS', isCompact),
-                        SizedBox(height: isCompact ? 24.h : 20.0),
-                        SleepAnalyticalGraph(
-                          dates: dates,
-                          data: data,
-                          visibleMetrics: _visibleMetrics,
-                          onPointSelected: (idx) {},
-                        ),
-                      ],
+      child: LockedAnalyticsOverlay(
+        unlockKey: 'sleep_analytics',
+        isCompact: isCompact,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+          padding: EdgeInsets.all(isCompact ? 24.r : 20.0),
+          child: isWideLandscape 
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 5,
+                      child: buildTrendAndOverlayContent(),
                     ),
-                  ),
-                ),
-                VerticalDivider(color: AppColors.white.withOpacity(0.05), width: 1),
-                // --- RIGHT COLUMN: COMPARISON ---
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.all(isCompact ? 24.r : 20.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildSectionTitle('DATA COMPARISON', isCompact),
-                        SizedBox(height: isCompact ? 24.h : 20.0),
-                        SleepComparisonWidget(
-                          idx1: _comparePointA,
-                          idx2: _comparePointB,
-                          dates: dates,
-                          data: data,
-                          use24HourClock: provider.settings.use24HourClock,
-                          isCompact: isCompact,
-                          onPointAChanged: (idx) => setState(() => _comparePointA = idx),
-                          onPointBChanged: (idx) => setState(() => _comparePointB = idx),
-                        ),
-                        SizedBox(height: 40.h),
-                      ],
+                    SizedBox(width: 32.0),
+                    Expanded(
+                      flex: 4,
+                      child: buildComparisonContent(),
                     ),
-                  ),
+                  ],
+                )
+              : Column(
+                  children: [
+                    buildTrendAndOverlayContent(),
+                    SizedBox(height: 32.h),
+                    buildComparisonContent(),
+                    SizedBox(height: 40.h),
+                  ],
                 ),
-              ],
-            );
-          }
-
-          // --- MOBILE: SINGLE COLUMN ---
-          return SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-            padding: EdgeInsets.all(isCompact ? 24.r : 20.0),
-            child: Column(
-              children: [
-                SizedBox(height: 12.h),
-                _buildSectionTitle('SLEEP TRENDS', isCompact),
-                SizedBox(height: 24.h),
-                SleepAnalyticalGraph(
-                  dates: dates,
-                  data: data,
-                  visibleMetrics: _visibleMetrics,
-                  onPointSelected: (idx) {},
-                ),
-                SizedBox(height: 32.h),
-                _buildSectionTitle('DATA COMPARISON', isCompact),
-                SizedBox(height: 24.h),
-                SleepComparisonWidget(
-                  idx1: _comparePointA,
-                  idx2: _comparePointB,
-                  dates: dates,
-                  data: data,
-                  use24HourClock: provider.settings.use24HourClock,
-                  isCompact: isCompact,
-                  onPointAChanged: (idx) => setState(() => _comparePointA = idx),
-                  onPointBChanged: (idx) => setState(() => _comparePointB = idx),
-                ),
-                SizedBox(height: 40.h),
-              ],
-            ),
-          );
-        },
+        ),
       ),
     );
   }
@@ -743,7 +707,7 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
                   ),
                 ),
               ),
-              VerticalDivider(color: AppColors.white.withOpacity(0.05), width: 1),
+              VerticalDivider(color: AppColors.white.withValues(alpha: 0.05), width: 1),
               // --- RIGHT COLUMN: SLIDER + LOGS ---
               Expanded(
                 flex: 5,
@@ -752,7 +716,7 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
                     _buildHorizontalCalendar(dateSet, isCompact),
                     const Divider(color: Colors.white10, height: 1),
                     Expanded(
-                      child: RefreshIndicator(
+                      child: EliteRefreshIndicator(
                         onRefresh: () => provider.forceRefresh(),
                         color: AppColors.crimson,
                         backgroundColor: AppColors.surface,
@@ -760,7 +724,7 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
                             ? Center(
                                 child: Text(
                                   "No logs for this date.",
-                                  style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: isCompact ? 13.sp : 12.0),
+                                  style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary),
                                 ),
                               )
                             : ListView.separated(
@@ -868,7 +832,7 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
             ),
             const Divider(color: Colors.white10, height: 1),
             Expanded(
-              child: RefreshIndicator(
+              child: EliteRefreshIndicator(
                 onRefresh: () => provider.forceRefresh(),
                 color: AppColors.crimson,
                 backgroundColor: AppColors.surface,
@@ -882,7 +846,7 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
                               child: Center(
                                 child: Text(
                                   "No logs for this date.",
-                                  style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary),
+                                  style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary),
                                 ),
                               ),
                             ),
@@ -932,137 +896,155 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
       padding: EdgeInsets.symmetric(horizontal: isCompact ? 16.w : 16.0, vertical: isCompact ? 10.h : 8.0),
       child: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.chevron_left_rounded, color: Colors.white),
-                onPressed: () => setState(() {
-                  _displayedMonth = DateTime(_displayedMonth.year, _displayedMonth.month - 1);
-                }),
-              ),
-              GestureDetector(
-                onTap: () async {
-                  final DateTime? picked = await showDatePicker(
-                    context: context,
-                    initialDate: _selectedHistoryDate,
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime.now(),
-              builder: (context, child) {
-                return Theme(
-                  data: Theme.of(context).copyWith(
-                    colorScheme: const ColorScheme.dark(
-                      primary: AppColors.crimson,
-                      onPrimary: Colors.white,
-                      surface: AppColors.surface,
-                      onSurface: Colors.white,
-                    ),
-                    textButtonTheme: TextButtonThemeData(
-                      style: TextButton.styleFrom(foregroundColor: AppColors.crimson),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left_rounded, color: Colors.white),
+                    onPressed: () => setState(() {
+                      _displayedMonth = DateTime(_displayedMonth.year, _displayedMonth.month - 1);
+                    }),
+                  ),
+                  GestureDetector(
+                    onTap: () async {
+                      final DateTime? picked = await showDatePicker(
+                        context: context,
+                        useRootNavigator: true,
+                        initialDate: _selectedHistoryDate,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime.now(),
+                        builder: (context, child) => Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 520),
+                            child: Theme(
+                              data: Theme.of(context).copyWith(
+                                colorScheme: const ColorScheme.dark(
+                                  primary: AppColors.crimson,
+                                  onPrimary: Colors.white,
+                                  surface: AppColors.surface,
+                                  onSurface: Colors.white,
+                                ),
+                              ),
+                              child: child!,
+                            ),
+                          ),
+                        ),
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          _selectedHistoryDate = picked;
+                          _displayedMonth = DateTime(picked.year, picked.month);
+                        });
+                      }
+                    },
+                    child: Text(
+                      DateFormat('MMMM yyyy').format(_displayedMonth).toUpperCase(),
+                      style: AppTextStyles.labelMedium.adaptive(context).copyWith(
+                        color: Colors.white, 
+                        letterSpacing: 1.5,
+                        fontSize: isCompact ? 14.0 : 16.0,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                  child: child!,
-                );
-              },
-                  );
-                  if (picked != null) {
-                    setState(() {
-                      _selectedHistoryDate = picked;
-                      _displayedMonth = DateTime(picked.year, picked.month);
-                    });
-                  }
-                },
-                child: Text(
-                  DateFormat('MMMM yyyy').format(_displayedMonth).toUpperCase(),
-                  style: AppTextStyles.labelMedium.copyWith(color: Colors.white, letterSpacing: 1.5, fontSize: isCompact ? 14.sp : 14.0),
-                ),
+                  IconButton(
+                    icon: Icon(Icons.chevron_right_rounded, color: isCurrentMonth ? Colors.white.withValues(alpha: 0.1) : Colors.white),
+                    onPressed: isCurrentMonth ? null : () => setState(() {
+                      _displayedMonth = DateTime(_displayedMonth.year, _displayedMonth.month + 1);
+                    }),
+                  ),
+                ],
               ),
-              IconButton(
-                icon: Icon(Icons.chevron_right_rounded, color: isCurrentMonth ? Colors.white.withValues(alpha: 0.1) : Colors.white),
-                onPressed: isCurrentMonth ? null : () => setState(() {
-                  _displayedMonth = DateTime(_displayedMonth.year, _displayedMonth.month + 1);
-                }),
+              const SizedBox(height: 8.0),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: ["M", "T", "W", "T", "F", "S", "S"].map((d) => Expanded(
+                  child: Text(
+                    d, 
+                    textAlign: TextAlign.center, 
+                    style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+                      color: AppColors.textSecondary.withValues(alpha: 0.5),
+                      fontSize: isCompact ? 11.0 : 13.0,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                )).toList(),
+              ),
+              const SizedBox(height: 8.0),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 7,
+                  mainAxisSpacing: 6,
+                  crossAxisSpacing: 6,
+                ),
+                itemCount: daysInMonth + (firstDayOfMonth - 1),
+                itemBuilder: (context, index) {
+                  if (index < firstDayOfMonth - 1) return const SizedBox.shrink();
+                  
+                  final day = index - (firstDayOfMonth - 1) + 1;
+                  final date = DateTime(_displayedMonth.year, _displayedMonth.month, day);
+                  final isSelected = date.year == _selectedHistoryDate.year &&
+                      date.month == _selectedHistoryDate.month &&
+                      date.day == _selectedHistoryDate.day;
+                  final hasData = dateSet.contains(date);
+                  final isToday = date.year == DateTime.now().year &&
+                      date.month == DateTime.now().month &&
+                      date.day == DateTime.now().day;
+                  final isFuture = date.isAfter(DateTime.now());
+
+                  return GestureDetector(
+                    onTap: isFuture ? null : () {
+                      setState(() {
+                        _selectedHistoryDate = date;
+                      });
+                    },
+                    child: AspectRatio(
+                      aspectRatio: 1.0,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        decoration: BoxDecoration(
+                          color: isSelected ? AppColors.crimson : Colors.transparent,
+                          shape: BoxShape.circle,
+                          border: isToday && !isSelected 
+                              ? Border.all(color: AppColors.crimson.withValues(alpha: 0.5))
+                              : null,
+                        ),
+                        alignment: Alignment.center,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              day.toString(),
+                              style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+                                fontSize: isCompact ? 13.0 : 15.0,
+                                color: isSelected 
+                                    ? Colors.white 
+                                    : (isFuture ? Colors.white.withValues(alpha: 0.05) : (hasData ? Colors.white : Colors.white.withValues(alpha: 0.2))),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 2.0),
+                            Container(
+                              width: 4.0,
+                              height: 4.0,
+                              decoration: BoxDecoration(
+                                color: (hasData && !isSelected) ? AppColors.crimson : Colors.transparent,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           ),
-          SizedBox(height: isCompact ? 10.h : 8.0),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: ["M", "T", "W", "T", "F", "S", "S"].map((d) => Expanded(
-              child: Text(d, textAlign: TextAlign.center, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.5), fontSize: isCompact ? 10.sp : 10.0)),
-            )).toList(),
-          ),
-          SizedBox(height: isCompact ? 10.h : 8.0),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 7,
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-            ),
-            itemCount: daysInMonth + (firstDayOfMonth - 1),
-            itemBuilder: (context, index) {
-              if (index < firstDayOfMonth - 1) return const SizedBox.shrink();
-              
-              final day = index - (firstDayOfMonth - 1) + 1;
-              final date = DateTime(_displayedMonth.year, _displayedMonth.month, day);
-              final isSelected = date.year == _selectedHistoryDate.year &&
-                  date.month == _selectedHistoryDate.month &&
-                  date.day == _selectedHistoryDate.day;
-              final hasData = dateSet.contains(date);
-              final isToday = date.year == DateTime.now().year &&
-                  date.month == DateTime.now().month &&
-                  date.day == DateTime.now().day;
-              final isFuture = date.isAfter(DateTime.now());
-
-              return GestureDetector(
-                onTap: isFuture ? null : () {
-                  setState(() {
-                    _selectedHistoryDate = date;
-                  });
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  decoration: BoxDecoration(
-                    color: isSelected ? AppColors.crimson : Colors.transparent,
-                    shape: BoxShape.circle,
-                    border: isToday && !isSelected 
-                        ? Border.all(color: AppColors.crimson.withValues(alpha: 0.5))
-                        : null,
-                  ),
-                  alignment: Alignment.center,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Text(
-                        day.toString(),
-                        style: AppTextStyles.labelSmall.copyWith(
-                          color: isSelected 
-                              ? Colors.white 
-                              : (isFuture ? Colors.white.withValues(alpha: 0.05) : (hasData ? Colors.white : Colors.white.withValues(alpha: 0.2))),
-                          fontWeight: FontWeight.w500,
-                          fontSize: isCompact ? 12.sp : 12.0,
-                        ),
-                      ),
-                      if (hasData && !isSelected)
-                        Positioned(
-                          bottom: isCompact ? 4.h : 4.0,
-                          child: Container(
-                            width: isCompact ? 3.r : 3.0,
-                            height: isCompact ? 3.r : 3.0,
-                            decoration: const BoxDecoration(color: AppColors.crimson, shape: BoxShape.circle),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-    );
+        );
   }
 
   Widget _buildHorizontalCalendar(Set<DateTime> dateSet, bool isCompact) {
@@ -1109,8 +1091,7 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
                 children: [
                   Text(
                     DateFormat('EEE').format(dateOnly).toUpperCase(),
-                    style: AppTextStyles.labelSmall.copyWith(
-                      fontSize: isCompact ? 10.sp : 10.0,
+                    style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                       color: isSelected 
                           ? Colors.white 
                           : (hasData ? AppColors.textSecondary : AppColors.textSecondary.withValues(alpha: 0.2)),
@@ -1120,8 +1101,7 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
                   SizedBox(height: isCompact ? 4.h : 4.0),
                   Text(
                     dateOnly.day.toString(),
-                    style: AppTextStyles.h3.copyWith(
-                      fontSize: isCompact ? 16.sp : 16.0,
+                    style: AppTextStyles.h3.adaptive(context).copyWith(
                       color: isSelected 
                           ? Colors.white 
                           : (hasData ? AppColors.white : AppColors.white.withValues(alpha: 0.15)),
@@ -1186,16 +1166,16 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
                   children: [
                     Text(
                       "${hours}h ${minutes}m",
-                      style: AppTextStyles.labelMedium.copyWith(fontSize: isCompact ? 16.sp : 14.0, color: AppColors.white),
+                      style: AppTextStyles.labelMedium.adaptive(context).copyWith(color: AppColors.white),
                     ),
                     SizedBox(height: 4.h),
                     Text(
                       dateStr,
-                      style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: isCompact ? 10.sp : 9.0),
+                      style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary),
                     ),
                     Text(
                       timeStr,
-                      style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.6), fontSize: isCompact ? 9.sp : 8.0),
+                      style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary.withValues(alpha: 0.6)),
                     ),
                   ],
                 ),
@@ -1225,18 +1205,16 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
                 children: [
                   Text(
                     "NOTES",
-                    style: AppTextStyles.labelSmall.copyWith(
+                    style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                       color: AppColors.textSecondary.withValues(alpha: 0.4),
-                      fontSize: isCompact ? 8.sp : 8.0,
                       letterSpacing: 1.2,
                     ),
                   ),
                   SizedBox(height: 4.h),
                   Text(
                     log.note,
-                    style: AppTextStyles.labelSmall.copyWith(
+                    style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                       color: AppColors.textSecondary.withValues(alpha: 0.8),
-                      fontSize: isCompact ? 11.sp : 11.0,
                       height: 1.4,
                     ),
                   ),
@@ -1290,11 +1268,19 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
           onTimeTap: () async {
             final picked = await showTimePicker(
               context: context, 
+              useRootNavigator: true,
               initialTime: TimeOfDay(hour: settings.bedtimeHour, minute: settings.bedtimeMinute),
               builder: (context, child) {
-                return MediaQuery(
-                  data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: context.read<SleepProvider>().settings.use24HourClock),
-                  child: child!,
+                return Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 560),
+                    child: MediaQuery(
+                      data: MediaQuery.of(context).copyWith(
+                        alwaysUse24HourFormat: context.read<SleepProvider>().settings.use24HourClock,
+                      ),
+                      child: child!,
+                    ),
+                  ),
                 );
               },
             );
@@ -1333,11 +1319,19 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
           onTimeTap: () async {
             final picked = await showTimePicker(
               context: context, 
+              useRootNavigator: true,
               initialTime: TimeOfDay(hour: settings.wakeUpHour, minute: settings.wakeUpMinute),
               builder: (context, child) {
-                return MediaQuery(
-                  data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: context.read<SleepProvider>().settings.use24HourClock),
-                  child: child!,
+                return Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 560),
+                    child: MediaQuery(
+                      data: MediaQuery.of(context).copyWith(
+                        alwaysUse24HourFormat: context.read<SleepProvider>().settings.use24HourClock,
+                      ),
+                      child: child!,
+                    ),
+                  ),
                 );
               },
             );
@@ -1391,8 +1385,8 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(title, style: AppTextStyles.labelMedium.copyWith(color: AppColors.white, fontSize: isCompact ? 14.sp : 12.0)),
-                      Text(subtitle, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: isCompact ? 9.sp : 8.0)),
+                      Text(title, style: AppTextStyles.labelMedium.adaptive(context).copyWith(color: AppColors.white)),
+                      Text(subtitle, style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary)),
                     ],
                   ),
                 ),
@@ -1415,12 +1409,11 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
                       padding: EdgeInsets.symmetric(vertical: isCompact ? 16.h : 14.0),
                       child: Column(
                         children: [
-                          Text("SCHEDULED", style: AppTextStyles.labelSmall.copyWith(fontSize: isCompact ? 8.sp : 8.0, color: AppColors.textSecondary, letterSpacing: 1)),
+                          Text("SCHEDULED", style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary, letterSpacing: 1)),
                           SizedBox(height: isCompact ? 4.h : 4.0),
                           Text(
                             _formatTime(time, use24HourClock), 
-                            style: AppTextStyles.h2.copyWith(
-                              fontSize: isCompact ? 22.sp : 18.0, 
+                            style: AppTextStyles.h2.adaptive(context).copyWith(
                               color: isEnabled ? AppColors.white : AppColors.textSecondary.withValues(alpha: 0.5)
                             )
                           ),
@@ -1437,7 +1430,7 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
                       padding: EdgeInsets.symmetric(vertical: isCompact ? 16.h : 14.0, horizontal: isCompact ? 16.w : 14.0),
                       child: Column(
                         children: [
-                          Text("ALARM TONE", style: AppTextStyles.labelSmall.copyWith(fontSize: isCompact ? 8.sp : 8.0, color: AppColors.textSecondary, letterSpacing: 1)),
+                          Text("ALARM TONE", style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary, letterSpacing: 1)),
                           SizedBox(height: isCompact ? 6.h : 4.0),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -1447,7 +1440,7 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
                               Flexible(
                                 child: Text(
                                   audioName.toUpperCase(),
-                                  style: AppTextStyles.labelSmall.copyWith(fontSize: isCompact ? 10.sp : 10.0, color: AppColors.white, fontWeight: FontWeight.w500),
+                                  style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.white, fontWeight: FontWeight.w500),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -1518,21 +1511,23 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
 
 
 
-  Widget _buildSectionTitle(String title, bool isCompact) {
+  Widget _buildSectionTitle(BuildContext context, String title, bool isCompact) {
     return Row(
       children: [
         Container(
-          width: 3.0, 
-          height: isCompact ? 12.h : 10.0, 
-          decoration: BoxDecoration(color: AppColors.crimson, borderRadius: BorderRadius.circular(2.r))
+          width: 2.5,
+          height: 12.0,
+          decoration: BoxDecoration(
+            color: AppColors.crimson,
+            borderRadius: BorderRadius.circular(2.0),
+          ),
         ),
-        SizedBox(width: 8.w),
+        const SizedBox(width: 6.0),
         Text(
           title, 
-          style: AppTextStyles.labelSmall.copyWith(
+          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
             color: AppColors.textSecondary.withValues(alpha: 0.8),
-            fontSize: isCompact ? 11.sp : 9.0,
-          )
+          ),
         ),
       ],
     );
@@ -1593,15 +1588,15 @@ class SleepComparisonWidget extends StatelessWidget {
           ),
           if (idx1 != null && idx2 != null) ...[
             SizedBox(height: isCompact ? 24.h : 20.0),
-            _buildComparisonDetails(),
+            _buildComparisonDetails(context),
           ] else ...[
             SizedBox(height: isCompact ? 32.h : 24.0),
-            Center(
-              child: Text(
-                "SELECT TWO POINTS TO COMPARE",
-                style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.2), fontSize: isCompact ? 11.sp : 9.0),
+              Center(
+                child: Text(
+                  "SELECT TWO POINTS TO COMPARE",
+                  style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary.withValues(alpha: 0.2)),
+                ),
               ),
-            ),
           ],
         ],
       ),
@@ -1634,7 +1629,7 @@ class SleepComparisonWidget extends StatelessWidget {
                 ),
                 SizedBox(width: isCompact ? 8.w : 6.0),
               ],
-              Text(title, style: AppTextStyles.labelSmall.copyWith(color: selectedIdx != null ? AppColors.crimson : AppColors.textSecondary.withValues(alpha: 0.4), fontSize: isCompact ? 11.sp : 9.0, fontWeight: FontWeight.w500, letterSpacing: 2)),
+              Text(title, style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: selectedIdx != null ? AppColors.crimson : AppColors.textSecondary.withValues(alpha: 0.4), fontWeight: FontWeight.w500, letterSpacing: 2)),
               if (selectedIdx != null && !isEnd) ...[
                 SizedBox(width: isCompact ? 8.w : 6.0),
                 GestureDetector(
@@ -1652,7 +1647,7 @@ class SleepComparisonWidget extends StatelessWidget {
           GestureDetector(
             onTap: () => _showPicker(context, selectedIdx, otherIdx, dates, onChanged),
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: isCompact ? 14.w : 12.0, vertical: isCompact ? 12.h : 10.0),
+              padding: EdgeInsets.symmetric(horizontal: isCompact ? 14.w : 10.0, vertical: isCompact ? 12.h : 10.0),
               decoration: BoxDecoration(
                 color: selectedIdx != null ? AppColors.crimson.withValues(alpha: 0.05) : AppColors.surfaceLight.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
@@ -1663,7 +1658,7 @@ class SleepComparisonWidget extends StatelessWidget {
                 children: [
                   Icon(selectedIdx != null ? Icons.event_available_rounded : Icons.event_note_rounded, color: AppColors.crimson, size: isCompact ? 18.r : 16.0),
                   SizedBox(width: isCompact ? 10.w : 8.0),
-                  Flexible(child: Text(selectedIdx != null ? labels[selectedIdx] : "SET POINT", overflow: TextOverflow.ellipsis, style: AppTextStyles.labelSmall.copyWith(fontSize: isCompact ? 11.sp : 10.0, color: selectedIdx != null ? Colors.white : AppColors.textSecondary.withValues(alpha: 0.4)))),
+                  Flexible(child: Text(selectedIdx != null ? labels[selectedIdx] : "SET POINT", overflow: TextOverflow.ellipsis, style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: selectedIdx != null ? Colors.white : AppColors.textSecondary.withValues(alpha: 0.4)))),
                 ],
               ),
             ),
@@ -1674,161 +1669,578 @@ class SleepComparisonWidget extends StatelessWidget {
   }
 
   void _showPicker(BuildContext context, int? current, int? other, List<DateTime> dates, Function(int?) onChanged) async {
-    final Map<String, List<int>> dateGroups = {};
-    for (int i = 0; i < dates.length; i++) {
-      final dateKey = DateFormat('yyyy-MM-dd').format(dates[i]);
-      dateGroups.putIfAbsent(dateKey, () => []).add(i);
+    final Map<String, DateTime> availableMonths = {};
+    for (var d in dates) {
+      final key = DateFormat('MMMM yyyy').format(d).toUpperCase();
+      availableMonths.putIfAbsent(key, () => DateTime(d.year, d.month));
     }
-    final sortedDateKeys = dateGroups.keys.toList()..sort((a, b) => b.compareTo(a));
 
-    final int? result = await showModalBottomSheet<int>(
+    DatePickerFilterPreset selectedPreset = DatePickerFilterPreset.last30Days;
+    DateTime? selectedMonth;
+    DateTimeRange? customRange;
+
+    final int? result = await AdaptiveUtils.showAdaptiveSheet<int>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: EdgeInsets.fromLTRB(isCompact ? 24.w : 20.0, isCompact ? 12.h : 10.0, isCompact ? 24.w : 20.0, isCompact ? 40.h : 32.0),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(isCompact ? 32.r : 24.0)),
-          border: Border.all(color: AppColors.white.withOpacity(0.05)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: isCompact ? 40.w : 40.0, height: isCompact ? 4.h : 4.0, margin: EdgeInsets.only(bottom: isCompact ? 24.h : 20.0),
-              decoration: BoxDecoration(color: AppColors.textSecondary.withOpacity(0.2), borderRadius: BorderRadius.circular(2.r)),
-            ),
-            Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(isCompact ? 10.r : 8.0),
-                  decoration: BoxDecoration(color: AppColors.crimson.withValues(alpha: 0.1), shape: BoxShape.circle),
-                  child: Icon(Icons.event_note_rounded, color: AppColors.crimson, size: isCompact ? 24.r : 20.0),
-                ),
-                SizedBox(width: isCompact ? 16.w : 12.0),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("SELECT LOG", style: AppTextStyles.h3.copyWith(fontSize: isCompact ? 20.sp : 18.0)), // Fixed size
-                      Text("CHOOSE A DATE FROM YOUR LOGS", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.5), letterSpacing: 1, fontSize: isCompact ? 11.sp : 10.0)), // Fixed size
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: isCompact ? 24.h : 20.0),
-            ConstrainedBox(
-              constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.5),
-              child: ListView.separated(
-                shrinkWrap: true,
-                padding: EdgeInsets.zero,
-                itemCount: sortedDateKeys.length,
-                separatorBuilder: (context, index) => SizedBox(height: isCompact ? 12.h : 10.0),
-                itemBuilder: (context, i) {
-                  final String dateKey = sortedDateKeys[i];
-                  final List<int> indices = dateGroups[dateKey]!;
-                  final DateTime displayDate = dates[indices.first];
-                  
-                  bool isPartiallySelected = indices.contains(current);
-                  bool isOccupiedByOther = indices.contains(other);
+      sheetBuilder: (sheetContext, isSideSheet) => StatefulBuilder(
+        builder: (sheetContext, setSheetState) {
+          final now = DateTime.now();
+          List<DateTime> filteredDates = [];
+          if (selectedPreset == DatePickerFilterPreset.last7Days) {
+            final cutoff = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 7));
+            filteredDates = dates.where((d) => d.isAfter(cutoff) || d.isAtSameMomentAs(cutoff)).toList();
+          } else if (selectedPreset == DatePickerFilterPreset.last30Days) {
+            final cutoff = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 30));
+            filteredDates = dates.where((d) => d.isAfter(cutoff) || d.isAtSameMomentAs(cutoff)).toList();
+          } else if (selectedPreset == DatePickerFilterPreset.thisMonth) {
+            filteredDates = dates.where((d) => d.year == now.year && d.month == now.month).toList();
+          } else if (selectedPreset == DatePickerFilterPreset.selectMonth && selectedMonth != null) {
+            filteredDates = dates.where((d) => d.year == selectedMonth!.year && d.month == selectedMonth!.month).toList();
+          } else if (selectedPreset == DatePickerFilterPreset.customRange && customRange != null) {
+            final start = DateTime(customRange!.start.year, customRange!.start.month, customRange!.start.day);
+            final end = DateTime(customRange!.end.year, customRange!.end.month, customRange!.end.day, 23, 59, 59);
+            filteredDates = dates.where((d) => (d.isAfter(start) || d.isAtSameMomentAs(start)) && (d.isBefore(end) || d.isAtSameMomentAs(end))).toList();
+          } else {
+            filteredDates = dates;
+          }
 
-                  return GestureDetector(
-                    onTap: () async {
-                      if (indices.length == 1) {
-                        Navigator.pop(context, indices.first);
-                      } else {
-                        final int? timeResult = await showModalBottomSheet<int>(
-                          context: context,
-                          backgroundColor: Colors.transparent,
-                          builder: (ctx) => Container(
-                            padding: EdgeInsets.all(isCompact ? 24.r : 20.0),
-                            decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.vertical(top: Radius.circular(isCompact ? 32.r : 24.0))),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text("SELECT TIME", style: AppTextStyles.labelMedium.copyWith(color: AppColors.crimson, letterSpacing: 1.2, fontSize: isCompact ? 14.sp : 12.0)), // Fixed size
-                                SizedBox(height: 20.h),
-                                ...indices.map((idx) {
-                                  final bool isCurrent = idx == current;
-                                  final bool isOther = idx == other;
-                                  return ListTile(
-                                    contentPadding: EdgeInsets.symmetric(horizontal: isCompact ? 16.w : 12.0),
-                                    leading: Icon(
-                                      isCurrent ? Icons.check_circle_rounded : (isOther ? Icons.info_outline_rounded : Icons.radio_button_off_rounded),
-                                      color: isCurrent ? AppColors.crimson : (isOther ? AppColors.textSecondary.withValues(alpha: 0.5) : AppColors.textSecondary.withValues(alpha: 0.2)),
-                                    ),
-                                    title: Text(
-                                      use24HourClock 
-                                          ? DateFormat('HH:mm').format(dates[idx])
-                                          : DateFormat('hh:mm a').format(dates[idx]),
-                                      style: AppTextStyles.labelSmall.copyWith(color: isCurrent ? Colors.white : (isOther ? AppColors.textSecondary.withValues(alpha: 0.5) : AppColors.textSecondary), fontSize: isCompact ? 11.sp : 10.0), // Fixed size
-                                    ),
-                                    onTap: () => Navigator.pop(ctx, idx),
-                                  );
-                                }),
-                              ],
-                            ),
-                          ),
-                        );
-                        if (timeResult != null && context.mounted) Navigator.pop(context, timeResult);
-                      }
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: EdgeInsets.all(isCompact ? 16.r : 14.0),
-                      decoration: BoxDecoration(
-                        color: isPartiallySelected ? AppColors.crimson.withValues(alpha: 0.1) : AppColors.background.withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0),
-                        border: Border.all(
-                          color: isPartiallySelected ? AppColors.crimson : (isOccupiedByOther ? AppColors.crimson.withValues(alpha: 0.3) : AppColors.white.withValues(alpha: 0.05)),
-                          width: 1.5,
-                        ),
+          final Map<String, List<int>> dateGroups = {};
+          for (int i = 0; i < dates.length; i++) {
+            if (filteredDates.contains(dates[i])) {
+              final dateKey = DateFormat('yyyy-MM-dd').format(dates[i]);
+              dateGroups.putIfAbsent(dateKey, () => []).add(i);
+            }
+          }
+          final sortedDateKeys = dateGroups.keys.toList()..sort((a, b) => b.compareTo(a));
+
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final bool isSheetCompact = constraints.maxWidth < 600 && !isSideSheet;
+              final double sheetWidth = isSideSheet ? constraints.maxWidth : (isSheetCompact ? constraints.maxWidth : 600.0);
+
+              Widget buildChip({required String label, required bool isSelected, required VoidCallback onTap}) {
+                return GestureDetector(
+                  onTap: onTap,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: isSheetCompact ? 12.w : 10.0, vertical: isSheetCompact ? 8.h : 6.0),
+                    decoration: BoxDecoration(
+                      color: isSelected ? AppColors.crimson.withValues(alpha: 0.15) : AppColors.surfaceLight.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(isSheetCompact ? 10.r : 8.0),
+                      border: Border.all(
+                        color: isSelected ? AppColors.crimson : AppColors.white.withValues(alpha: 0.05),
+                        width: 1.2,
                       ),
-                      child: Row(
+                    ),
+                    child: Text(
+                      label,
+                      style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+                        color: isSelected ? AppColors.crimson : AppColors.textSecondary,
+                        fontWeight: isSelected ? FontWeight.w500 : FontWeight.w500,
+                        fontSize: isSheetCompact ? 10.sp : 11.0,
+                      ),
+                    ),
+                  ),
+                );
+              }
+
+              return Align(
+                alignment: isSideSheet ? Alignment.center : Alignment.bottomCenter,
+                child: SizedBox(
+                  width: sheetWidth,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: Container(
+                      height: isSideSheet ? double.infinity : null,
+                      padding: EdgeInsets.fromLTRB(
+                        isSheetCompact ? 24.w : 20.0,
+                        isSideSheet ? 0 : (isSheetCompact ? 12.h : 10.0),
+                        isSheetCompact ? 24.w : 20.0,
+                        isSheetCompact ? 40.h : 32.0,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: isSideSheet
+                            ? const BorderRadius.horizontal(left: Radius.circular(24.0))
+                            : BorderRadius.vertical(top: Radius.circular(isSheetCompact ? 32.r : 24.0)),
+                        border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
+                      ),
+                      child: Column(
+                        mainAxisSize: isSideSheet ? MainAxisSize.max : MainAxisSize.min,
                         children: [
-                          Icon(
-                            isPartiallySelected ? Icons.check_circle_rounded : (isOccupiedByOther ? Icons.info_outline_rounded : Icons.calendar_today_rounded),
-                            color: isPartiallySelected ? AppColors.crimson : (isOccupiedByOther ? AppColors.crimson.withValues(alpha: 0.5) : AppColors.textSecondary.withValues(alpha: 0.2)),
-                            size: isCompact ? 20.r : 18.0,
-                          ),
-                          SizedBox(width: isCompact ? 16.w : 12.0),
-                          Text(
-                            DateFormat('MMMM dd, yyyy').format(displayDate).toUpperCase(),
-                            style: AppTextStyles.labelSmall.copyWith(
-                              color: isPartiallySelected ? Colors.white : AppColors.textSecondary,
-                              fontWeight: FontWeight.w500,
-                              fontSize: isCompact ? 12.sp : 11.0, // Fixed size
-                            ),
-                          ),
-                          const Spacer(),
-                          if (indices.length > 1)
+                          if (isSideSheet) const SizedBox(height: 24.0),
+                          if (!isSideSheet)
                             Container(
-                              padding: EdgeInsets.symmetric(horizontal: isCompact ? 8.w : 6.0, vertical: isCompact ? 4.h : 2.0),
-                              decoration: BoxDecoration(color: AppColors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(isCompact ? 8.r : 6.0)),
-                              child: Text("${indices.length} LOGS", style: AppTextStyles.labelSmall.copyWith(fontSize: isCompact ? 9.sp : 8.0, color: AppColors.textSecondary.withValues(alpha: 0.5))), // Fixed size
+                              width: isSheetCompact ? 40.w : 40.0,
+                              height: isSheetCompact ? 4.h : 4.0,
+                              margin: EdgeInsets.only(bottom: isSheetCompact ? 24.h : 20.0),
+                              decoration: BoxDecoration(color: AppColors.textSecondary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(2.r)),
                             ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: EdgeInsets.all(isSheetCompact ? 10.r : 8.0),
+                                    decoration: BoxDecoration(color: AppColors.crimson.withValues(alpha: 0.1), shape: BoxShape.circle),
+                                    child: Icon(Icons.event_note_rounded, color: AppColors.crimson, size: isSheetCompact ? 24.r : 20.0),
+                                  ),
+                                  SizedBox(width: isSheetCompact ? 16.w : 12.0),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text("SELECT LOG", style: AppTextStyles.h3.adaptive(context)),
+                                      Text("CHOOSE A DATE FROM YOUR LOGS", style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary.withValues(alpha: 0.5), letterSpacing: 1)),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                              if (isSideSheet)
+                                IconButton(
+                                  icon: const Icon(Icons.close, color: AppColors.textSecondary, size: 20),
+                                  onPressed: () => Navigator.pop(sheetContext),
+                                ),
+                            ],
+                          ),
+                          SizedBox(height: isSheetCompact ? 16.h : 14.0),
+
+                          Wrap(
+                            spacing: isSheetCompact ? 8.w : 6.0,
+                            runSpacing: isSheetCompact ? 8.h : 6.0,
+                            children: [
+                              buildChip(
+                                label: "LAST 7 DAYS",
+                                isSelected: selectedPreset == DatePickerFilterPreset.last7Days,
+                                onTap: () => setSheetState(() => selectedPreset = DatePickerFilterPreset.last7Days),
+                              ),
+                              buildChip(
+                                label: "LAST 30 DAYS",
+                                isSelected: selectedPreset == DatePickerFilterPreset.last30Days,
+                                onTap: () => setSheetState(() => selectedPreset = DatePickerFilterPreset.last30Days),
+                              ),
+                              buildChip(
+                                label: "THIS MONTH",
+                                isSelected: selectedPreset == DatePickerFilterPreset.thisMonth,
+                                onTap: () => setSheetState(() => selectedPreset = DatePickerFilterPreset.thisMonth),
+                              ),
+                              buildChip(
+                                label: selectedPreset == DatePickerFilterPreset.selectMonth && selectedMonth != null
+                                    ? DateFormat('MMM yyyy').format(selectedMonth!).toUpperCase()
+                                    : "SELECT MONTH ▾",
+                                isSelected: selectedPreset == DatePickerFilterPreset.selectMonth,
+                                onTap: () async {
+                                  final DateTime? pickedMonth = await showDialog<DateTime>(
+                                    context: sheetContext,
+                                    builder: (dialogCtx) {
+                                      int tempYear = selectedMonth?.year ?? DateTime.now().year;
+                                      int tempMonth = selectedMonth?.month ?? DateTime.now().month;
+
+                                      final years = (dates.map((d) => d.year).toSet().toList()..sort((a, b) => b.compareTo(a)));
+                                      if (!years.contains(tempYear)) years.add(tempYear);
+                                      years.sort((a, b) => b.compareTo(a));
+
+                                      return StatefulBuilder(
+                                        builder: (dialogCtx, setDialogState) {
+                                          return Dialog(
+                                            backgroundColor: AppColors.surface,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(16.0),
+                                              side: BorderSide(color: AppColors.white.withValues(alpha: 0.05)),
+                                            ),
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(20.0),
+                                              child: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Text(
+                                                    "SELECT MONTH & YEAR",
+                                                    style: AppTextStyles.labelMedium.adaptive(dialogCtx).copyWith(
+                                                      color: AppColors.crimson,
+                                                      letterSpacing: 1.2,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 20.0),
+                                                  Row(
+                                                    children: [
+                                                      Expanded(
+                                                        child: DropdownButtonFormField<int>(
+                                                          initialValue: tempMonth,
+                                                          dropdownColor: AppColors.surface,
+                                                          decoration: InputDecoration(
+                                                            labelText: "MONTH",
+                                                            labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                                                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                                            enabledBorder: OutlineInputBorder(
+                                                              borderRadius: BorderRadius.circular(8),
+                                                              borderSide: BorderSide(color: AppColors.white.withValues(alpha: 0.1)),
+                                                            ),
+                                                          ),
+                                                          items: List.generate(12, (i) => i + 1).map((m) {
+                                                            return DropdownMenuItem<int>(
+                                                              value: m,
+                                                              child: Text(
+                                                                DateFormat('MMMM').format(DateTime(2024, m)).toUpperCase(),
+                                                                style: const TextStyle(color: Colors.white, fontSize: 12),
+                                                              ),
+                                                            );
+                                                          }).toList(),
+                                                          onChanged: (val) {
+                                                            if (val != null) setDialogState(() => tempMonth = val);
+                                                          },
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 12.0),
+                                                      Expanded(
+                                                        child: DropdownButtonFormField<int>(
+                                                          initialValue: tempYear,
+                                                          dropdownColor: AppColors.surface,
+                                                          decoration: InputDecoration(
+                                                            labelText: "YEAR",
+                                                            labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                                                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                                            enabledBorder: OutlineInputBorder(
+                                                              borderRadius: BorderRadius.circular(8),
+                                                              borderSide: BorderSide(color: AppColors.white.withValues(alpha: 0.1)),
+                                                            ),
+                                                          ),
+                                                          items: years.map((y) {
+                                                            return DropdownMenuItem<int>(
+                                                              value: y,
+                                                              child: Text(
+                                                                "$y",
+                                                                style: const TextStyle(color: Colors.white, fontSize: 12),
+                                                              ),
+                                                            );
+                                                          }).toList(),
+                                                          onChanged: (val) {
+                                                            if (val != null) setDialogState(() => tempYear = val);
+                                                          },
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  const SizedBox(height: 24.0),
+                                                  Row(
+                                                    mainAxisAlignment: MainAxisAlignment.end,
+                                                    children: [
+                                                      TextButton(
+                                                        onPressed: () => Navigator.pop(dialogCtx),
+                                                        child: const Text("CANCEL", style: TextStyle(color: AppColors.textSecondary)),
+                                                      ),
+                                                      const SizedBox(width: 8.0),
+                                                      ElevatedButton(
+                                                        style: ElevatedButton.styleFrom(
+                                                          backgroundColor: AppColors.crimson,
+                                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                                                        ),
+                                                        onPressed: () => Navigator.pop(dialogCtx, DateTime(tempYear, tempMonth)),
+                                                        child: const Text("APPLY", style: TextStyle(color: Colors.white)),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      );
+                                    },
+                                  );
+                                  if (pickedMonth != null) {
+                                    setSheetState(() {
+                                      selectedMonth = pickedMonth;
+                                      selectedPreset = DatePickerFilterPreset.selectMonth;
+                                    });
+                                  }
+                                },
+                              ),
+                              buildChip(
+                                label: selectedPreset == DatePickerFilterPreset.customRange && customRange != null
+                                    ? "${DateFormat('MMM dd').format(customRange!.start)} - ${DateFormat('MMM dd').format(customRange!.end)}"
+                                    : "CUSTOM RANGE",
+                                isSelected: selectedPreset == DatePickerFilterPreset.customRange,
+                                onTap: () async {
+                                  final picked = await showDateRangePicker(
+                                    context: sheetContext,
+                                    firstDate: dates.isNotEmpty ? dates.first : DateTime(2020),
+                                    lastDate: DateTime.now(),
+                                    initialDateRange: customRange,
+                                    builder: (ctx, child) {
+                                      final mediaQuery = MediaQuery.of(ctx);
+                                      final isWide = mediaQuery.size.width > 600;
+                                      final isTall = mediaQuery.size.height > 600;
+                                      return Theme(
+                                        data: Theme.of(ctx).copyWith(
+                                          colorScheme: ColorScheme.dark(
+                                            primary: AppColors.crimson,
+                                            onPrimary: Colors.white,
+                                            secondary: AppColors.crimson,
+                                            onSecondary: Colors.white,
+                                            secondaryContainer: AppColors.crimson.withValues(alpha: 0.25),
+                                            onSecondaryContainer: Colors.white,
+                                            surface: AppColors.surface,
+                                            onSurface: Colors.white,
+                                          ),
+                                          datePickerTheme: DatePickerThemeData(
+                                            headerBackgroundColor: AppColors.surface,
+                                            headerForegroundColor: Colors.white,
+                                            backgroundColor: AppColors.surface,
+                                            rangeSelectionBackgroundColor: AppColors.crimson.withValues(alpha: 0.25),
+                                            rangePickerHeaderBackgroundColor: AppColors.surface,
+                                            rangePickerHeaderForegroundColor: Colors.white,
+                                            todayBorder: const BorderSide(color: AppColors.crimson),
+                                            todayForegroundColor: WidgetStateProperty.all(AppColors.crimson),
+                                            dayOverlayColor: WidgetStateProperty.all(AppColors.crimson.withValues(alpha: 0.1)),
+                                          ),
+                                        ),
+                                        child: Dialog(
+                                          insetPadding: EdgeInsets.symmetric(
+                                            horizontal: isWide ? 80.0 : 16.0,
+                                            vertical: isTall ? 60.0 : 20.0,
+                                          ),
+                                          backgroundColor: AppColors.surface,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+                                          clipBehavior: Clip.antiAlias,
+                                          child: ConstrainedBox(
+                                            constraints: const BoxConstraints(maxWidth: 500, maxHeight: 560),
+                                            child: child!,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  );
+                                  if (picked != null) {
+                                    setSheetState(() {
+                                      customRange = picked;
+                                      selectedPreset = DatePickerFilterPreset.customRange;
+                                    });
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+
+                          SizedBox(height: isSheetCompact ? 16.h : 14.0),
+
+                          sortedDateKeys.isEmpty
+                              ? Padding(
+                                  padding: EdgeInsets.symmetric(vertical: isSheetCompact ? 32.h : 24.0),
+                                  child: Center(
+                                    child: Text(
+                                      "NO RECORDINGS FOR THIS PERIOD",
+                                      style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+                                        color: AppColors.textSecondary.withValues(alpha: 0.4),
+                                        letterSpacing: 1,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              : ConstrainedBox(
+                                  constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * (isSideSheet ? 0.75 : 0.45)),
+                                  child: ListView.separated(
+                                    shrinkWrap: true,
+                                    padding: EdgeInsets.zero,
+                                    itemCount: sortedDateKeys.length,
+                                    separatorBuilder: (context, index) => SizedBox(height: isSheetCompact ? 12.h : 10.0),
+                                    itemBuilder: (context, i) {
+                                      final String dateKey = sortedDateKeys[i];
+                                      final List<int> indices = dateGroups[dateKey]!;
+                                      final DateTime displayDate = dates[indices.first];
+
+                                      bool isPartiallySelected = indices.contains(current);
+                                      bool isOccupiedByOther = indices.contains(other);
+
+                                      return GestureDetector(
+                                        onTap: () async {
+                                          if (indices.length == 1) {
+                                            Navigator.pop(sheetContext, indices.first);
+                                          } else {
+                                            final int? timeResult = await AdaptiveUtils.showAdaptiveSheet<int>(
+                                              context: context,
+                                              sheetBuilder: (timeSheetContext, isTimeSideSheet) => LayoutBuilder(
+                                                builder: (ctx, constraints) {
+                                                  final bool isTimeSheetCompact = constraints.maxWidth < 600 && !isTimeSideSheet;
+                                                  final double sheetWidth = isTimeSideSheet ? constraints.maxWidth : (isTimeSheetCompact ? constraints.maxWidth : 600.0);
+
+                                                  return Align(
+                                                    alignment: isTimeSideSheet ? Alignment.center : Alignment.bottomCenter,
+                                                    child: SizedBox(
+                                                      width: sheetWidth,
+                                                      child: Material(
+                                                        color: Colors.transparent,
+                                                        child: Container(
+                                                          height: isTimeSideSheet ? double.infinity : null,
+                                                          padding: EdgeInsets.fromLTRB(
+                                                            isTimeSheetCompact ? 24.w : 20.0,
+                                                            isTimeSideSheet ? 0 : (isTimeSheetCompact ? 12.h : 10.0),
+                                                            isTimeSheetCompact ? 24.w : 20.0,
+                                                            isTimeSheetCompact ? 40.h : 32.0,
+                                                          ),
+                                                          decoration: BoxDecoration(
+                                                            color: AppColors.surface,
+                                                            borderRadius: isTimeSideSheet
+                                                                ? const BorderRadius.horizontal(left: Radius.circular(24.0))
+                                                                : BorderRadius.vertical(top: Radius.circular(isTimeSheetCompact ? 32.r : 24.0)),
+                                                            border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
+                                                          ),
+                                                          child: Column(
+                                                            mainAxisSize: isTimeSideSheet ? MainAxisSize.max : MainAxisSize.min,
+                                                            children: [
+                                                              if (isTimeSideSheet) const SizedBox(height: 24.0),
+                                                              if (!isTimeSideSheet)
+                                                                Container(
+                                                                  width: isTimeSheetCompact ? 40.w : 40.0,
+                                                                  height: isTimeSheetCompact ? 4.h : 4.0,
+                                                                  margin: EdgeInsets.only(bottom: isTimeSheetCompact ? 24.h : 20.0),
+                                                                  decoration: BoxDecoration(color: AppColors.textSecondary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(2.r)),
+                                                                ),
+                                                              Row(
+                                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                children: [
+                                                                  Row(
+                                                                    children: [
+                                                                      Container(
+                                                                        padding: EdgeInsets.all(isTimeSheetCompact ? 10.r : 8.0),
+                                                                        decoration: BoxDecoration(color: AppColors.crimson.withValues(alpha: 0.1), shape: BoxShape.circle),
+                                                                        child: Icon(Icons.access_time_rounded, color: AppColors.crimson, size: isTimeSheetCompact ? 24.r : 20.0),
+                                                                      ),
+                                                                      SizedBox(width: isTimeSheetCompact ? 16.w : 12.0),
+                                                                      Column(
+                                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                                        children: [
+                                                                          Text("SELECT TIME", style: AppTextStyles.h3.adaptive(context)),
+                                                                          Text("CHOOSE A TIME LOG FOR THIS DATE", style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary.withValues(alpha: 0.5), letterSpacing: 1)),
+                                                                        ],
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                  if (isTimeSideSheet)
+                                                                    IconButton(
+                                                                      icon: const Icon(Icons.close, color: AppColors.textSecondary, size: 20),
+                                                                      onPressed: () => Navigator.pop(timeSheetContext),
+                                                                    ),
+                                                                ],
+                                                              ),
+                                                              SizedBox(height: isTimeSheetCompact ? 20.h : 16.0),
+                                                              ConstrainedBox(
+                                                                constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * (isTimeSideSheet ? 0.75 : 0.45)),
+                                                                child: ListView.separated(
+                                                                  shrinkWrap: true,
+                                                                  padding: EdgeInsets.zero,
+                                                                  itemCount: indices.length,
+                                                                  separatorBuilder: (context, index) => SizedBox(height: isTimeSheetCompact ? 12.h : 10.0),
+                                                                  itemBuilder: (context, idxPos) {
+                                                                    final idx = indices[idxPos];
+                                                                    final bool isCurrent = idx == current;
+                                                                    final bool isOther = idx == other;
+                                                                    return GestureDetector(
+                                                                      onTap: () => Navigator.pop(timeSheetContext, idx),
+                                                                      child: AnimatedContainer(
+                                                                        duration: const Duration(milliseconds: 200),
+                                                                        padding: EdgeInsets.all(isTimeSheetCompact ? 16.r : 14.0),
+                                                                        decoration: BoxDecoration(
+                                                                          color: isCurrent ? AppColors.crimson.withValues(alpha: 0.1) : AppColors.background.withValues(alpha: 0.5),
+                                                                          borderRadius: BorderRadius.circular(isTimeSheetCompact ? 16.r : 12.0),
+                                                                          border: Border.all(
+                                                                            color: isCurrent ? AppColors.crimson : (isOther ? AppColors.crimson.withValues(alpha: 0.3) : AppColors.white.withValues(alpha: 0.05)),
+                                                                            width: 1.5,
+                                                                          ),
+                                                                        ),
+                                                                        child: Row(
+                                                                          children: [
+                                                                            Icon(
+                                                                              isCurrent ? Icons.check_circle_rounded : (isOther ? Icons.info_outline_rounded : Icons.radio_button_off_rounded),
+                                                                              color: isCurrent ? AppColors.crimson : (isOther ? AppColors.textSecondary.withValues(alpha: 0.5) : AppColors.textSecondary.withValues(alpha: 0.2)),
+                                                                              size: isTimeSheetCompact ? 20.r : 18.0,
+                                                                            ),
+                                                                            SizedBox(width: isTimeSheetCompact ? 16.w : 12.0),
+                                                                            Text(
+                                                                              DateFormat('hh:mm a').format(dates[idx]).toUpperCase(),
+                                                                              style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+                                                                                color: isCurrent ? Colors.white : AppColors.textSecondary,
+                                                                                fontWeight: FontWeight.w500,
+                                                                              ),
+                                                                            ),
+                                                                          ],
+                                                                        ),
+                                                                      ),
+                                                                    );
+                                                                  },
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                            );
+                                            if (timeResult != null && context.mounted) Navigator.pop(sheetContext, timeResult);
+                                          }
+                                        },
+                                        child: AnimatedContainer(
+                                          duration: const Duration(milliseconds: 200),
+                                          padding: EdgeInsets.all(isSheetCompact ? 16.r : 14.0),
+                                          decoration: BoxDecoration(
+                                            color: isPartiallySelected ? AppColors.crimson.withValues(alpha: 0.1) : AppColors.background.withValues(alpha: 0.5),
+                                            borderRadius: BorderRadius.circular(isSheetCompact ? 16.r : 12.0),
+                                            border: Border.all(
+                                              color: isPartiallySelected ? AppColors.crimson : (isOccupiedByOther ? AppColors.crimson.withValues(alpha: 0.3) : AppColors.white.withValues(alpha: 0.05)),
+                                              width: 1.5,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                isPartiallySelected ? Icons.check_circle_rounded : (isOccupiedByOther ? Icons.info_outline_rounded : Icons.calendar_today_rounded),
+                                                color: isPartiallySelected ? AppColors.crimson : (isOccupiedByOther ? AppColors.crimson.withValues(alpha: 0.5) : AppColors.textSecondary.withValues(alpha: 0.2)),
+                                                size: isSheetCompact ? 20.r : 18.0,
+                                              ),
+                                              SizedBox(width: isSheetCompact ? 16.w : 12.0),
+                                              Text(
+                                                DateFormat('MMMM dd, yyyy').format(displayDate).toUpperCase(),
+                                                style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+                                                  color: isPartiallySelected ? Colors.white : AppColors.textSecondary,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                              const Spacer(),
+                                              if (indices.length > 1)
+                                                Container(
+                                                  padding: EdgeInsets.symmetric(horizontal: isSheetCompact ? 8.w : 6.0, vertical: isSheetCompact ? 4.h : 2.0),
+                                                  decoration: BoxDecoration(color: AppColors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(isSheetCompact ? 8.r : 6.0)),
+                                                  child: Text("${indices.length} LOGS", style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary.withValues(alpha: 0.5))),
+                                                ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
                         ],
                       ),
                     ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
+                  ),
+                ),
+              );
+            },
+          );
+        },
       ),
     );
     if (result != null) onChanged(result);
   }
 
-  Widget _buildComparisonDetails() {
+  Widget _buildComparisonDetails(BuildContext context) {
     final List<Widget> items = [];
     final v1 = data["duration"]?[idx1!];
     final v2 = data["duration"]?[idx2!];
     if (v1 != null && v2 != null) {
-      items.add(_buildMetricComparison("SLEEP DURATION", v1, v2, "hr", AppColors.crimson));
+      items.add(_buildMetricComparison(context, "SLEEP DURATION", v1, v2, "hr", AppColors.crimson));
     }
 
     if (items.isEmpty) {
@@ -1837,7 +2249,7 @@ class SleepComparisonWidget extends StatelessWidget {
           padding: EdgeInsets.symmetric(vertical: isCompact ? 20.h : 16.0),
           child: Text(
             "NO OVERLAPPING METRICS ON THESE DATES", 
-            style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.3), fontSize: isCompact ? 10.sp : 8.0)
+            style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary.withValues(alpha: 0.3))
           ),
         ),
       );
@@ -1846,7 +2258,7 @@ class SleepComparisonWidget extends StatelessWidget {
     return Column(children: items);
   }
 
-  Widget _buildMetricComparison(String label, double v1, double v2, String unit, Color color) {
+  Widget _buildMetricComparison(BuildContext context, String label, double v1, double v2, String unit, Color color) {
     final delta = v2 - v1;
     final percent = v1 != 0 ? (delta / v1.abs()) * 100 : 0.0;
 
@@ -1862,12 +2274,12 @@ class SleepComparisonWidget extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(label, style: AppTextStyles.labelSmall.copyWith(color: color, fontWeight: FontWeight.w500, fontSize: isCompact ? 13.sp : 12.0, letterSpacing: 1)),
+              Text(label, style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: color, fontWeight: FontWeight.w500, letterSpacing: 1)),
               Row(
                 children: [
                   Icon(delta >= 0 ? Icons.trending_up_rounded : Icons.trending_down_rounded, color: delta >= 0 ? Colors.greenAccent : Colors.redAccent, size: isCompact ? 18.r : 16.0),
                   SizedBox(width: isCompact ? 6.w : 4.0),
-                  Text("${delta >= 0 ? '+' : ''}${percent.toStringAsFixed(1)}%", style: AppTextStyles.labelSmall.copyWith(color: delta >= 0 ? Colors.greenAccent : Colors.redAccent, fontWeight: FontWeight.w500, fontSize: isCompact ? 13.sp : 12.0)),
+                  Text("${delta >= 0 ? '+' : ''}${percent.toStringAsFixed(1)}%", style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: delta >= 0 ? Colors.greenAccent : Colors.redAccent, fontWeight: FontWeight.w500)),
                 ],
               ),
             ],
@@ -1876,9 +2288,9 @@ class SleepComparisonWidget extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _valItem("Point A", v1, unit),
-              _valItem("Point B", v2, unit),
-              _valItem("Difference", delta, unit, isDelta: true),
+              _valItem(context, "Point A", v1, unit),
+              _valItem(context, "Point B", v2, unit),
+              _valItem(context, "Difference", delta, unit, isDelta: true),
             ],
           ),
         ],
@@ -1886,12 +2298,12 @@ class SleepComparisonWidget extends StatelessWidget {
     );
   }
 
-  Widget _valItem(String l, double v, String u, {bool isDelta = false}) {
+  Widget _valItem(BuildContext context, String l, double v, String u, {bool isDelta = false}) {
     return Column(
       children: [
-        Text(l, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.4), fontSize: isCompact ? 10.sp : 9.0, fontWeight: FontWeight.w500)),
+        Text(l, style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary.withValues(alpha: 0.4), fontWeight: FontWeight.w500)),
         SizedBox(height: isCompact ? 4.h : 2.0),
-        Text("${v >= 0 && isDelta ? '+' : ''}${v.toStringAsFixed(1)}$u", style: AppTextStyles.labelMedium.copyWith(color: Colors.white, fontWeight: FontWeight.w500, fontSize: isCompact ? 15.sp : 14.0)),
+        Text("${v >= 0 && isDelta ? '+' : ''}${v.toStringAsFixed(1)}$u", style: AppTextStyles.labelMedium.adaptive(context).copyWith(color: Colors.white, fontWeight: FontWeight.w500)),
       ],
     );
   }

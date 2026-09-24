@@ -3,9 +3,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/features/tracker/supplement/provider/supplement_provider.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/features/tracker/supplement/provider/supplement_provider.dart';
 import 'package:provider/provider.dart';
 import '../../model/supplement.dart';
 import '../../model/supplement_stack.dart';
@@ -148,8 +148,10 @@ class _StackNotificationSheetState extends State<StackNotificationSheet> {
 
   @override
   void dispose() {
-    for (var m in _itemControllers) for (var c in m.values) {
-      c.dispose();
+    for (var m in _itemControllers) {
+      for (var c in m.values) {
+        c.dispose();
+      }
     }
     for (var c in _intervalControllers) {
       c.dispose();
@@ -177,13 +179,13 @@ class _StackNotificationSheetState extends State<StackNotificationSheet> {
                 color: Colors.transparent,
                 child: Container(
                   height: widget.isSideSheet ? double.infinity : null,
-                  constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
+                  constraints: widget.isSideSheet ? null : BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
                   decoration: BoxDecoration(
                     color: AppColors.surface, 
                     borderRadius: widget.isSideSheet 
                       ? const BorderRadius.horizontal(left: Radius.circular(24.0))
                       : BorderRadius.vertical(top: Radius.circular(isCompact ? 32.r : 24.0)), 
-                    border: Border.all(color: AppColors.white.withOpacity(0.05))
+                    border: Border.all(color: AppColors.white.withValues(alpha: 0.05))
                   ),
                   child: Column(
                     mainAxisSize: widget.isSideSheet ? MainAxisSize.max : MainAxisSize.min,
@@ -288,7 +290,7 @@ class _StackNotificationSheetState extends State<StackNotificationSheet> {
 
   Widget _buildGranularCard(SupplementReminder reminder, int index, bool isCompact) {
     bool isSchedule = _selectedMode == ReminderMode.schedule;
-    return Container(margin: EdgeInsets.only(bottom: isCompact ? 20.h : 16.0), padding: EdgeInsets.all(isCompact ? 20.r : 16.0), decoration: BoxDecoration(color: AppColors.background.withOpacity(0.5), borderRadius: BorderRadius.circular(isCompact ? 24.r : 16.0), border: Border.all(color: AppColors.white.withOpacity(0.05))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    return Container(margin: EdgeInsets.only(bottom: isCompact ? 20.h : 16.0), padding: EdgeInsets.all(isCompact ? 20.r : 16.0), decoration: BoxDecoration(color: AppColors.background.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(isCompact ? 24.r : 16.0), border: Border.all(color: AppColors.white.withValues(alpha: 0.05))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               Text("TIME SLOT CONFIG", style: AppTextStyles.labelSmall.copyWith(fontWeight: FontWeight.w500, color: Colors.white, fontSize: isCompact ? null : 11.0)),
               if (intakeReminders.length > 1) IconButton(onPressed: () => setState(() { 
@@ -300,11 +302,11 @@ class _StackNotificationSheetState extends State<StackNotificationSheet> {
                 _itemUseServings.removeAt(index);
                 _intervalControllers[index].dispose();
                 _intervalControllers.removeAt(index); 
-              }), icon: Icon(Icons.delete_outline_rounded, color: AppColors.crimson.withOpacity(0.7), size: isCompact ? 20.r : 20.0)),
+              }), icon: Icon(Icons.delete_outline_rounded, color: AppColors.crimson.withValues(alpha: 0.7), size: isCompact ? 20.r : 20.0)),
           ]),
           SizedBox(height: isCompact ? 8.h : 8.0),
           ...widget.stack.items.map((i) => _buildGranularItemRow(index, i, reminder, isCompact)),
-          Divider(color: AppColors.white.withOpacity(0.05), height: isCompact ? 24.h : 20.0),
+          Divider(color: AppColors.white.withValues(alpha: 0.05), height: isCompact ? 24.h : 20.0),
           if (isSchedule) ...[
             _buildDayPicker(reminder, isCompact, (days) => setState(() => intakeReminders[index] = reminder.copyWith(days: days))),
             SizedBox(height: isCompact ? 16.h : 12.0),
@@ -345,10 +347,10 @@ class _StackNotificationSheetState extends State<StackNotificationSheet> {
     final enabled = r.supplementIds?.contains(item.id) ?? false;
     final controller = _itemControllers[rIdx][item.id]!;
     final useServings = _itemUseServings[rIdx][item.id]!;
-    return AnimatedOpacity(duration: const Duration(milliseconds: 200), opacity: enabled ? 1.0 : 0.4, child: Container(margin: EdgeInsets.only(bottom: isCompact ? 12.h : 10.0), padding: EdgeInsets.all(isCompact ? 12.r : 10.0), decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0), border: Border.all(color: enabled ? AppColors.crimson.withOpacity(0.2) : Colors.transparent)), child: Column(children: [
+    return AnimatedOpacity(duration: const Duration(milliseconds: 200), opacity: enabled ? 1.0 : 0.4, child: Container(margin: EdgeInsets.only(bottom: isCompact ? 12.h : 10.0), padding: EdgeInsets.all(isCompact ? 12.r : 10.0), decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0), border: Border.all(color: enabled ? AppColors.crimson.withValues(alpha: 0.2) : Colors.transparent)), child: Column(children: [
             Row(children: [
                 Expanded(child: Text(item.name.toUpperCase(), style: AppTextStyles.labelSmall.copyWith(fontWeight: FontWeight.w500, fontSize: isCompact ? 11.sp : 11.0))),
-                Transform.scale(scale: 0.7, child: Switch.adaptive(value: enabled, activeColor: AppColors.crimson, onChanged: (val) { setState(() { final ids = List<String>.from(r.supplementIds ?? []); val ? ids.add(item.id) : ids.remove(item.id); intakeReminders[rIdx] = r.copyWith(supplementIds: ids); }); })),
+                Transform.scale(scale: 0.7, child: Switch.adaptive(value: enabled, activeTrackColor: AppColors.crimson, onChanged: (val) { setState(() { final ids = List<String>.from(r.supplementIds ?? []); val ? ids.add(item.id) : ids.remove(item.id); intakeReminders[rIdx] = r.copyWith(supplementIds: ids); }); })),
             ]),
             if (enabled) ...[
               SizedBox(height: isCompact ? 12.h : 10.0),
@@ -366,7 +368,7 @@ class _StackNotificationSheetState extends State<StackNotificationSheet> {
   Widget _buildLowStockCard(Supplement item, bool isCompact) {
     bool useServings = lowStockUseServings[item.id] ?? false;
     final controller = _lowStockControllers[item.id]!;
-    return Container(margin: EdgeInsets.only(bottom: isCompact ? 16.h : 12.0), padding: EdgeInsets.all(20.r), decoration: BoxDecoration(color: AppColors.background.withOpacity(0.5), borderRadius: BorderRadius.circular(24.r), border: Border.all(color: AppColors.white.withOpacity(0.05))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    return Container(margin: EdgeInsets.only(bottom: isCompact ? 16.h : 12.0), padding: EdgeInsets.all(20.r), decoration: BoxDecoration(color: AppColors.background.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(24.r), border: Border.all(color: AppColors.white.withValues(alpha: 0.05))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(item.name.toUpperCase(), style: AppTextStyles.labelSmall.copyWith(fontWeight: FontWeight.w500, letterSpacing: 0.5, color: Colors.white, fontSize: isCompact ? null : 11.0)),
           SizedBox(height: 16.h),
           Container(padding: EdgeInsets.all(12.r), decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(20.r)), child: Column(children: [
@@ -393,7 +395,7 @@ class _StackNotificationSheetState extends State<StackNotificationSheet> {
   Widget _buildDayPicker(SupplementReminder r, bool isCompact, Function(List<int>) onChanged) {
     return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: List.generate(7, (i) {
         final sel = r.days.contains(i + 1);
-        return GestureDetector(onTap: () => onChanged(sel ? (List.from(r.days)..remove(i + 1)) : (List.from(r.days)..add(i + 1))), child: Container(width: isCompact ? 36.r : 34.0, height: isCompact ? 36.r : 34.0, decoration: BoxDecoration(color: sel ? AppColors.crimson : AppColors.surface, shape: BoxShape.circle, border: Border.all(color: sel ? Colors.transparent : AppColors.white.withOpacity(0.05))), alignment: Alignment.center, child: Text(weekDays[i], style: AppTextStyles.labelSmall.copyWith(color: sel ? Colors.white : AppColors.textSecondary, fontSize: isCompact ? 10.sp : 10.0))));
+        return GestureDetector(onTap: () => onChanged(sel ? (List.from(r.days)..remove(i + 1)) : (List.from(r.days)..add(i + 1))), child: Container(width: isCompact ? 36.r : 34.0, height: isCompact ? 36.r : 34.0, decoration: BoxDecoration(color: sel ? AppColors.crimson : AppColors.surface, shape: BoxShape.circle, border: Border.all(color: sel ? Colors.transparent : AppColors.white.withValues(alpha: 0.05))), alignment: Alignment.center, child: Text(weekDays[i], style: AppTextStyles.labelSmall.copyWith(color: sel ? Colors.white : AppColors.textSecondary, fontSize: isCompact ? 10.sp : 10.0))));
     }));
   }
 
@@ -404,12 +406,22 @@ class _StackNotificationSheetState extends State<StackNotificationSheet> {
           opacity: r.days.isNotEmpty ? 1.0 : 0.4,
           child: GestureDetector(
             onTap: r.days.isNotEmpty ? () async { 
-              final p = await showTimePicker(context: context, initialTime: TimeOfDay.now()); 
+              final p = await showTimePicker(
+                context: context,
+                useRootNavigator: true,
+                initialTime: TimeOfDay.now(),
+                builder: (context, child) => Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 560),
+                    child: child!,
+                  ),
+                ),
+              ); 
               if (p != null) onChanged(List.from(r.times)..add(p)); 
             } : null, 
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: isCompact ? 12.w : 12.0, vertical: isCompact ? 8.h : 6.0), 
-              decoration: BoxDecoration(color: AppColors.crimson.withOpacity(0.1), borderRadius: BorderRadius.circular(20.r)), 
+              decoration: BoxDecoration(color: AppColors.crimson.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20.r)), 
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 Icon(Icons.access_time_rounded, size: 14.r, color: AppColors.crimson), 
                 SizedBox(width: 4.w), 
@@ -421,11 +433,11 @@ class _StackNotificationSheetState extends State<StackNotificationSheet> {
     ]);
   }
 
-  Widget _buildHeader(bool isCompact) { return Row(children: [Container(padding: EdgeInsets.all(isCompact ? 10.r : 10.0), decoration: BoxDecoration(color: AppColors.crimson.withOpacity(0.1), shape: BoxShape.circle), child: Icon(Icons.layers_rounded, color: AppColors.crimson, size: isCompact ? 22.r : 22.0)), SizedBox(width: isCompact ? 12.w : 12.0), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text("STACK NOTIFICATION", style: AppTextStyles.h3.copyWith(fontSize: isCompact ? null : 18.0)), Text(widget.stack.name.toUpperCase(), style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 1.2, fontSize: isCompact ? null : 10.0))]))]); }
-  Widget _buildHandle(bool isCompact) => Center(child: Container(margin: EdgeInsets.symmetric(vertical: isCompact ? 12.h : 12.0), width: isCompact ? 40.w : 40.0, height: isCompact ? 4.h : 4.0, decoration: BoxDecoration(color: AppColors.textSecondary.withOpacity(0.3), borderRadius: BorderRadius.circular(2.r))));
-  Widget _sectionHeader(String l, IconData i, bool v, bool isCompact, Function(bool) o) => Padding(padding: EdgeInsets.only(bottom: isCompact ? 8.h : 6.0), child: Row(children: [Icon(i, color: AppColors.crimson, size: isCompact ? 16.r : 16.0), SizedBox(width: isCompact ? 8.w : 8.0), Text(l, style: AppTextStyles.labelSmall.copyWith(letterSpacing: 1.5, fontWeight: FontWeight.w500, color: Colors.white, fontSize: isCompact ? null : 11.0)), const Spacer(), Transform.scale(scale: 0.8, child: Switch.adaptive(value: v, activeColor: AppColors.crimson, onChanged: o))]));
-  Widget _instructionTile(String t, bool isCompact) { return Container(padding: EdgeInsets.symmetric(horizontal: isCompact ? 14.w : 14.0, vertical: isCompact ? 12.h : 10.0), decoration: BoxDecoration(color: AppColors.crimson.withOpacity(0.08), borderRadius: BorderRadius.circular(isCompact ? 12.r : 12.0), border: Border.all(color: AppColors.crimson.withOpacity(0.15), width: 1.0)), child: Row(children: [Icon(Icons.info_outline_rounded, size: isCompact ? 14.r : 14.0, color: AppColors.crimson), SizedBox(width: isCompact ? 10.w : 10.0), Expanded(child: Text(t, style: AppTextStyles.labelSmall.copyWith(fontSize: isCompact ? 10.sp : 10.0, color: AppColors.textSecondary, fontStyle: FontStyle.italic)))])); }
+  Widget _buildHeader(bool isCompact) { return Row(children: [Container(padding: EdgeInsets.all(isCompact ? 10.r : 10.0), decoration: BoxDecoration(color: AppColors.crimson.withValues(alpha: 0.1), shape: BoxShape.circle), child: Icon(Icons.layers_rounded, color: AppColors.crimson, size: isCompact ? 22.r : 22.0)), SizedBox(width: isCompact ? 12.w : 12.0), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text("STACK NOTIFICATION", style: AppTextStyles.h3.copyWith(fontSize: isCompact ? null : 18.0)), Text(widget.stack.name.toUpperCase(), style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 1.2, fontSize: isCompact ? null : 10.0))]))]); }
+  Widget _buildHandle(bool isCompact) => Center(child: Container(margin: EdgeInsets.symmetric(vertical: isCompact ? 12.h : 12.0), width: isCompact ? 40.w : 40.0, height: isCompact ? 4.h : 4.0, decoration: BoxDecoration(color: AppColors.textSecondary.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2.r))));
+  Widget _sectionHeader(String l, IconData i, bool v, bool isCompact, Function(bool) o) => Padding(padding: EdgeInsets.only(bottom: isCompact ? 8.h : 6.0), child: Row(children: [Icon(i, color: AppColors.crimson, size: isCompact ? 16.r : 16.0), SizedBox(width: isCompact ? 8.w : 8.0), Text(l, style: AppTextStyles.labelSmall.copyWith(letterSpacing: 1.5, fontWeight: FontWeight.w500, color: Colors.white, fontSize: isCompact ? null : 11.0)), const Spacer(), Transform.scale(scale: 0.8, child: Switch.adaptive(value: v, activeTrackColor: AppColors.crimson, onChanged: o))]));
+  Widget _instructionTile(String t, bool isCompact) { return Container(padding: EdgeInsets.symmetric(horizontal: isCompact ? 14.w : 14.0, vertical: isCompact ? 12.h : 10.0), decoration: BoxDecoration(color: AppColors.crimson.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(isCompact ? 12.r : 12.0), border: Border.all(color: AppColors.crimson.withValues(alpha: 0.15), width: 1.0)), child: Row(children: [Icon(Icons.info_outline_rounded, size: isCompact ? 14.r : 14.0, color: AppColors.crimson), SizedBox(width: isCompact ? 10.w : 10.0), Expanded(child: Text(t, style: AppTextStyles.labelSmall.copyWith(fontSize: isCompact ? 10.sp : 10.0, color: AppColors.textSecondary, fontStyle: FontStyle.italic)))])); }
   Widget _stepBtn(IconData i, VoidCallback? o, bool isCompact) => GestureDetector(onTap: o, child: Container(padding: EdgeInsets.all(isCompact ? 6.r : 6.0), decoration: BoxDecoration(color: const Color(0xFF0A0A0A), borderRadius: BorderRadius.circular(isCompact ? 8.r : 8.0)), child: Icon(i, color: o != null ? AppColors.crimson : AppColors.crimson.withValues(alpha: 0.3), size: isCompact ? 16.r : 16.0)));
   Widget _unitBtn(String l, bool a, VoidCallback? o, bool isCompact) => GestureDetector(onTap: o, child: Container(padding: EdgeInsets.symmetric(horizontal: isCompact ? 10.w : 10.0, vertical: isCompact ? 8.h : 8.0), decoration: BoxDecoration(color: a ? AppColors.crimson : AppColors.background, borderRadius: BorderRadius.circular(isCompact ? 8.r : 8.0)), child: Text(l.toUpperCase(), style: AppTextStyles.labelSmall.copyWith(fontSize: isCompact ? 9.sp : 9.0, color: a ? Colors.white : AppColors.textSecondary, fontWeight: FontWeight.w500))));
-  Widget _buildAddButton(String l, VoidCallback o, bool isCompact) => GestureDetector(onTap: o, child: Container(margin: EdgeInsets.only(top: isCompact ? 12.h : 12.0), padding: EdgeInsets.symmetric(vertical: isCompact ? 14.h : 12.0), decoration: BoxDecoration(borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0), color: AppColors.white.withOpacity(0.02), border: Border.all(color: AppColors.white.withOpacity(0.05))), alignment: Alignment.center, child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.add_circle_outline_rounded, color: AppColors.textSecondary, size: isCompact ? 18.r : 18.0), SizedBox(width: isCompact ? 8.w : 8.0), Text(l, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w500, fontSize: isCompact ? null : 11.0))])));
+  Widget _buildAddButton(String l, VoidCallback o, bool isCompact) => GestureDetector(onTap: o, child: Container(margin: EdgeInsets.only(top: isCompact ? 12.h : 12.0), padding: EdgeInsets.symmetric(vertical: isCompact ? 14.h : 12.0), decoration: BoxDecoration(borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0), color: AppColors.white.withValues(alpha: 0.02), border: Border.all(color: AppColors.white.withValues(alpha: 0.05))), alignment: Alignment.center, child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.add_circle_outline_rounded, color: AppColors.textSecondary, size: isCompact ? 18.r : 18.0), SizedBox(width: isCompact ? 8.w : 8.0), Text(l, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w500, fontSize: isCompact ? null : 11.0))])));
 }

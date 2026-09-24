@@ -4,6 +4,7 @@ import 'package:sqflite/sqflite.dart';
 import '../../../../../core/database/database_helper.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
+import 'package:rugged/features/auth/provider/auth_provider.dart';
 
 class SleepAlarmSettings {
   final bool bedtimeEnabled;
@@ -105,6 +106,7 @@ class SleepAlarmRepository {
   final String userId;
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
   SupabaseClient get _supabase => Supabase.instance.client;
+  bool get _isPro => AuthProvider().isPro;
 
   SleepAlarmRepository({required this.userId});
 
@@ -126,6 +128,7 @@ class SleepAlarmRepository {
       settings = SleepAlarmSettings(userId: userId);
     }
 
+    if (!_isPro) return settings;
 
     // 2. Try Cloud and sync if newer/different
     try {
@@ -182,7 +185,7 @@ class SleepAlarmRepository {
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
 
-    if (syncToCloud) {
+    if (syncToCloud && _isPro) {
       try {
         final cloudData = settings.toMap(forCloud: true);
         cloudData['user_id'] = userId;
@@ -205,6 +208,7 @@ class SleepAlarmRepository {
   }
 
   Future<SleepAlarmSettings?> getUnsyncedSettings() async {
+    if (!_isPro) return null;
     final db = await _getDatabase();
     final List<Map<String, dynamic>> maps = await db.query('sleep_alarm_settings', where: 'is_synced = 0 AND id = 1 AND user_id = ?', whereArgs: [userId]);
     if (maps.isNotEmpty) return SleepAlarmSettings.fromMap(maps.first);

@@ -2,54 +2,57 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Imports for Models
-import 'package:heavy_duty/features/tracker/calorie/model/calorie_log.dart';
-import 'package:heavy_duty/features/tracker/calorie/model/saved_meal.dart';
-import 'package:heavy_duty/features/tracker/calorie/model/calorie_settings.dart';
-import 'package:heavy_duty/features/tracker/hydration/model/hydration_log.dart';
-import 'package:heavy_duty/features/tracker/hydration/model/hydration_settings.dart';
-import 'package:heavy_duty/features/tracker/supplement/model/supplement.dart';
-import 'package:heavy_duty/features/tracker/supplement/model/supplement_stack.dart';
-import 'package:heavy_duty/features/tracker/supplement/model/supplement_item.dart';
-import 'package:heavy_duty/features/tracker/cycle_tracker/model/training_cycle.dart';
-import 'package:heavy_duty/features/tracker/cycle_tracker/model/exercise_log.dart';
-import 'package:heavy_duty/features/tracker/body_composition/model/body_comp_log.dart';
-import 'package:heavy_duty/features/tracker/body_composition/model/body_comp_settings.dart';
-import 'package:heavy_duty/features/tracker/sleep/model/sleep_log.dart';
-import 'package:heavy_duty/features/affirmation/model/affirmation.dart';
-import 'package:heavy_duty/features/affirmation/model/affirmation_settings.dart';
-import 'package:heavy_duty/features/exercise/model/exercise_template.dart';
+import 'package:rugged/features/tracker/calorie/model/calorie_log.dart';
+import 'package:rugged/features/tracker/calorie/model/saved_meal.dart';
+import 'package:rugged/features/tracker/calorie/model/calorie_settings.dart';
+import 'package:rugged/features/tracker/hydration/model/hydration_log.dart';
+import 'package:rugged/features/tracker/hydration/model/hydration_settings.dart';
+import 'package:rugged/features/tracker/supplement/model/supplement.dart';
+import 'package:rugged/features/tracker/supplement/model/supplement_stack.dart';
+import 'package:rugged/features/tracker/supplement/model/supplement_item.dart';
+import 'package:rugged/features/tracker/cycle_tracker/model/training_cycle.dart';
+import 'package:rugged/features/tracker/cycle_tracker/model/cycle_settings.dart';
+import 'package:rugged/features/tracker/cycle_tracker/model/exercise_log.dart';
+import 'package:rugged/features/tracker/body_composition/model/body_comp_log.dart';
+import 'package:rugged/features/tracker/body_composition/model/body_comp_settings.dart';
+import 'package:rugged/features/tracker/sleep/model/sleep_log.dart';
+import 'package:rugged/features/affirmation/model/affirmation.dart';
+import 'package:rugged/features/affirmation/model/affirmation_settings.dart';
+import 'package:rugged/features/exercise/model/exercise_template.dart';
 
 // Imports for Repositories
-import 'package:heavy_duty/features/tracker/calorie/data/calorie_local_repository.dart';
-import 'package:heavy_duty/features/tracker/calorie/data/calorie_cloud_repository.dart';
-import 'package:heavy_duty/features/tracker/hydration/data/hydration_local_repository.dart';
-import 'package:heavy_duty/features/tracker/hydration/data/hydration_cloud_repository.dart';
-import 'package:heavy_duty/features/tracker/supplement/data/supplement_local_repository.dart';
-import 'package:heavy_duty/features/tracker/supplement/data/supplement_cloud_repository.dart';
-import 'package:heavy_duty/features/tracker/cycle_tracker/data/cycle_local_repository.dart';
-import 'package:heavy_duty/features/tracker/cycle_tracker/data/cycle_cloud_repository.dart';
-import 'package:heavy_duty/features/tracker/body_composition/data/body_comp_local_repository.dart';
-import 'package:heavy_duty/features/tracker/body_composition/data/body_comp_cloud_repository.dart';
-import 'package:heavy_duty/features/tracker/sleep/data/sleep_local_repository.dart';
-import 'package:heavy_duty/features/tracker/sleep/data/sleep_cloud_repository.dart';
-import 'package:heavy_duty/features/affirmation/data/affirmation_local_repository.dart';
-import 'package:heavy_duty/features/affirmation/data/affirmation_cloud_repository.dart';
-import 'package:heavy_duty/features/exercise/data/exercise_local_repository.dart';
-import 'package:heavy_duty/features/exercise/data/exercise_cloud_repository.dart';
+import 'package:rugged/features/tracker/calorie/data/calorie_local_repository.dart';
+import 'package:rugged/features/tracker/calorie/data/calorie_cloud_repository.dart';
+import 'package:rugged/features/tracker/hydration/data/hydration_local_repository.dart';
+import 'package:rugged/features/tracker/hydration/data/hydration_cloud_repository.dart';
+import 'package:rugged/features/tracker/supplement/data/supplement_local_repository.dart';
+import 'package:rugged/features/tracker/supplement/data/supplement_cloud_repository.dart';
+import 'package:rugged/features/tracker/cycle_tracker/data/cycle_local_repository.dart';
+import 'package:rugged/features/tracker/cycle_tracker/data/cycle_cloud_repository.dart';
+import 'package:rugged/features/tracker/body_composition/data/body_comp_local_repository.dart';
+import 'package:rugged/features/tracker/body_composition/data/body_comp_cloud_repository.dart';
+import 'package:rugged/features/tracker/sleep/data/sleep_local_repository.dart';
+import 'package:rugged/features/tracker/sleep/data/sleep_cloud_repository.dart';
+import 'package:rugged/features/affirmation/data/affirmation_local_repository.dart';
+import 'package:rugged/features/affirmation/data/affirmation_cloud_repository.dart';
+import 'package:rugged/features/exercise/data/exercise_local_repository.dart';
+import 'package:rugged/features/exercise/data/exercise_cloud_repository.dart';
 
 // Imports for Providers
-import 'package:heavy_duty/features/tracker/calorie/provider/calorie_provider.dart';
-import 'package:heavy_duty/features/tracker/hydration/provider/hydration_provider.dart';
-import 'package:heavy_duty/features/tracker/supplement/provider/supplement_provider.dart';
-import 'package:heavy_duty/features/tracker/cycle_tracker/provider/cycle_provider.dart';
-import 'package:heavy_duty/features/tracker/body_composition/provider/body_comp_provider.dart';
-import 'package:heavy_duty/features/tracker/sleep/provider/sleep_provider.dart';
-import 'package:heavy_duty/features/affirmation/provider/affirmation_provider.dart';
-import 'package:heavy_duty/features/exercise/provider/exercise_provider.dart';
-import 'package:heavy_duty/core/providers/sync_provider.dart';
-import 'package:heavy_duty/core/services/notification_service.dart';
+import 'package:rugged/features/tracker/calorie/provider/calorie_provider.dart';
+import 'package:rugged/features/tracker/hydration/provider/hydration_provider.dart';
+import 'package:rugged/features/tracker/supplement/provider/supplement_provider.dart';
+import 'package:rugged/features/tracker/cycle_tracker/provider/cycle_provider.dart';
+import 'package:rugged/features/tracker/body_composition/provider/body_comp_provider.dart';
+import 'package:rugged/features/tracker/sleep/provider/sleep_provider.dart';
+import 'package:rugged/features/affirmation/provider/affirmation_provider.dart';
+import 'package:rugged/features/exercise/provider/exercise_provider.dart';
+import 'package:rugged/core/providers/sync_provider.dart';
+import 'package:rugged/core/services/notification_service.dart';
+import 'package:rugged/features/auth/provider/auth_provider.dart';
 
 // --- Mocks ---
 class MockCalorieLocalRepo extends Mock implements CalorieLocalRepository {}
@@ -70,6 +73,7 @@ class MockExerciseLocalRepo extends Mock implements ExerciseLocalRepository {}
 class MockExerciseCloudRepo extends Mock implements ExerciseCloudRepository {}
 class MockSyncProvider extends Mock implements SyncProvider {}
 class MockNotificationService extends Mock implements NotificationService {}
+class MockAuthProvider extends Mock implements AuthProvider {}
 
 void main() {
   const String testUserId = "test-user-uuid";
@@ -109,8 +113,11 @@ void main() {
 
   late MockSyncProvider mockSync;
   late MockNotificationService mockNotifications;
+  late MockAuthProvider mockAuth;
 
   setUpAll(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    SharedPreferences.setMockInitialValues({});
     registerFallbackValue(CalorieLog(id: 'f', mealName: '', foodItems: '', calories: 0, timestamp: DateTime.now()));
     registerFallbackValue(SavedMeal(id: 'f', name: '', foodItems: '', calories: 0));
     registerFallbackValue(CalorieSettings());
@@ -120,6 +127,7 @@ void main() {
     registerFallbackValue(SupplementStack(id: 'f', name: '', items: []));
     registerFallbackValue(SupplementItem(id: 'f', supplementId: '', supplementName: '', type: '', details: '', weightAdjustment: 0, timestamp: DateTime.now(), isSynced: 0));
     registerFallbackValue(ExerciseLog(id: 'f', exerciseId: '', weightKg: 0, weightLbs: 0, positiveReps: 0, timestamp: DateTime.now()));
+    registerFallbackValue(CycleSettings(userId: testUserId));
     registerFallbackValue(BodyCompLog(id: 'f', valueKg: 0, valueLbs: 0, timestamp: DateTime.now(), type: BodyMetricType.weight, unit: BodyMetricUnit.kg));
     registerFallbackValue(BodyCompSettings(userId: testUserId));
     registerFallbackValue(SleepLog(id: 'f', bedtime: DateTime.now(), wakeUpTime: DateTime.now(), quality: 3, type: SleepType.night));
@@ -129,6 +137,10 @@ void main() {
   });
 
   setUp(() {
+    mockAuth = MockAuthProvider();
+    when(() => mockAuth.isPro).thenReturn(true);
+    AuthProvider.setMockInstance(mockAuth);
+
     mockSync = MockSyncProvider();
     SyncProvider.setMockInstance(mockSync);
     mockNotifications = MockNotificationService();
@@ -239,6 +251,20 @@ void main() {
       verify(() => cycleLocal.insertLog(any(that: predicate<ExerciseLog>((l) => l.isSynced == 0)))).called(1);
     });
 
+    test('Cycle Settings: Offline save settings with smartAutoDateEnabled isSynced=0', () async {
+      final settings = CycleSettings(
+        userId: testUserId,
+        smartAutoDateEnabled: false,
+      );
+      when(() => cycleLocal.saveSettings(any())).thenAnswer((_) async => {});
+      when(() => cycleLocal.markSettingsSynced()).thenAnswer((_) async => {});
+      when(() => cycleCloud.saveSettings(any())).thenThrow(Exception("Network"));
+      
+      await cycleProv.updateSettings(settings);
+      
+      verify(() => cycleLocal.saveSettings(any(that: predicate<Map<String, dynamic>>((map) => map['smart_auto_date_enabled'] == 0 && map['is_synced'] == 0)))).called(1);
+    });
+
     test('BodyComp Log: Offline save isSynced=0', () async {
       final log = BodyCompLog(id: 'bc1', valueKg: 1, valueLbs: 2, timestamp: DateTime.now(), type: BodyMetricType.weight, unit: BodyMetricUnit.kg);
       when(() => bodyLocal.insertLog(any())).thenAnswer((_) async => {});
@@ -325,6 +351,30 @@ void main() {
 
       verify(() => hydrationCloud.insertLog(unsynced)).called(greaterThan(0));
       verify(() => hydrationLocal.markLogSynced('off-1')).called(greaterThan(0));
+    });
+
+    test('Cycle Tracker: Handshake pushes unsynced settings with smartAutoDateEnabled to cloud', () async {
+      final settings = CycleSettings(userId: testUserId, smartAutoDateEnabled: true, isSynced: 0);
+      when(() => cycleLocal.getUnsyncedCount()).thenAnswer((_) async => 1);
+      when(() => cycleLocal.getPendingDeletions()).thenAnswer((_) async => []);
+      when(() => cycleLocal.getUnsyncedCycles()).thenAnswer((_) async => []);
+      when(() => cycleLocal.getUnsyncedLogs()).thenAnswer((_) async => []);
+      when(() => cycleLocal.getUnsyncedSettings()).thenAnswer((_) async => settings.toMap());
+      
+      when(() => cycleCloud.saveSettings(any())).thenAnswer((_) async => {});
+      when(() => cycleLocal.markSettingsSynced()).thenAnswer((_) async => {});
+      
+      when(() => cycleLocal.getSettings()).thenAnswer((_) async => settings.toMap());
+      when(() => cycleLocal.getAllCycles()).thenAnswer((_) async => []);
+      when(() => cycleLocal.getAllLogs()).thenAnswer((_) async => []);
+      when(() => cycleCloud.getSettings()).thenAnswer((_) async => null);
+      when(() => cycleCloud.getAllCycles()).thenAnswer((_) async => null);
+      when(() => cycleCloud.getAllLogs()).thenAnswer((_) async => null);
+
+      await cycleProv.forceRefresh();
+
+      verify(() => cycleCloud.saveSettings(any(that: predicate<Map<String, dynamic>>((map) => map['smart_auto_date_enabled'] == 1)))).called(greaterThan(0));
+      verify(() => cycleLocal.markSettingsSynced()).called(greaterThan(0));
     });
   });
 }

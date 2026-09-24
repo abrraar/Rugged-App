@@ -2,16 +2,17 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/core/navigation/app_routes.dart';
-import 'package:heavy_duty/core/widgets/elite_settings_app_bar.dart';
-import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
-import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/core/navigation/app_routes.dart';
+import 'package:rugged/core/widgets/elite_settings_app_bar.dart';
+import 'package:rugged/core/widgets/elite_snackbar.dart';
+import 'package:rugged/features/auth/provider/auth_provider.dart';
 import 'package:provider/provider.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
-  const ChangePasswordScreen({super.key});
+  final bool isEmbedded;
+  const ChangePasswordScreen({super.key, this.isEmbedded = false});
 
   @override
   State<ChangePasswordScreen> createState() => _ChangePasswordScreenState();
@@ -59,15 +60,29 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     final authProv = context.read<AuthProvider>();
     try {
       await authProv.updateUserPassword(_newPasswordController.text.trim());
+      
       if (!mounted) return;
+      
+      // Reset internal verification state now that a password exists
+      setState(() {
+        _isCurrentVerified = false;
+        _currentPasswordController.clear();
+        _newPasswordController.clear();
+        _confirmPasswordController.clear();
+      });
 
-      EliteSnackbar.show(context, "PASSWORD CHANGED SUCCESSFULLY");
+      EliteSnackbar.show(context, "PASSWORD UPDATED SUCCESSFULLY");
 
-      if (context.canPop()) {
-        context.pop();
-      } else {
-        context.go(AppRoutes.home);
-      }
+      // Give the user a moment to see the success before navigating away
+      Future.delayed(const Duration(seconds: 1), () {
+        if (mounted) {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go(AppRoutes.home);
+          }
+        }
+      });
     } catch (e) {
       if (!mounted) return;
       EliteSnackbar.show(context, "ERROR: ${e.toString().toUpperCase()}", isError: true);
@@ -94,6 +109,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     final authProv = context.watch<AuthProvider>();
     final isLoading = authProv.isLoading;
     final bool bypassVerification = authProv.isPasswordRecoveryMode;
+    final bool hasExistingPassword = authProv.hasPassword;
+
+    // ELITE DYNAMIC UI: If the user doesn't have a password (OAuth only),
+    // we bypass the verification step automatically.
+    final bool showVerificationStep = !bypassVerification && hasExistingPassword && !_isCurrentVerified;
 
     final double deviceWidth = MediaQuery.of(context).size.width;
     final bool isLargeScreen = deviceWidth >= 600;
@@ -106,9 +126,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           final authProv = context.read<AuthProvider>();
           authProv.cancelPasswordRecovery();
           await authProv.signOut();
-          if (mounted) {
-            context.go(AppRoutes.login);
-          }
+          if (!context.mounted) return;
+          context.go(AppRoutes.login);
         } else if (!didPop && !bypassVerification) {
           context.go(AppRoutes.home);
         }
@@ -119,14 +138,13 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final bool isCompact = constraints.maxWidth < 600 && !isLargeScreen;
-              final bool isWideLandscape = isLargeScreen && MediaQuery.of(context).orientation == Orientation.landscape;
 
               return Column(
                 children: [
                   EliteSettingsAppBar(
                     title: "SECURITY", 
                     isCompact: isCompact,
-                    showBackButton: !isWideLandscape,
+                    showBackButton: !widget.isEmbedded,
                   ),
                   Expanded(
                     child: SingleChildScrollView(
@@ -138,7 +156,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                               Text(
-                                bypassVerification ? "RECOVER PASSWORD" : "CHANGE PASSWORD",
+                                bypassVerification 
+                                    ? "RECOVER PASSWORD" 
+                                    : (hasExistingPassword ? "CHANGE PASSWORD" : "CREATE PASSWORD"),
                                 style: AppTextStyles.h1.copyWith(
                                   fontSize: isLargeScreen ? 28.0 : 32.sp, 
                                   letterSpacing: -1
@@ -146,7 +166,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                               ),
                               SizedBox(height: isLargeScreen ? 8.0 : 8.h),
                               Text(
-                                bypassVerification ? "RESTORING AUTHENTICATION ACCESS" : "PROTECT YOUR HIGH INTENSITY DATA",
+                                bypassVerification 
+                                    ? "RESTORING AUTHENTICATION ACCESS" 
+                                    : (hasExistingPassword 
+                                        ? "PROTECT YOUR HIGH INTENSITY DATA"
+                                        : "SET A BACKUP PASSWORD FOR EMAIL LOGIN"),
                                 style: AppTextStyles.labelSmall.copyWith(
                                   color: AppColors.textSecondary, 
                                   letterSpacing: 1.5,
@@ -155,7 +179,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                               ),
                               SizedBox(height: isLargeScreen ? 40.0 : 40.h),
 
-                              if (!_isCurrentVerified && !bypassVerification) ...[
+                              if (showVerificationStep) ...[
                                 _buildLabel("CURRENT PASSWORD", isCompact, isLargeScreen),
                                 _buildTextField(
                                   controller: _currentPasswordController,
@@ -177,15 +201,19 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                                 SizedBox(height: isLargeScreen ? 32.0 : 32.h),
                                 Center(
                                   child: TextButton(
-                                    onPressed: (isLoading || authProv.emailCooldownSeconds > 0) ? null : _sendResetEmail,
+                                    onPressed: (isLoading || authProv.emailCooldownSeconds > 0 || authProv.isUsernameOnly) ? null : _sendResetEmail,
                                     child: Text(
                                       authProv.emailCooldownSeconds > 0 
                                           ? "RESEND RESET LINK IN ${authProv.emailCooldownSeconds}S" 
-                                          : "FORGOT CURRENT PASSWORD?",
+                                          : (authProv.isUsernameOnly ? "NO EMAIL TO SEND VERIFICATION" : "FORGOT CURRENT PASSWORD?"),
                                       style: AppTextStyles.labelSmall.copyWith(
-                                        color: authProv.emailCooldownSeconds > 0 ? AppColors.textSecondary.withValues(alpha: 0.5) : AppColors.crimson,
+                                        color: (authProv.emailCooldownSeconds > 0 || authProv.isUsernameOnly) 
+                                            ? AppColors.textSecondary.withValues(alpha: 0.5) 
+                                            : AppColors.crimson,
                                         fontWeight: FontWeight.w500,
-                                        decoration: authProv.emailCooldownSeconds > 0 ? TextDecoration.none : TextDecoration.underline,
+                                        decoration: (authProv.emailCooldownSeconds > 0 || authProv.isUsernameOnly) 
+                                            ? TextDecoration.none 
+                                            : TextDecoration.underline,
                                         fontSize: isLargeScreen ? 12.0 : null,
                                       ),
                                     ),
@@ -234,7 +262,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                                   ),
                                 SizedBox(height: isLargeScreen ? 40.0 : 40.h),
                                 _buildPrimaryButton(
-                                  label: "UPDATE PASSWORD",
+                                  label: hasExistingPassword ? "UPDATE PASSWORD" : "SET ACCOUNT PASSWORD",
                                   isLoading: isLoading,
                                   onTap: _canSave ? _handleChangePassword : () {},
                                   enabled: _canSave,

@@ -73,7 +73,7 @@ class SleepAlarmProvider with ChangeNotifier {
                     )
                   ),
                   content: Text(
-                    "To wake you up reliably, Heavy Duty needs permission to set exact alarms. Please enable this in the next screen.",
+                    "To wake you up reliably, Rugged needs permission to set exact alarms. Please enable this in the next screen.",
                     style: TextStyle(
                       color: Colors.white70,
                       fontSize: isCompact ? null : 13.0,

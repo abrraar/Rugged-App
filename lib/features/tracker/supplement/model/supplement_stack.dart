@@ -1,7 +1,7 @@
 // lib/features/tracker/supplement/model/supplement_stack.dart
 
 import 'dart:convert';
-import 'package:heavy_duty/features/tracker/supplement/model/supplement.dart';
+import 'package:rugged/features/tracker/supplement/model/supplement.dart';
 
 class SupplementStack {
   final String id;

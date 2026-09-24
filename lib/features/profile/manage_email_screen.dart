@@ -1,21 +1,22 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
-import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
-import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
-import 'package:heavy_duty/core/widgets/elite_settings_app_bar.dart';
-import 'package:heavy_duty/core/utils/adaptive_utils.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/core/widgets/elite_confirm_dialog.dart';
+import 'package:rugged/core/widgets/elite_snackbar.dart';
+import 'package:rugged/features/auth/provider/auth_provider.dart';
+import 'package:rugged/core/widgets/elite_refresh_indicator.dart';
+import 'package:rugged/core/widgets/elite_settings_app_bar.dart';
+import 'package:rugged/core/utils/adaptive_utils.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/navigation/app_routes.dart';
 
 class ManageEmailScreen extends StatefulWidget {
-  const ManageEmailScreen({super.key});
+  final bool isEmbedded;
+  const ManageEmailScreen({super.key, this.isEmbedded = false});
 
   @override
   State<ManageEmailScreen> createState() => _ManageEmailScreenState();
@@ -163,7 +164,7 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
                               hintText: "EMAIL ADDRESS",
                               hintStyle: const TextStyle(color: Colors.white24),
                               filled: true,
-                              fillColor: AppColors.surfaceLight.withOpacity(0.3),
+                              fillColor: AppColors.surfaceLight.withValues(alpha: 0.3),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(isLargeScreen ? 10.0 : 12.r), 
                                 borderSide: BorderSide.none
@@ -191,7 +192,7 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
                               hintText: "000000",
                               hintStyle: const TextStyle(color: Colors.white12),
                               filled: true,
-                              fillColor: AppColors.surfaceLight.withOpacity(0.3),
+                              fillColor: AppColors.surfaceLight.withValues(alpha: 0.3),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(isLargeScreen ? 10.0 : 12.r), 
                                 borderSide: BorderSide.none
@@ -218,12 +219,14 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
                                 setSheetState(() => _isSending = true);
                                 try {
                                   await context.read<AuthProvider>().addEmail(email);
+                                  if (!context.mounted) return;
                                   setSheetState(() {
                                     _pendingEmail = email;
                                     _isSending = false;
                                   });
                                 } catch (e) {
-                                  if (mounted) EliteSnackbar.show(context, "FAILED: ${e.toString().toUpperCase()}", isError: true);
+                                  if (!context.mounted) return;
+                                  EliteSnackbar.show(context, "FAILED: ${e.toString().toUpperCase()}", isError: true);
                                   setSheetState(() => _isSending = false);
                                 }
                               }
@@ -231,15 +234,16 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
                               final code = _otpController.text.trim();
                               if (code.length == 6) {
                                 setSheetState(() => _isVerifying = true);
-                                final success = await context.read<AuthProvider>().verifySecondaryEmailOTP(_pendingEmail!, code);
-                                if (success && mounted) {
-                                  Navigator.pop(sheetContext);
-                                  _resetState();
-                                  EliteSnackbar.show(context, "EMAIL VERIFIED SUCCESSFULLY");
-                                } else if (mounted) {
-                                  EliteSnackbar.show(context, "INVALID CODE", isError: true);
-                                  setSheetState(() => _isVerifying = false);
-                                }
+                                  final success = await context.read<AuthProvider>().verifySecondaryEmailOTP(_pendingEmail!, code);
+                                  if (!context.mounted) return;
+                                  if (success) {
+                                    Navigator.pop(sheetContext);
+                                    _resetState();
+                                    EliteSnackbar.show(context, "EMAIL VERIFIED SUCCESSFULLY");
+                                  } else {
+                                    EliteSnackbar.show(context, "INVALID CODE", isError: true);
+                                    setSheetState(() => _isVerifying = false);
+                                  }
                               }
                             }
                           },
@@ -251,11 +255,13 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
                                 setSheetState(() => _isSending = true);
                                 try {
                                   await context.read<AuthProvider>().resendSecondaryOTP(_pendingEmail!);
+                                  if (!context.mounted) return;
                                   EliteSnackbar.show(context, "FRESH CODE SENT");
                                 } catch (e) {
+                                  if (!context.mounted) return;
                                   EliteSnackbar.show(context, "RESEND FAILED", isError: true);
                                 } finally {
-                                  setSheetState(() => _isSending = false);
+                                  if (mounted) setSheetState(() => _isSending = false);
                                 }
                               },
                               child: Text(
@@ -302,6 +308,7 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
 
     if (confirmed == true && mounted) {
       await context.read<AuthProvider>().removeEmail(id);
+      if (!mounted) return false;
       EliteSnackbar.show(context, "EMAIL REMOVED");
       return true;
     }
@@ -332,6 +339,7 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
   @override
   Widget build(BuildContext context) {
     final authProv = context.watch<AuthProvider>();
+    final isUsernameOnly = authProv.isUsernameOnly;
     final emails = authProv.userEmails;
     final bool limitReached = emails.length >= 3;
     final int cooldown = authProv.emailCooldownSeconds;
@@ -352,215 +360,261 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final bool isCompact = constraints.maxWidth < 600 && !isLargeScreen;
-            final bool isWideLandscape = isLargeScreen && MediaQuery.of(context).orientation == Orientation.landscape;
 
-            return Column(
-              children: [
-                EliteSettingsAppBar(
-                  title: "MANAGE EMAILS", 
-                  isCompact: isCompact,
-                  showBackButton: !isWideLandscape,
-                ),
+              return Column(
+                children: [
+                  EliteSettingsAppBar(
+                    title: "MANAGE EMAILS", 
+                    isCompact: isCompact,
+                    showBackButton: !widget.isEmbedded,
+                  ),
                   Expanded(
-                    child: RefreshIndicator(
+                    child: EliteRefreshIndicator(
                       onRefresh: () => authProv.refreshEmails(),
                       color: AppColors.crimson,
                       backgroundColor: AppColors.surface,
-                      child: ListView.builder(
+                      child: ListView(
                         padding: EdgeInsets.symmetric(
                           horizontal: isLargeScreen ? 24.0 : 24.w, 
                           vertical: isLargeScreen ? 24.0 : 24.r
                         ),
-                            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-                            itemCount: emails.length,
-                            itemBuilder: (context, index) {
-                              final email = emails[index];
-                              final bool isPrimary = email.email == authProv.currentUser?.email;
+                        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                        children: [
+                          if (isUsernameOnly)
+                            _buildSecureAccountCard(isLargeScreen),
+                          
+                          ...emails.map((email) {
+                            final bool isPrimary = email.email == authProv.currentUser?.email;
 
-                              return Dismissible(
-                                key: Key(email.id),
-                                direction: isPrimary
-                                    ? DismissDirection.none
-                                    : (email.isVerified ? DismissDirection.endToStart : DismissDirection.horizontal),
-                                confirmDismiss: (dir) async {
-                                  if (dir == DismissDirection.startToEnd) {
-                                    setState(() => _pendingEmail = email.email);
-                                    _showAddEmailSheet();
-                                    return false;
-                                  } else {
-                                    return await _confirmDelete(email.id, email.email);
-                                  }
-                                },
-                                background: Container(
-                                  margin: EdgeInsets.only(bottom: isLargeScreen ? 16.0 : 16.h),
-                                  decoration: BoxDecoration(
-                                    color: Colors.greenAccent.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(isLargeScreen ? 12.0 : 16.r),
-                                  ),
-                                  alignment: Alignment.centerLeft,
-                                  padding: EdgeInsets.only(left: isLargeScreen ? 24.0 : 24.w),
-                                  child: Icon(Icons.verified_user_outlined, color: Colors.greenAccent, size: isLargeScreen ? 28.0 : 28.r),
+                            return Dismissible(
+                              key: Key(email.id),
+                              direction: isPrimary
+                                  ? DismissDirection.none
+                                  : (email.isVerified ? DismissDirection.endToStart : DismissDirection.horizontal),
+                              confirmDismiss: (dir) async {
+                                if (dir == DismissDirection.startToEnd) {
+                                  setState(() => _pendingEmail = email.email);
+                                  _showAddEmailSheet();
+                                  return false;
+                                } else {
+                                  return await _confirmDelete(email.id, email.email);
+                                }
+                              },
+                              background: Container(
+                                margin: EdgeInsets.only(bottom: isLargeScreen ? 16.0 : 16.h),
+                                decoration: BoxDecoration(
+                                  color: Colors.greenAccent.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(isLargeScreen ? 12.0 : 16.r),
                                 ),
-                                secondaryBackground: Container(
-                                  margin: EdgeInsets.only(bottom: isLargeScreen ? 16.0 : 16.h),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.crimson.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(isLargeScreen ? 12.0 : 16.r),
-                                  ),
-                                  alignment: Alignment.centerRight,
-                                  padding: EdgeInsets.only(right: isLargeScreen ? 24.0 : 24.w),
-                                  child: Icon(Icons.delete_outline_rounded, color: AppColors.crimson, size: isLargeScreen ? 28.0 : 28.r),
+                                alignment: Alignment.centerLeft,
+                                padding: EdgeInsets.only(left: isLargeScreen ? 24.0 : 24.w),
+                                child: Icon(Icons.verified_user_outlined, color: Colors.greenAccent, size: isLargeScreen ? 28.0 : 28.r),
+                              ),
+                              secondaryBackground: Container(
+                                margin: EdgeInsets.only(bottom: isLargeScreen ? 16.0 : 16.h),
+                                decoration: BoxDecoration(
+                                  color: AppColors.crimson.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(isLargeScreen ? 12.0 : 16.r),
                                 ),
-                                child: GestureDetector(
-                                  onTap: (email.isVerified && !isPrimary && cooldown == 0) ? () => _confirmPromotion(email.email) : null,
-                                  child: Container(
-                                    margin: EdgeInsets.only(bottom: isLargeScreen ? 16.0 : 16.h),
-                                    padding: EdgeInsets.all(isLargeScreen ? 16.0 : 16.r),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.surface,
-                                      borderRadius: BorderRadius.circular(isLargeScreen ? 12.0 : 16.r),
-                                      border: Border.all(
-                                        color: isPrimary ? AppColors.crimson.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.05),
-                                        width: isPrimary ? 1.5 : 1.0,
-                                      ),
+                                alignment: Alignment.centerRight,
+                                padding: EdgeInsets.only(right: isLargeScreen ? 24.0 : 24.w),
+                                child: Icon(Icons.delete_outline_rounded, color: AppColors.crimson, size: isLargeScreen ? 28.0 : 28.r),
+                              ),
+                              child: GestureDetector(
+                                onTap: (email.isVerified && !isPrimary && cooldown == 0) ? () => _confirmPromotion(email.email) : null,
+                                child: Container(
+                                  margin: EdgeInsets.only(bottom: isLargeScreen ? 16.0 : 16.h),
+                                  padding: EdgeInsets.all(isLargeScreen ? 16.0 : 16.r),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.surface,
+                                    borderRadius: BorderRadius.circular(isLargeScreen ? 12.0 : 16.r),
+                                    border: Border.all(
+                                      color: isPrimary ? AppColors.crimson.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.05),
+                                      width: isPrimary ? 1.5 : 1.0,
                                     ),
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Row(
-                                                children: [
-                                                  Expanded(
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    email.email,
+                                                    style: AppTextStyles.labelMedium.copyWith(
+                                                      color: Colors.white,
+                                                      fontSize: isLargeScreen ? 14.0 : null,
+                                                    ),
+                                                    overflow: TextOverflow.ellipsis
+                                                  )
+                                                ),
+                                                if (isPrimary) ...[
+                                                  SizedBox(width: isLargeScreen ? 8.0 : 8.w),
+                                                  Container(
+                                                    padding: EdgeInsets.symmetric(
+                                                      horizontal: isLargeScreen ? 6.0 : 6.w,
+                                                      vertical: isLargeScreen ? 2.0 : 2.h
+                                                    ),
+                                                    decoration: BoxDecoration(
+                                                      color: AppColors.crimson.withValues(alpha: 0.15),
+                                                      borderRadius: BorderRadius.circular(isLargeScreen ? 4.0 : 4.r),
+                                                      border: Border.all(color: AppColors.crimson.withValues(alpha: 0.3)),
+                                                    ),
                                                     child: Text(
-                                                      email.email,
-                                                      style: AppTextStyles.labelMedium.copyWith(
-                                                        color: Colors.white,
-                                                        fontSize: isLargeScreen ? 14.0 : null,
+                                                      "PRIMARY",
+                                                      style: AppTextStyles.labelSmall.copyWith(
+                                                        color: AppColors.crimson,
+                                                        fontSize: isLargeScreen ? 9.0 : 8.sp,
+                                                        fontWeight: FontWeight.w500,
+                                                        letterSpacing: 0.5,
                                                       ),
-                                                      overflow: TextOverflow.ellipsis
-                                                    )
+                                                    ),
                                                   ),
-                                                  if (isPrimary) ...[
-                                                    SizedBox(width: isLargeScreen ? 8.0 : 8.w),
-                                                    Container(
-                                                      padding: EdgeInsets.symmetric(
-                                                        horizontal: isLargeScreen ? 6.0 : 6.w,
-                                                        vertical: isLargeScreen ? 2.0 : 2.h
-                                                      ),
-                                                      decoration: BoxDecoration(
-                                                        color: AppColors.crimson.withValues(alpha: 0.15),
-                                                        borderRadius: BorderRadius.circular(isLargeScreen ? 4.0 : 4.r),
-                                                        border: Border.all(color: AppColors.crimson.withValues(alpha: 0.3)),
-                                                      ),
-                                                      child: Text(
-                                                        "PRIMARY",
-                                                        style: AppTextStyles.labelSmall.copyWith(
-                                                          color: AppColors.crimson,
-                                                          fontSize: isLargeScreen ? 9.0 : 8.sp,
-                                                          fontWeight: FontWeight.w500,
-                                                          letterSpacing: 0.5,
-                                                        ),
+                                                ] else ...[
+                                                  SizedBox(width: isLargeScreen ? 8.0 : 8.w),
+                                                  Container(
+                                                    padding: EdgeInsets.symmetric(
+                                                      horizontal: isLargeScreen ? 6.0 : 6.w,
+                                                      vertical: isLargeScreen ? 2.0 : 2.h
+                                                    ),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.white.withValues(alpha: 0.05),
+                                                      borderRadius: BorderRadius.circular(isLargeScreen ? 4.0 : 4.r),
+                                                    ),
+                                                    child: Text(
+                                                      "SECONDARY",
+                                                      style: AppTextStyles.labelSmall.copyWith(
+                                                        color: Colors.white38,
+                                                        fontSize: isLargeScreen ? 9.0 : 8.sp,
+                                                        fontWeight: FontWeight.w500,
+                                                        letterSpacing: 0.5,
                                                       ),
                                                     ),
-                                                  ] else ...[
-                                                    SizedBox(width: isLargeScreen ? 8.0 : 8.w),
-                                                    Container(
-                                                      padding: EdgeInsets.symmetric(
-                                                        horizontal: isLargeScreen ? 6.0 : 6.w,
-                                                        vertical: isLargeScreen ? 2.0 : 2.h
-                                                      ),
-                                                      decoration: BoxDecoration(
-                                                        color: Colors.white.withValues(alpha: 0.05),
-                                                        borderRadius: BorderRadius.circular(isLargeScreen ? 4.0 : 4.r),
-                                                      ),
-                                                      child: Text(
-                                                        "SECONDARY",
-                                                        style: AppTextStyles.labelSmall.copyWith(
-                                                          color: Colors.white38,
-                                                          fontSize: isLargeScreen ? 9.0 : 8.sp,
-                                                          fontWeight: FontWeight.w500,
-                                                          letterSpacing: 0.5,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
+                                                  ),
                                                 ],
-                                              ),
-                                              SizedBox(height: isLargeScreen ? 6.0 : 6.h),
-                                              Row(
-                                                children: [
-                                                  Icon(
-                                                    email.isVerified ? Icons.verified_rounded : Icons.pending_actions_rounded,
-                                                    size: isLargeScreen ? 14.0 : 14.r,
+                                              ],
+                                            ),
+                                            SizedBox(height: isLargeScreen ? 6.0 : 6.h),
+                                            Row(
+                                              children: [
+                                                Icon(
+                                                  email.isVerified ? Icons.verified_rounded : Icons.pending_actions_rounded,
+                                                  size: isLargeScreen ? 14.0 : 14.r,
+                                                  color: email.isVerified ? Colors.greenAccent : Colors.orangeAccent,
+                                                ),
+                                                SizedBox(width: isLargeScreen ? 6.0 : 6.w),
+                                                Text(
+                                                  email.isVerified ? "VERIFIED" : "NOT VERIFIED",
+                                                  style: AppTextStyles.labelSmall.copyWith(
                                                     color: email.isVerified ? Colors.greenAccent : Colors.orangeAccent,
+                                                    fontSize: isLargeScreen ? 11.0 : 10.sp,
+                                                    fontWeight: FontWeight.w500,
                                                   ),
-                                                  SizedBox(width: isLargeScreen ? 6.0 : 6.w),
+                                                ),
+                                                if (!email.isVerified) ...[
+                                                  const Spacer(),
                                                   Text(
-                                                    email.isVerified ? "VERIFIED" : "NOT VERIFIED",
+                                                    "SLIDE RIGHT TO VERIFY",
                                                     style: AppTextStyles.labelSmall.copyWith(
-                                                      color: email.isVerified ? Colors.greenAccent : Colors.orangeAccent,
-                                                      fontSize: isLargeScreen ? 11.0 : 10.sp,
-                                                      fontWeight: FontWeight.w500,
+                                                      color: Colors.white24,
+                                                      fontSize: isLargeScreen ? 9.0 : 8.sp,
+                                                      fontWeight: FontWeight.w500
                                                     ),
                                                   ),
-                                                  if (!email.isVerified) ...[
-                                                    const Spacer(),
-                                                    Text(
-                                                      "SLIDE RIGHT TO VERIFY",
-                                                      style: AppTextStyles.labelSmall.copyWith(
-                                                        color: Colors.white24,
-                                                        fontSize: isLargeScreen ? 9.0 : 8.sp,
-                                                        fontWeight: FontWeight.w500
-                                                      ),
+                                                ] else if (!isPrimary) ...[
+                                                  const Spacer(),
+                                                  Text(
+                                                    cooldown > 0
+                                                      ? "WAIT ${cooldown}S"
+                                                      : "TAP TO PROMOTE",
+                                                    style: AppTextStyles.labelSmall.copyWith(
+                                                      color: cooldown > 0 ? Colors.white12 : AppColors.crimson.withValues(alpha: 0.5),
+                                                      fontSize: isLargeScreen ? 9.0 : 8.sp,
+                                                      fontWeight: FontWeight.w500
                                                     ),
-                                                  ] else if (!isPrimary) ...[
-                                                    const Spacer(),
-                                                    Text(
-                                                      cooldown > 0
-                                                        ? "WAIT ${cooldown}S"
-                                                        : "TAP TO PROMOTE",
-                                                      style: AppTextStyles.labelSmall.copyWith(
-                                                        color: cooldown > 0 ? Colors.white12 : AppColors.crimson.withValues(alpha: 0.5),
-                                                        fontSize: isLargeScreen ? 9.0 : 8.sp,
-                                                        fontWeight: FontWeight.w500
-                                                      ),
-                                                    ),
-                                                  ],
+                                                  ),
                                                 ],
-                                              ),
-                                            ],
-                                          ),
+                                              ],
+                                            ),
+                                          ],
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              );
-                            },
-                          ),
-                        ),
+                              ),
+                            );
+                          }),
+                        ],
                       ),
+                    ),
+                  ),
                   Padding(
                     padding: EdgeInsets.all(isLargeScreen ? 24.0 : 24.r),
                     child: _PrimaryButton(
-                          label: limitReached
-                              ? "MAXIMUM EMAILS REACHED"
-                              : (cooldown > 0
-                                  ? "WAIT ${cooldown}S"
-                                  : "ADD EMAIL ADDRESS"),
-                          onTap: (limitReached || cooldown > 0) ? () {} : _showAddEmailSheet,
-                          enabled: !limitReached && cooldown == 0,
-                          isLargeScreen: isLargeScreen,
-                        ),
+                      label: limitReached
+                          ? "MAXIMUM EMAILS REACHED"
+                          : (cooldown > 0
+                              ? "WAIT ${cooldown}S"
+                              : "ADD EMAIL ADDRESS"),
+                      onTap: (limitReached || cooldown > 0) ? () {} : _showAddEmailSheet,
+                      enabled: !limitReached && cooldown == 0,
+                      isLargeScreen: isLargeScreen,
                     ),
+                  ),
                   SizedBox(height: isLargeScreen ? 20.0 : 20.h),
                 ],
               );
             },
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSecureAccountCard(bool isLargeScreen) {
+    return Container(
+      margin: EdgeInsets.only(bottom: isLargeScreen ? 24.0 : 24.h),
+      padding: EdgeInsets.all(isLargeScreen ? 20.0 : 20.r),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppColors.crimson.withValues(alpha: 0.15), Colors.transparent],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(isLargeScreen ? 16.0 : 20.r),
+        border: Border.all(color: AppColors.crimson.withValues(alpha: 0.3), width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.shield_outlined, color: AppColors.crimson, size: isLargeScreen ? 24.0 : 24.r),
+              SizedBox(width: isLargeScreen ? 12.0 : 12.w),
+              Text(
+                "SECURE YOUR ACCOUNT",
+                style: AppTextStyles.labelLarge.copyWith(
+                  color: AppColors.white,
+                  fontSize: isLargeScreen ? 16.0 : null,
+                  letterSpacing: 1,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: isLargeScreen ? 12.0 : 12.h),
+          Text(
+            "YOUR ACCOUNT IS CURRENTLY UNSECURED. ADD A PRIMARY EMAIL TO ENABLE PASSWORD RECOVERY AND ACCOUNT PROTECTION.",
+            style: AppTextStyles.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+              fontSize: isLargeScreen ? 11.0 : 11.sp,
+              height: 1.4,
+            ),
+          ),
+        ],
       ),
     );
   }

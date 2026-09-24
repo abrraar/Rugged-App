@@ -3,13 +3,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/core/navigation/app_routes.dart';
-import 'package:heavy_duty/core/constants/dimensions.dart';
-import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
-import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
-import 'package:heavy_duty/features/auth/widgets/auth_components.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/core/navigation/app_routes.dart';
+import 'package:rugged/core/constants/dimensions.dart';
+import 'package:rugged/core/widgets/elite_snackbar.dart';
+import 'package:rugged/features/auth/provider/auth_provider.dart';
+import 'package:rugged/features/auth/widgets/auth_components.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -19,6 +19,7 @@ class SignInScreen extends StatefulWidget {
 }
 
 class _SignInScreenState extends State<SignInScreen> {
+  SignUpMode _signUpMode = SignUpMode.email;
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -41,15 +42,27 @@ class _SignInScreenState extends State<SignInScreen> {
     final password = _passwordController.text;
     final confirm = _confirmPasswordController.text;
 
-    if (username.isEmpty || email.isEmpty || password.isEmpty || confirm.isEmpty) {
-      EliteSnackbar.show(context, 'PLEASE FILL IN ALL FIELDS', isError: true);
+    if ((_signUpMode == SignUpMode.email || _signUpMode == SignUpMode.both) && email.isEmpty) {
+      EliteSnackbar.show(context, 'PLEASE ENTER YOUR EMAIL', isError: true);
       return;
     }
 
-    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-    if (!emailRegex.hasMatch(email)) {
-      EliteSnackbar.show(context, 'PLEASE ENTER A VALID EMAIL ADDRESS', isError: true);
+    if ((_signUpMode == SignUpMode.username || _signUpMode == SignUpMode.both) && username.isEmpty) {
+      EliteSnackbar.show(context, 'PLEASE CHOOSE A USERNAME', isError: true);
       return;
+    }
+
+    if (password.isEmpty || confirm.isEmpty) {
+      EliteSnackbar.show(context, 'PLEASE ENTER AND CONFIRM PASSWORD', isError: true);
+      return;
+    }
+
+    if (_signUpMode == SignUpMode.email || _signUpMode == SignUpMode.both) {
+      final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+      if (!emailRegex.hasMatch(email)) {
+        EliteSnackbar.show(context, 'PLEASE ENTER A VALID EMAIL ADDRESS', isError: true);
+        return;
+      }
     }
 
     if (password != confirm) {
@@ -60,16 +73,26 @@ class _SignInScreenState extends State<SignInScreen> {
     try {
       final authProv = context.read<AuthProvider>();
       
-      // 1. Check Username Availability
-      final bool isAvailable = await authProv.checkUsernameAvailability(username);
-      if (!isAvailable) {
+      if (_signUpMode == SignUpMode.username) {
+        // 1. Check Username Availability
+        final bool isAvailable = await authProv.checkUsernameAvailability(username);
+        if (!isAvailable) {
+          if (!mounted) return;
+          EliteSnackbar.show(context, 'USERNAME IS ALREADY TAKEN', isError: true);
+          return;
+        }
+        
+        // 2. Proceed with Shadow Email Sign Up
+        await authProv.signUpWithUsername(username, password);
         if (!mounted) return;
-        EliteSnackbar.show(context, 'USERNAME IS ALREADY TAKEN', isError: true);
+        // Shadow emails are auto-confirmed (no OTP required), so we go straight to setup
+        context.go(AppRoutes.createProfilePersonal);
         return;
       }
 
-      // 2. Proceed with Sign Up
-      await authProv.signUp(email, password, username: username);
+      // 2. Proceed with Sign Up (Email or Both)
+      // If mode is 'both', we pass both email and username
+      await authProv.signUp(email, password, username: _signUpMode == SignUpMode.both ? username : null);
       if (!mounted) return;
       context.push(AppRoutes.otp);
     } catch (e) {
@@ -175,7 +198,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
   Widget _buildSignUpForm(bool isLoading, {bool isWideLayout = false}) {
     final authProv = context.watch<AuthProvider>();
-    final int cooldown = authProv.emailCooldownSeconds;
+    final int cooldown = authProv.isCooldownActive(_signUpMode) ? authProv.emailCooldownSeconds : 0;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -184,29 +207,67 @@ class _SignInScreenState extends State<SignInScreen> {
         if (isWideLayout) ...[
           Text(
             'CREATE ACCOUNT',
-            style: AppTextStyles.h2.copyWith(
+            style: AppTextStyles.h2.adaptive(context).copyWith(
               color: AppColors.white,
-              fontSize: 28.sp.clamp(24, 36),
             ),
           ),
           SizedBox(height: 24.h.clamp(16, 40)),
         ],
-        AuthInputField(
-          controller: _usernameController,
-          hint: 'USERNAME',
-          icon: Icons.person_outline,
-          enabled: !isLoading,
-          isWideLayout: isWideLayout,
+        
+        // --- SIGN UP MODE SELECTOR ---
+        Row(
+          children: [
+            Expanded(
+              child: _ModeSelectorButton(
+                label: 'EMAIL',
+                isActive: _signUpMode == SignUpMode.email,
+                onTap: () => setState(() => _signUpMode = SignUpMode.email),
+                isWideLayout: isWideLayout,
+              ),
+            ),
+            SizedBox(width: isWideLayout ? 12 : 8.w),
+            Expanded(
+              child: _ModeSelectorButton(
+                label: 'USERNAME',
+                isActive: _signUpMode == SignUpMode.username,
+                onTap: () => setState(() => _signUpMode = SignUpMode.username),
+                isWideLayout: isWideLayout,
+              ),
+            ),
+            SizedBox(width: isWideLayout ? 12 : 8.w),
+            Expanded(
+              child: _ModeSelectorButton(
+                label: 'BOTH',
+                isActive: _signUpMode == SignUpMode.both,
+                onTap: () => setState(() => _signUpMode = SignUpMode.both),
+                isWideLayout: isWideLayout,
+              ),
+            ),
+          ],
         ),
-        SizedBox(height: 16.h.clamp(12, 24)),
-        AuthInputField(
-          controller: _emailController,
-          hint: 'EMAIL ADDRESS',
-          icon: Icons.email_outlined,
-          keyboardType: TextInputType.emailAddress,
-          enabled: !isLoading,
-          isWideLayout: isWideLayout,
-        ),
+        SizedBox(height: 32.h.clamp(24, 40)),
+
+        if (_signUpMode == SignUpMode.username || _signUpMode == SignUpMode.both) ...[
+          AuthInputField(
+            controller: _usernameController,
+            hint: 'CHOOSE A USERNAME',
+            icon: Icons.person_outline,
+            enabled: !isLoading,
+            isWideLayout: isWideLayout,
+          ),
+          if (_signUpMode == SignUpMode.both) SizedBox(height: 16.h.clamp(12, 24)),
+        ],
+
+        if (_signUpMode == SignUpMode.email || _signUpMode == SignUpMode.both)
+          AuthInputField(
+            controller: _emailController,
+            hint: 'EMAIL ADDRESS',
+            icon: Icons.email_outlined,
+            keyboardType: TextInputType.emailAddress,
+            enabled: !isLoading,
+            isWideLayout: isWideLayout,
+          ),
+        
         SizedBox(height: 16.h.clamp(12, 24)),
         AuthInputField(
           controller: _passwordController,
@@ -248,6 +309,20 @@ class _SignInScreenState extends State<SignInScreen> {
           onTap: cooldown > 0 ? () {} : _handleSignUp,
           isWideLayout: isWideLayout,
         ),
+        SizedBox(height: 24.h.clamp(16, 32)),
+        const AuthDividerWithText(text: 'OR JOIN WITH'),
+        SizedBox(height: 24.h.clamp(16, 32)),
+        AuthSocialButton(
+          label: 'SIGN UP WITH GOOGLE',
+          icon: Icon(
+            Icons.g_mobiledata_rounded, 
+            color: Colors.white, 
+            size: isWideLayout ? 32 : 28.r
+          ),
+          onTap: () => context.read<AuthProvider>().signInWithGoogle(),
+          isWideLayout: isWideLayout,
+          isLoading: isLoading,
+        ),
         SizedBox(height: 48.h.clamp(32, 80)),
         Center(
           child: Wrap(
@@ -256,18 +331,15 @@ class _SignInScreenState extends State<SignInScreen> {
             children: [
               Text(
                 "Already have an account? ",
-                style: AppTextStyles.caption.copyWith(
-                  fontSize: isWideLayout ? 14 : 13.sp,
-                ),
+                style: AppTextStyles.caption.adaptive(context),
               ),
               GestureDetector(
                 onTap: isLoading ? null : () => context.go(AppRoutes.login),
                 child: Text(
                   'LOG IN',
-                  style: AppTextStyles.link.copyWith(
+                  style: AppTextStyles.link.adaptive(context).copyWith(
                     color: AppColors.crimson,
                     fontWeight: FontWeight.w500,
-                    fontSize: isWideLayout ? 14 : 13.sp,
                   ),
                 ),
               ),
@@ -275,6 +347,49 @@ class _SignInScreenState extends State<SignInScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ModeSelectorButton extends StatelessWidget {
+  final String label;
+  final bool isActive;
+  final VoidCallback onTap;
+  final bool isWideLayout;
+
+  const _ModeSelectorButton({
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+    this.isWideLayout = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
+        height: isWideLayout ? 54 : 48.h,
+        decoration: BoxDecoration(
+          color: isActive ? AppColors.crimson.withValues(alpha: 0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(
+            color: isActive ? AppColors.crimson : AppColors.white.withValues(alpha: 0.1),
+            width: isActive ? 1.5 : 1.0,
+          ),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+            color: isActive ? AppColors.white : AppColors.textSecondary,
+            fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+            letterSpacing: 1.5,
+          ),
+        ),
+      ),
     );
   }
 }

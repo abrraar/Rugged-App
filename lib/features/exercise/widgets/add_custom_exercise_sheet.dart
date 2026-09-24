@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/features/exercise/model/exercise_template.dart';
-import 'package:heavy_duty/features/exercise/provider/exercise_provider.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/features/exercise/model/exercise_template.dart';
+import 'package:rugged/features/exercise/provider/exercise_provider.dart';
 import 'package:provider/provider.dart';
 
 class AddCustomExerciseSheet extends StatefulWidget {
@@ -116,7 +116,7 @@ class _AddCustomExerciseSheetState extends State<AddCustomExerciseSheet> {
                             children: [
                               Text(
                                 "NEW EXERCISE", 
-                                style: AppTextStyles.h3.copyWith(fontSize: isCompact ? null : 16.0)
+                                style: AppTextStyles.h3.adaptive(context)
                               ),
                               if (widget.isSideSheet)
                                 IconButton(
@@ -132,9 +132,8 @@ class _AddCustomExerciseSheetState extends State<AddCustomExerciseSheet> {
                           SizedBox(height: isCompact ? 24.h : 20.0),
                           Text(
                             "TARGET MUSCLES", 
-                            style: AppTextStyles.labelSmall.copyWith(
+                            style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                               color: AppColors.textSecondary, 
-                              fontSize: isCompact ? 10.sp : 9.0,
                               fontWeight: FontWeight.w500,
                             )
                           ),
@@ -152,15 +151,14 @@ class _AddCustomExerciseSheetState extends State<AddCustomExerciseSheet> {
                                     vertical: isCompact ? 6.h : 6.0
                                   ),
                                   decoration: BoxDecoration(
-                                    color: isSelected ? AppColors.crimson : AppColors.surfaceLight.withOpacity(0.2),
+                                    color: isSelected ? AppColors.crimson : AppColors.surfaceLight.withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(isCompact ? 8.r : 8.0),
-                                    border: Border.all(color: isSelected ? AppColors.crimson : AppColors.white.withOpacity(0.05)),
+                                    border: Border.all(color: isSelected ? AppColors.crimson : AppColors.white.withValues(alpha: 0.05)),
                                   ),
                                   child: Text(
                                     m.toUpperCase(), 
-                                    style: AppTextStyles.labelSmall.copyWith(
+                                    style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                       color: isSelected ? Colors.white : AppColors.textSecondary, 
-                                      fontSize: isCompact ? 9.sp : 8.0,
                                       fontWeight: FontWeight.w500,
                                     )
                                   ),
@@ -191,9 +189,9 @@ class _AddCustomExerciseSheetState extends State<AddCustomExerciseSheet> {
     return Container(
       padding: EdgeInsets.all(isCompact ? 16.r : 12.0),
       decoration: BoxDecoration(
-        color: AppColors.background.withOpacity(0.5),
+        color: AppColors.background.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
-        border: Border.all(color: AppColors.white.withOpacity(0.03)),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.03)),
       ),
       child: Column(
         children: [
@@ -202,9 +200,8 @@ class _AddCustomExerciseSheetState extends State<AddCustomExerciseSheet> {
             children: [
               Text(
                 "TYPE", 
-                style: AppTextStyles.labelSmall.copyWith(
+                style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                   color: AppColors.textSecondary, 
-                  fontSize: isCompact ? 10.sp : 9.0,
                   fontWeight: FontWeight.w500,
                 )
               ),
@@ -214,15 +211,14 @@ class _AddCustomExerciseSheetState extends State<AddCustomExerciseSheet> {
                   vertical: isCompact ? 2.h : 2.0
                 ),
                 decoration: BoxDecoration(
-                  color: _calculatedType == ExerciseType.compound ? AppColors.crimson.withOpacity(0.1) : AppColors.white.withOpacity(0.05),
+                  color: _calculatedType == ExerciseType.compound ? AppColors.crimson.withValues(alpha: 0.1) : AppColors.white.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(isCompact ? 4.r : 4.0),
                 ),
                 child: Text(
                   _calculatedType.name.toUpperCase(),
-                  style: AppTextStyles.labelSmall.copyWith(
+                  style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                     color: _calculatedType == ExerciseType.compound ? AppColors.crimson : AppColors.textSecondary,
                     fontWeight: FontWeight.w500,
-                    fontSize: isCompact ? null : 9.0,
                   ),
                 ),
               ),
@@ -234,9 +230,8 @@ class _AddCustomExerciseSheetState extends State<AddCustomExerciseSheet> {
             children: [
               Text(
                 "DEMAND", 
-                style: AppTextStyles.labelSmall.copyWith(
+                style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                   color: AppColors.textSecondary, 
-                  fontSize: isCompact ? 10.sp : 9.0,
                   fontWeight: FontWeight.w500,
                 )
               ),
@@ -253,7 +248,7 @@ class _AddCustomExerciseSheetState extends State<AddCustomExerciseSheet> {
       children: List.generate(5, (index) => Icon(
         Icons.local_fire_department_rounded,
         size: isCompact ? 16.r : 16.0,
-        color: index < score ? AppColors.crimson : AppColors.white.withOpacity(0.05),
+        color: index < score ? AppColors.crimson : AppColors.white.withValues(alpha: 0.05),
       )),
     );
   }
@@ -264,9 +259,8 @@ class _AddCustomExerciseSheetState extends State<AddCustomExerciseSheet> {
       children: [
         Text(
           label, 
-          style: AppTextStyles.labelSmall.copyWith(
+          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
             color: AppColors.textSecondary, 
-            fontSize: isCompact ? 10.sp : 9.0,
             fontWeight: FontWeight.w500,
           )
         ),
@@ -274,11 +268,11 @@ class _AddCustomExerciseSheetState extends State<AddCustomExerciseSheet> {
         TextField(
           controller: controller,
           maxLines: maxLines,
-          style: TextStyle(color: Colors.white, fontSize: isCompact ? null : 13.0),
+          style: AppTextStyles.inputText.adaptive(context).copyWith(color: Colors.white),
           textCapitalization: TextCapitalization.words,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.2), fontSize: isCompact ? 12.sp : 13.0),
+            hintStyle: AppTextStyles.inputText.adaptive(context).copyWith(color: AppColors.textSecondary.withValues(alpha: 0.2)),
             filled: true,
             fillColor: AppColors.background.withValues(alpha: 0.5),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0), borderSide: BorderSide.none),
@@ -297,20 +291,19 @@ class _AddCustomExerciseSheetState extends State<AddCustomExerciseSheet> {
         height: isCompact ? 54.h : 44.0,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: _isReady ? AppColors.crimson : AppColors.surfaceLight.withOpacity(0.1),
+          color: _isReady ? AppColors.crimson : AppColors.surfaceLight.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
           boxShadow: _isReady ? [
-            BoxShadow(color: AppColors.crimson.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4)),
+            BoxShadow(color: AppColors.crimson.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 4)),
           ] : [],
         ),
         alignment: Alignment.center,
         child: Text(
           _buttonText,
-          style: AppTextStyles.labelMedium.copyWith(
-            color: _isReady ? Colors.white : AppColors.textSecondary.withOpacity(0.5),
+          style: AppTextStyles.labelMedium.adaptive(context).copyWith(
+            color: _isReady ? Colors.white : AppColors.textSecondary.withValues(alpha: 0.5),
             fontWeight: FontWeight.w500,
             letterSpacing: 1.2,
-            fontSize: isCompact ? null : 12.0,
           ),
         ),
       ),
@@ -322,7 +315,7 @@ class _AddCustomExerciseSheetState extends State<AddCustomExerciseSheet> {
       child: Container(
         width: isCompact ? 40.w : 40.0,
         height: isCompact ? 4.h : 4.0,
-        decoration: BoxDecoration(color: AppColors.textSecondary.withOpacity(0.2), borderRadius: BorderRadius.circular(2.r)),
+        decoration: BoxDecoration(color: AppColors.textSecondary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(2.r)),
       ),
     );
   }

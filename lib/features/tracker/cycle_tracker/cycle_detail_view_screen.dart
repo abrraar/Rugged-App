@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
-import 'package:heavy_duty/features/tracker/cycle_tracker/provider/cycle_provider.dart';
+import 'package:go_router/go_router.dart';
+import 'package:rugged/core/navigation/app_routes.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/core/widgets/elite_confirm_dialog.dart';
+import 'package:rugged/features/tracker/cycle_tracker/provider/cycle_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:heavy_duty/features/tracker/cycle_tracker/create_cycle_screen.dart';
-import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
+import 'package:rugged/features/tracker/cycle_tracker/create_cycle_screen.dart';
+import 'package:rugged/features/auth/provider/auth_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import 'model/workout.dart';
 
 class CycleDetailViewScreen extends StatelessWidget {
@@ -61,10 +62,9 @@ class CycleDetailViewScreen extends StatelessWidget {
                               textAlign: TextAlign.center,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: AppTextStyles.h2.copyWith(
+                              style: AppTextStyles.h2.adaptive(context).copyWith(
                                 color: AppColors.white,
                                 fontWeight: FontWeight.w500,
-                                fontSize: isCompact ? null : 20.0,
                               ),
                             ),
                           ),
@@ -113,9 +113,8 @@ class CycleDetailViewScreen extends StatelessWidget {
                         if (cycle.description.isNotEmpty) ...[
                           Text(
                             cycle.description.toUpperCase(),
-                            style: AppTextStyles.labelSmall.copyWith(
+                            style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                               color: AppColors.textSecondary.withValues(alpha: 0.6),
-                              fontSize: isCompact ? 12.sp : 12.0,
                               letterSpacing: 1,
                               height: 1.4,
                             ),
@@ -123,11 +122,11 @@ class CycleDetailViewScreen extends StatelessWidget {
                           ),
                           SizedBox(height: isCompact ? 24.h : 24.0),
                         ],
-                        _buildInfoTile("STRUCTURE", "${cycleWorkouts.length} SESSIONS", isCompact),
+                        _buildInfoTile(context, "STRUCTURE", "${cycleWorkouts.length} SESSIONS", isCompact),
                         SizedBox(height: isCompact ? 24.h : 24.0),
-                        _buildSectionHeader("WORKOUT ARCHITECTURE", isCompact),
+                        _buildSectionHeader(context, "WORKOUT ARCHITECTURE", isCompact),
                         SizedBox(height: isCompact ? 16.h : 16.0),
-                        ...cycleWorkouts.map((workout) => _buildWorkoutSummaryCard(workout, provider, isCompact)),
+                        ...cycleWorkouts.map((workout) => _buildWorkoutSummaryCard(context, workout, provider, isCompact)),
                       ],
                     ),
                   ),
@@ -158,23 +157,22 @@ class CycleDetailViewScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionHeader(String title, bool isCompact) {
+  Widget _buildSectionHeader(BuildContext context, String title, bool isCompact) {
     return Row(
       children: [
         Container(
-          width: isCompact ? 2.5.w : 2.5,
-          height: isCompact ? 12.h : 12.0,
+          width: 2.5,
+          height: 12.0,
           decoration: BoxDecoration(
             color: AppColors.crimson,
-            borderRadius: BorderRadius.circular(isCompact ? 2.r : 2.0),
+            borderRadius: BorderRadius.circular(2.0),
           ),
         ),
-        SizedBox(width: isCompact ? 8.w : 8.0),
+        const SizedBox(width: 6.0),
         Text(
           title,
-          style: AppTextStyles.labelSmall.copyWith(
+          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
             color: AppColors.textSecondary.withValues(alpha: 0.8),
-            fontSize: isCompact ? 12.sp : 12.0,
           ),
         ),
       ],
@@ -182,51 +180,53 @@ class CycleDetailViewScreen extends StatelessWidget {
   }
 
   Widget _buildShareButton(BuildContext context, CycleProvider provider, bool isCompact) {
-    return GestureDetector(
-      onTap: () async {
-        final authProvider = context.read<AuthProvider>();
-        final userName = authProvider.displayName;
-        
-        EliteSnackbar.show(context, "GENERATING SHAREABLE LINK...");
+    return Consumer<AuthProvider>(
+      builder: (context, authProv, _) {
+        final bool isPro = authProv.isPro;
+        final Color themeColor = isPro ? Colors.blueAccent : AppColors.crimson;
 
-        final link = await provider.generateShareableLink(cycleId, userName);
-        
-        if (link != null) {
-          await Share.share(
-            "CHECK OUT THIS HIT TRAINING CYCLE SHARED BY $userName IN HEAVY DUTY:\n\n$link",
-            subject: "TRAINING CYCLE SHARED BY $userName",
-          );
-        } else {
-          if (context.mounted) {
-            EliteSnackbar.show(context, "FAILED TO GENERATE LINK. PLEASE TRY AGAIN.", isError: true);
-          }
-        }
-      },
-      child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.symmetric(vertical: isCompact ? 18.h : 16.0),
-        decoration: BoxDecoration(
-          color: Colors.blueAccent.withValues(alpha : 0.1),
-          borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
-          border: Border.all(color: Colors.blueAccent.withValues(alpha : 0.5)),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.ios_share_rounded, color: Colors.blueAccent, size: isCompact ? 20.r : 20.0),
-            SizedBox(width: isCompact ? 12.w : 12.0),
-            Text(
-              "SHARE CYCLE",
-              style: AppTextStyles.labelMedium.copyWith(
-                color: Colors.blueAccent,
-                fontWeight: FontWeight.w500,
-                letterSpacing: 1.5,
-                fontSize: isCompact ? null : 14.0,
-              ),
+        return GestureDetector(
+          onTap: () async {
+            if (!isPro) {
+              context.push(AppRoutes.proUpgrade);
+              return;
+            }
+            final userName = authProv.displayName;
+            final link = await provider.generateShareableLink(cycleId, userName);
+            
+            if (link != null) {
+              await Share.share(
+                "CHECK OUT THIS HIT TRAINING CYCLE SHARED BY $userName IN RUGGED:\n\n$link",
+                subject: "TRAINING CYCLE SHARED BY $userName",
+              );
+            }
+          },
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(vertical: isCompact ? 18.h : 16.0),
+            decoration: BoxDecoration(
+              color: themeColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
+              border: Border.all(color: themeColor.withValues(alpha: 0.5)),
             ),
-          ],
-        ),
-      ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(isPro ? Icons.ios_share_rounded : Icons.lock_rounded, color: themeColor, size: isCompact ? 20.r : 20.0),
+                SizedBox(width: isCompact ? 12.w : 12.0),
+                Text(
+                  isPro ? "SHARE CYCLE" : "GO PRO TO SHARE ROUTINE",
+                  style: AppTextStyles.labelMedium.adaptive(context).copyWith(
+                    color: themeColor,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -265,8 +265,7 @@ else {
                     SizedBox(height: isCompact ? 16.h : 16.0),
                     Text(
                       "ACTIVATE PROTOCOL", 
-                      style: AppTextStyles.h3.copyWith(
-                        fontSize: isCompact ? 16.sp : 15.0, 
+                      style: AppTextStyles.h3.adaptive(context).copyWith(
                         letterSpacing: 1.2
                       ), 
                       textAlign: TextAlign.center
@@ -279,10 +278,9 @@ else {
                     Text(
                       "DO YOU WANT TO INITIALIZE THE '${cycleName.toUpperCase()}' TEMPLATE AS YOUR ACTIVE TRAINING CYCLE?",
                       textAlign: TextAlign.center,
-                      style: AppTextStyles.labelMedium.copyWith(
+                      style: AppTextStyles.labelMedium.adaptive(context).copyWith(
                         color: AppColors.textSecondary, 
                         height: 1.4,
-                        fontSize: isCompact ? null : 12.0,
                       ),
                     ),
                   ],
@@ -304,7 +302,7 @@ else {
                               padding: EdgeInsets.symmetric(vertical: isCompact ? 12.h : 12.0),
                               decoration: BoxDecoration(color: Colors.transparent, borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0), border: Border.all(color: AppColors.white.withValues(alpha : 0.1))),
                               alignment: Alignment.center,
-                              child: Text("CANCEL", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w500, fontSize: isCompact ? null : 12.0)),
+                              child: Text("CANCEL", style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
                             ),
                           ),
                         ),
@@ -316,7 +314,7 @@ else {
                               padding: EdgeInsets.symmetric(vertical: isCompact ? 12.h : 12.0),
                               decoration: BoxDecoration(color: Colors.greenAccent.withValues(alpha : 0.1), borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0), border: Border.all(color: Colors.greenAccent.withValues(alpha : 0.5))),
                               alignment: Alignment.center,
-                              child: Text("ACTIVATE", style: AppTextStyles.labelSmall.copyWith(color: Colors.greenAccent, fontWeight: FontWeight.w500, fontSize: isCompact ? null : 12.0)),
+                              child: Text("ACTIVATE", style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: Colors.greenAccent, fontWeight: FontWeight.w500)),
                             ),
                           ),
                         ),
@@ -363,11 +361,10 @@ else {
         child: Center(
           child: Text(
             "ACTIVATE THIS CYCLE",
-            style: AppTextStyles.labelMedium.copyWith(
+            style: AppTextStyles.labelMedium.adaptive(context).copyWith(
               color: AppColors.white, 
               fontWeight: FontWeight.w500, 
               letterSpacing: 2,
-              fontSize: isCompact ? null : 14.0,
             ),
           ),
         ),
@@ -375,48 +372,46 @@ else {
     );
   }
 
-  Widget _buildInfoTile(String label, String value, bool isCompact) {
+  Widget _buildInfoTile(BuildContext context, String label, String value, bool isCompact) {
     return Container(
       padding: EdgeInsets.all(isCompact ? 16.r : 16.0),
       decoration: BoxDecoration(
-        color: AppColors.surface, 
-        borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0)
+        color: AppColors.surfaceLight.withValues(alpha: 0.6), 
+        borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: AppTextStyles.labelSmall.copyWith(
+          Text(label, style: AppTextStyles.labelSmall.adaptive(context).copyWith(
             color: AppColors.textSecondary,
-            fontSize: isCompact ? null : 12.0,
           )),
-          Text(value, style: AppTextStyles.labelSmall.copyWith(
+          Text(value, style: AppTextStyles.labelSmall.adaptive(context).copyWith(
             color: AppColors.white, 
             fontWeight: FontWeight.w500,
-            fontSize: isCompact ? null : 12.0,
           )),
         ],
       ),
     );
   }
 
-  Widget _buildWorkoutSummaryCard(Workout workout, CycleProvider provider, bool isCompact) {
+  Widget _buildWorkoutSummaryCard(BuildContext context, Workout workout, CycleProvider provider, bool isCompact) {
     final workoutExercises = workout.exercises;
 
     return Container(
       margin: EdgeInsets.only(bottom: isCompact ? 16.h : 16.0),
       padding: EdgeInsets.all(isCompact ? 20.r : 16.0),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.surfaceLight.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0),
-        border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(workout.name, style: AppTextStyles.labelSmall.copyWith(
+          Text(workout.name, style: AppTextStyles.labelSmall.adaptive(context).copyWith(
             color: AppColors.white, 
             fontWeight: FontWeight.w500,
-            fontSize: isCompact ? null : 12.0,
           )),
           SizedBox(height: isCompact ? 12.h : 12.0),
           const Divider(color: Colors.white10),
@@ -430,9 +425,8 @@ else {
                   SizedBox(width: isCompact ? 12.w : 12.0),
                   Text(
                     exercise.name,
-                    style: AppTextStyles.labelSmall.copyWith(
+                    style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                       color: AppColors.textSecondary, 
-                      fontSize: isCompact ? 12.sp : 12.0
                     ),
                   ),
                 ],

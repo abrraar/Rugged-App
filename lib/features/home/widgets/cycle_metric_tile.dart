@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
 
 class CycleMetricTile extends StatelessWidget {
   final String label;
@@ -24,9 +24,9 @@ class CycleMetricTile extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(isCompact ? 20.r : 20.0),
       decoration: BoxDecoration(
-        color: AppColors.surfaceLight.withOpacity(0.6),
+        color: AppColors.surfaceLight.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(isCompact ? 20.r : 20.0),
-        border: Border.all(color: AppColors.white.withOpacity(0.1)),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.1)),
         boxShadow: [
           BoxShadow(color: Colors.black26, blurRadius: 8, offset: const Offset(0, 4)),
         ],
@@ -46,9 +46,8 @@ class CycleMetricTile extends StatelessWidget {
             children: [
               Text(
                 label.toUpperCase(),
-                style: AppTextStyles.labelSmall.copyWith(
+                style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                   color: AppColors.textSecondary,
-                  fontSize: isCompact ? 12.sp : 10.0,
                   letterSpacing: 1.5,
                   fontWeight: FontWeight.w500,
                 ),
@@ -56,10 +55,9 @@ class CycleMetricTile extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 value.toUpperCase(),
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.h3.copyWith(
-                  fontSize: isCompact ? 20.sp : 18.0,
+                style: AppTextStyles.labelLarge.adaptive(context).copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.w500,
                   height: 1.1,
@@ -69,9 +67,8 @@ class CycleMetricTile extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   date!,
-                  style: AppTextStyles.labelSmall.copyWith(
+                  style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                     color: AppColors.crimson,
-                    fontSize: isCompact ? 11.sp : 9.0,
                     fontWeight: FontWeight.w500,
                   ),
                 ),

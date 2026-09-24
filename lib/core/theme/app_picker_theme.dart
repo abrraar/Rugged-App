@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_colors.dart';
 
 class AppPickerTheme {
   AppPickerTheme._();
@@ -47,28 +47,28 @@ class AppPickerTheme {
           fontSize: isCompact ? 12.sp : 11.0,
           color: Colors.white70,
         ),
-        dayStyle: brandFontBase.copyWith(fontSize: isCompact ? 14.sp : 13.0),
+        dayStyle: const TextStyle(fontSize: 14.0, height: 1.0, fontWeight: FontWeight.w500, color: Colors.white),
         yearStyle: brandFontBase.copyWith(fontSize: isCompact ? 14.sp : 13.0),
         dayForegroundColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.disabled)) return Colors.white.withOpacity(0.3);
+          if (states.contains(WidgetState.disabled)) return Colors.white.withValues(alpha: 0.3);
           return Colors.white;
         }),
         yearForegroundColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.disabled)) return Colors.white.withOpacity(0.3);
+          if (states.contains(WidgetState.disabled)) return Colors.white.withValues(alpha: 0.3);
           return Colors.white;
         }),
       ),
 
       timePickerTheme: TimePickerThemeData(
         backgroundColor: AppColors.surface,
-        hourMinuteTextStyle: brandFontBase.copyWith(fontSize: isCompact ? 48.sp : 44.0),
-        dayPeriodTextStyle: brandFontBase.copyWith(fontSize: isCompact ? 16.sp : 14.0),
-        helpTextStyle: brandFontBase.copyWith(fontSize: isCompact ? 12.sp : 11.0),
-        dialTextStyle: brandFontBase.copyWith(fontSize: isCompact ? 14.sp : 12.0),
+        hourMinuteTextStyle: brandFontBase.copyWith(fontSize: 40.0),
+        dayPeriodTextStyle: brandFontBase.copyWith(fontSize: 14.0),
+        helpTextStyle: brandFontBase.copyWith(fontSize: 12.0),
+        dialTextStyle: brandFontBase.copyWith(fontSize: 12.0),
 
         hourMinuteTextColor: WidgetStateColor.resolveWith((states) => Colors.white),
         dialTextColor: WidgetStateColor.resolveWith((states) {
-          if (states.contains(WidgetState.disabled)) return Colors.white.withOpacity(0.3);
+          if (states.contains(WidgetState.disabled)) return Colors.white.withValues(alpha: 0.3);
           return Colors.white;
         }),
 
@@ -76,14 +76,14 @@ class AppPickerTheme {
           if (states.contains(WidgetState.selected)) {
             return AppColors.crimson; 
           }
-          return Colors.white.withOpacity(0.05); 
+          return Colors.white.withValues(alpha: 0.05);
         }),
 
         dayPeriodTextColor: WidgetStateColor.resolveWith((Set<WidgetState> states) {
           if (states.contains(WidgetState.selected)) {
             return Colors.white;
           }
-          return Colors.white.withOpacity(0.38);
+          return Colors.white.withValues(alpha: 0.38);
         }),
       ),
 

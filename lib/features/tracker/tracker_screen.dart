@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/constants/dimensions.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/features/tracker/calorie/calorie_screen.dart';
-import 'package:heavy_duty/features/tracker/hydration/hydration_screen.dart';
-import 'package:heavy_duty/features/tracker/sleep/sleep_screen.dart';
-import 'package:heavy_duty/features/tracker/supplement/supplement_screen.dart';
+import 'package:rugged/core/constants/dimensions.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/features/tracker/calorie/calorie_screen.dart';
+import 'package:rugged/features/tracker/hydration/hydration_screen.dart';
+import 'package:rugged/features/tracker/sleep/sleep_screen.dart';
+import 'package:rugged/features/tracker/supplement/supplement_screen.dart';
 
 import 'body_composition/body_composition_screen.dart';
 import 'cycle_tracker/cycle_tracking_screen.dart';
@@ -55,10 +55,9 @@ class _TrackerScreenState extends State<TrackerScreen> {
                   children: [
                     Text(
                       'SELECT TRACKING MODULE',
-                      style: AppTextStyles.labelSmall.copyWith(
+                      style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                         color: AppColors.textSecondary,
                         letterSpacing: 1.5,
-                        fontSize: isCompact ? 10.sp : 10.0,
                       ),
                     ),
                     SizedBox(height: isCompact ? 15.h : 12.0),
@@ -230,19 +229,17 @@ class _TrackerScreenState extends State<TrackerScreen> {
                       children: [
                         Text(
                           title,
-                          style: AppTextStyles.h3.copyWith(
+                          style: AppTextStyles.h3.adaptive(context).copyWith(
                             color: AppColors.white,
-                            fontSize: isCompact ? 18.sp : 15.0,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
                         Text(
                           subtitle,
-                          style: AppTextStyles.labelSmall.copyWith(
+                          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                             color: isActive
                                 ? Colors.white70
                                 : AppColors.textSecondary,
-                            fontSize: isCompact ? 11.sp : 10.0,
                           ),
                         ),
                       ],

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
 
 class ExpandableAboutText extends StatefulWidget {
   final String text;
@@ -21,10 +21,9 @@ class _ExpandableAboutTextState extends State<ExpandableAboutText> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final style = AppTextStyles.bodySmall.copyWith(
+        final style = AppTextStyles.bodySmall.adaptive(context).copyWith(
           color: AppColors.textSecondary, 
           height: 1.5,
-          fontSize: isCompact ? null : 10.0,
         );
         final span = TextSpan(
           text: widget.text,
@@ -62,10 +61,9 @@ class _ExpandableAboutTextState extends State<ExpandableAboutText> {
                     children: [
                       Text(
                         _isExpanded ? "SHOW LESS" : "SHOW MORE",
-                        style: AppTextStyles.labelSmall.copyWith(
+                        style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                           color: AppColors.crimson,
                           fontWeight: FontWeight.w500,
-                          fontSize: isCompact ? 10.sp : 9.0,
                         ),
                       ),
                       SizedBox(width: 4.w),

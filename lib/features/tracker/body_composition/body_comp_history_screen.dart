@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
-import 'package:heavy_duty/features/tracker/body_composition/provider/body_comp_provider.dart';
+import 'package:rugged/core/widgets/elite_refresh_indicator.dart';
+import 'package:rugged/core/widgets/elite_confirm_dialog.dart';
+import 'package:rugged/features/tracker/body_composition/provider/body_comp_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
 import 'package:intl/intl.dart';
 import 'model/body_comp_log.dart';
 
@@ -70,7 +71,7 @@ class _BodyCompHistoryScreenState extends State<BodyCompHistoryScreen> {
 
                 final sortedKeys = groupedLogs.keys.toList()..sort((a, b) => b.compareTo(a));
 
-                return RefreshIndicator(
+                return EliteRefreshIndicator(
                   onRefresh: () => provider.forceRefresh(),
                   color: AppColors.crimson,
                   backgroundColor: AppColors.surface,
@@ -152,14 +153,14 @@ class _BodyCompHistoryScreenState extends State<BodyCompHistoryScreen> {
                 Row(
                   children: [
                     Container(
-                      width: 3.w,
-                      height: 12.h,
+                      width: 2.5,
+                      height: 12.0,
                       decoration: BoxDecoration(
                         color: AppColors.crimson,
-                        borderRadius: BorderRadius.circular(2.r),
+                        borderRadius: BorderRadius.circular(2.0),
                       ),
                     ),
-                    SizedBox(width: 8.w),
+                    SizedBox(width: 6.0),
                     Text(formattedDate, style: AppTextStyles.labelSmall),
                   ],
                 ),

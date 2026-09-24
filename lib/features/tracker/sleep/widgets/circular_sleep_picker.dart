@@ -2,8 +2,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
 import 'package:intl/intl.dart';
 
 class CircularSleepPicker extends StatefulWidget {
@@ -69,12 +69,10 @@ class _CircularSleepPickerState extends State<CircularSleepPicker> {
   double _timeToAngle(TimeOfDay time) {
     final double totalMinutes = time.hour * 60.0 + time.minute;
     final double dayMinutes = 24.0 * 60.0;
-    // Normalize to [0, 2*pi] range
     return ((totalMinutes / dayMinutes) * 2 * pi - (pi / 2)) % (2 * pi);
   }
 
   TimeOfDay _angleToTime(double angle) {
-    // Convert [0, 2*pi] range back to TimeOfDay, accounting for -pi/2 offset
     double normalizedAngle = (angle + pi / 2) % (2 * pi);
     if (normalizedAngle < 0) normalizedAngle += 2 * pi;
     final double dayMinutes = 24.0 * 60.0;
@@ -98,11 +96,19 @@ class _CircularSleepPickerState extends State<CircularSleepPicker> {
     final initialTime = isBedtime ? _angleToTime(_startAngle) : _angleToTime(_endAngle);
     final TimeOfDay? picked = await showTimePicker(
       context: context,
+      useRootNavigator: true,
       initialTime: initialTime,
       builder: (context, child) {
-        return MediaQuery(
-          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: widget.use24HourClock),
-          child: child!,
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: MediaQuery(
+              data: MediaQuery.of(context).copyWith(
+                alwaysUse24HourFormat: widget.use24HourClock,
+              ),
+              child: child!,
+            ),
+          ),
         );
       },
     );
@@ -126,7 +132,6 @@ class _CircularSleepPickerState extends State<CircularSleepPicker> {
     final center = box.size.center(Offset.zero);
     final dx = localPosition.dx - center.dx;
     final dy = localPosition.dy - center.dy;
-    // atan2 returns [-pi, pi]. Normalize to [0, 2*pi] to match initial values.
     final angle = atan2(dy, dx) % (2 * pi);
 
     setState(() {
@@ -143,10 +148,14 @@ class _CircularSleepPickerState extends State<CircularSleepPicker> {
   Widget build(BuildContext context) {
     final duration = _calculateDuration();
     final bool isCompact = widget.isCompact;
-    final double containerSize = isCompact ? 320.r : 280.0;
-    final double ringRadius = isCompact ? 120.r : 100.0;
+    final double containerSize = isCompact ? 300.0 : 280.0;
+    final double ringRadius = isCompact ? 105.0 : 100.0;
     final double centerX = containerSize / 2;
     final double centerY = containerSize / 2;
+
+    final EdgeInsets horizontalPad = EdgeInsets.symmetric(
+      horizontal: isCompact ? 20.w : 24.0,
+    );
 
     return Column(
       children: [
@@ -176,36 +185,83 @@ class _CircularSleepPickerState extends State<CircularSleepPicker> {
                     onTap: () => _pickTime(true),
                     child: Column(
                       children: [
-                        Text("Fall asleep", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.6), fontSize: isCompact ? 12.sp : 9.0)),
-                        Text(_formatTime(_startAngle), style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w500, fontSize: isCompact ? 12.sp : 11.0)),
+                        Text(
+                          "Fall asleep",
+                          style: AppTextStyles.labelSmall.copyWith(
+                            color: AppColors.textSecondary.withValues(alpha: 0.6),
+                            fontSize: 11.0,
+                          ),
+                        ),
+                        Text(
+                          _formatTime(_startAngle),
+                          style: AppTextStyles.labelSmall.copyWith(
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 12.0,
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  SizedBox(height: isCompact ? 8.h : 6.0),
+                  const SizedBox(height: 4.0),
                   SizedBox(
-                    width: isCompact ? 180.w : 140.0,
+                    width: 140.0,
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Text.rich(
                         TextSpan(
                           children: [
-                            TextSpan(text: "${duration.inHours}", style: AppTextStyles.h1.copyWith(fontSize: isCompact ? 64.sp : 48.0, color: Colors.white, fontWeight: FontWeight.w500)),
-                            TextSpan(text: "hr", style: AppTextStyles.h3.copyWith(fontSize: isCompact ? 32.sp : 22.0, color: Colors.white.withValues(alpha: 0.8), fontWeight: FontWeight.w500)),
+                            TextSpan(
+                              text: "${duration.inHours}",
+                              style: AppTextStyles.h1.copyWith(
+                                fontSize: 42.0,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            TextSpan(
+                              text: "hr",
+                              style: AppTextStyles.h3.copyWith(
+                                fontSize: 20.0,
+                                color: Colors.white.withValues(alpha: 0.8),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                             if (duration.inMinutes % 60 > 0)
-                              TextSpan(text: " ${duration.inMinutes % 60}m", style: AppTextStyles.h3.copyWith(fontSize: isCompact ? 24.sp : 18.0, color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w500)),
+                              TextSpan(
+                                text: " ${duration.inMinutes % 60}m",
+                                style: AppTextStyles.h3.copyWith(
+                                  fontSize: 16.0,
+                                  color: Colors.white.withValues(alpha: 0.6),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
                           ],
                         ),
                         textAlign: TextAlign.center,
                       ),
                     ),
                   ),
-                  SizedBox(height: isCompact ? 8.h : 6.0),
+                  const SizedBox(height: 4.0),
                   GestureDetector(
                     onTap: () => _pickTime(false),
                     child: Column(
                       children: [
-                        Text("Wake Up", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.6), fontSize: isCompact ? 12.sp : 9.0)),
-                        Text(_formatTime(_endAngle), style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w500, fontSize: isCompact ? 12.sp : 11.0)),
+                        Text(
+                          "Wake Up",
+                          style: AppTextStyles.labelSmall.copyWith(
+                            color: AppColors.textSecondary.withValues(alpha: 0.6),
+                            fontSize: 11.0,
+                          ),
+                        ),
+                        Text(
+                          _formatTime(_endAngle),
+                          style: AppTextStyles.labelSmall.copyWith(
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 12.0,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -238,10 +294,10 @@ class _CircularSleepPickerState extends State<CircularSleepPicker> {
             ],
           ),
         ),
-        SizedBox(height: isCompact ? 40.h : 32.0),
+        SizedBox(height: isCompact ? 28.h : 24.0),
         // Rating and Note
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: isCompact ? 40.w : 24.0),
+          padding: horizontalPad,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -250,10 +306,10 @@ class _CircularSleepPickerState extends State<CircularSleepPicker> {
                 style: AppTextStyles.labelSmall.copyWith(
                   color: AppColors.textSecondary.withValues(alpha: 0.5),
                   letterSpacing: 1.5,
-                  fontSize: isCompact ? 11.sp : 9.0,
+                  fontSize: 11.0,
                 ),
               ),
-              SizedBox(height: isCompact ? 12.h : 10.0),
+              SizedBox(height: isCompact ? 10.h : 8.0),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: List.generate(5, (index) {
@@ -283,24 +339,24 @@ class _CircularSleepPickerState extends State<CircularSleepPicker> {
                   );
                 }),
               ),
-              SizedBox(height: isCompact ? 24.h : 20.0),
+              SizedBox(height: isCompact ? 20.h : 16.0),
               Text(
                 "NOTES",
                 style: AppTextStyles.labelSmall.copyWith(
                   color: AppColors.textSecondary.withValues(alpha: 0.5),
                   letterSpacing: 1.5,
-                  fontSize: isCompact ? 11.sp : 9.0,
+                  fontSize: 11.0,
                 ),
               ),
-              SizedBox(height: isCompact ? 12.h : 10.0),
+              SizedBox(height: isCompact ? 10.h : 8.0),
               TextField(
                 controller: _noteController,
                 onChanged: widget.onNoteChanged,
-                style: AppTextStyles.labelMedium.copyWith(color: Colors.white, fontSize: isCompact ? 14.sp : 14.0),
+                style: AppTextStyles.labelMedium.copyWith(color: Colors.white, fontSize: 14.0),
                 maxLines: 2,
                 decoration: InputDecoration(
                   hintText: "How did you feel today?",
-                  hintStyle: AppTextStyles.labelMedium.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.3), fontSize: isCompact ? 14.sp : 14.0),
+                  hintStyle: AppTextStyles.labelMedium.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.3), fontSize: 14.0),
                   filled: true,
                   fillColor: AppColors.surfaceLight.withValues(alpha: 0.1),
                   border: OutlineInputBorder(
@@ -320,10 +376,10 @@ class _CircularSleepPickerState extends State<CircularSleepPicker> {
             ],
           ),
         ),
-        SizedBox(height: isCompact ? 32.h : 24.0),
+        SizedBox(height: isCompact ? 24.h : 20.0),
         // Date Picker Row
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: isCompact ? 40.w : 24.0),
+          padding: horizontalPad,
           child: GestureDetector(
             onTap: widget.onPickDate,
             child: Container(
@@ -338,7 +394,7 @@ class _CircularSleepPickerState extends State<CircularSleepPicker> {
                 children: [
                   Text(
                     DateFormat('MMMM dd, yyyy').format(widget.selectedDate).toUpperCase(),
-                    style: AppTextStyles.labelMedium.copyWith(color: Colors.white, letterSpacing: 1, fontSize: isCompact ? 13.sp : 12.0),
+                    style: AppTextStyles.labelMedium.copyWith(color: Colors.white, letterSpacing: 1, fontSize: 13.0),
                   ),
                   Icon(Icons.calendar_today_rounded, color: AppColors.crimson, size: isCompact ? 18.r : 16.0),
                 ],
@@ -352,8 +408,8 @@ class _CircularSleepPickerState extends State<CircularSleepPicker> {
           child: Opacity(
             opacity: widget.canSave ? 1.0 : 0.4,
             child: Container(
-              margin: EdgeInsets.symmetric(horizontal: isCompact ? 40.w : 24.0),
-              height: isCompact ? 56.h : 48.0,
+              margin: horizontalPad,
+              height: isCompact ? 52.h : 48.0,
               width: double.infinity,
               decoration: BoxDecoration(
                 color: AppColors.crimson,
@@ -369,7 +425,7 @@ class _CircularSleepPickerState extends State<CircularSleepPicker> {
                 style: AppTextStyles.buttonPrimary.copyWith(
                   color: Colors.white,
                   letterSpacing: 1.2,
-                  fontSize: widget.canSave ? (isCompact ? 16.sp : 14.0) : (isCompact ? 12.sp : 11.0),
+                  fontSize: widget.canSave ? 14.0 : 12.0,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -393,7 +449,7 @@ class _CircularSleepPickerState extends State<CircularSleepPicker> {
   }) {
     final x = centerX + radius * cos(angle);
     final y = centerY + radius * sin(angle);
-    final double handleSize = isCompact ? 56.r : 48.0;
+    final double handleSize = isCompact ? 52.0 : 44.0;
 
     return Positioned(
       left: x - (handleSize / 2),
@@ -440,10 +496,10 @@ class _CircularSleepPickerState extends State<CircularSleepPicker> {
             ],
             border: Border.all(
               color: isDragging ? color : color.withValues(alpha: 0.6),
-              width: isDragging ? (isCompact ? 3.r : 2.0) : (isCompact ? 2.r : 1.5),
+              width: isDragging ? 2.5 : 1.5,
             ),
           ),
-          child: Icon(icon, color: Colors.white, size: isCompact ? 24.r : 20.0),
+          child: Icon(icon, color: Colors.white, size: isCompact ? 26.0 : 20.0),
         ),
       ),
     );
@@ -476,7 +532,7 @@ class SleepPickerPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = size.center(Offset.zero);
-    final strokeWidth = isCompact ? 35.r : 30.0;
+    final strokeWidth = isCompact ? 32.0 : 30.0;
 
     final bgPaint = Paint()
       ..color = AppColors.surfaceLight.withValues(alpha: 0.15)
@@ -488,7 +544,6 @@ class SleepPickerPainter extends CustomPainter {
     double sweepAngle = endAngle - startAngle;
     if (sweepAngle < 0) sweepAngle += 2 * pi;
 
-    // Guard against SweepGradient endAngle <= startAngle crash
     final double safeSweepAngle = sweepAngle.clamp(0.001, 2 * pi);
 
     final activePaint = Paint()
@@ -496,11 +551,11 @@ class SleepPickerPainter extends CustomPainter {
         startAngle: 0.0,
         endAngle: safeSweepAngle,
         colors: const [
-          Color(0xFF1A237E), // Deep Night Blue (Bedtime)
-          Color(0xFF673AB7), // Midnight Purple
-          Color(0xFFE91E63), // Dawn Pink
-          Color(0xFFFFB74D), // Sunrise Orange
-          Colors.yellow,     // Morning Sun (Wake up)
+          Color(0xFF1A237E),
+          Color(0xFF673AB7),
+          Color(0xFFE91E63),
+          Color(0xFFFFB74D),
+          Colors.yellow,
         ],
         stops: const [0.0, 0.4, 0.7, 0.9, 1.0],
         transform: GradientRotation(startAngle),

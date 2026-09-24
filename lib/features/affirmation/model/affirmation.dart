@@ -4,7 +4,7 @@ class Affirmation {
   final String id;
   final String text;
   final String? speaker;
-  final bool isCustom;
+  final String? sharedBy;
   final DateTime createdAt;
   final int isSynced;
   final DateTime? updatedAt;
@@ -16,7 +16,7 @@ class Affirmation {
     String? id,
     required this.text,
     this.speaker,
-    this.isCustom = true,
+    this.sharedBy,
     DateTime? createdAt,
     this.isSynced = 1,
     this.updatedAt,
@@ -31,7 +31,7 @@ class Affirmation {
       'user_id': userId,
       'text': text,
       'speaker': speaker,
-      'is_custom': isCustom ? 1 : 0,
+      'shared_by': sharedBy,
       'created_at': createdAt.toIso8601String(),
       'is_synced': isSynced,
       'updated_at': updatedAt?.toIso8601String(),
@@ -45,7 +45,7 @@ class Affirmation {
       userId: map['user_id'] as String?,
       text: map['text'] as String,
       speaker: map['speaker'] as String?,
-      isCustom: map['is_custom'] == 1 || map['is_custom'] == true,
+      sharedBy: map['shared_by'] as String?,
       createdAt: DateTime.parse(map['created_at'] as String),
       isSynced: (map['is_synced'] as num?)?.toInt() ?? 1,
       updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'].toString()) : null,
@@ -57,7 +57,7 @@ class Affirmation {
     String? id,
     String? text,
     String? speaker,
-    bool? isCustom,
+    String? sharedBy,
     DateTime? createdAt,
     int? isSynced,
     DateTime? updatedAt,
@@ -68,7 +68,7 @@ class Affirmation {
       id: id ?? this.id,
       text: text ?? this.text,
       speaker: speaker ?? this.speaker,
-      isCustom: isCustom ?? this.isCustom,
+      sharedBy: sharedBy ?? this.sharedBy,
       createdAt: createdAt ?? this.createdAt,
       isSynced: isSynced ?? this.isSynced,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -77,4 +77,5 @@ class Affirmation {
     );
   }
 }
+
 

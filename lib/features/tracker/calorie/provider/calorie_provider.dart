@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:heavy_duty/core/services/connectivity_service.dart';
-import 'package:heavy_duty/core/services/notification_service.dart';
+import 'package:rugged/core/services/connectivity_service.dart';
+import 'package:rugged/core/services/notification_service.dart';
+import 'package:rugged/features/auth/provider/auth_provider.dart';
 import 'package:uuid/uuid.dart';
 import '../model/calorie_log.dart';
 import '../model/calorie_settings.dart';
@@ -10,7 +11,7 @@ import '../model/saved_meal.dart';
 import '../data/calorie_local_repository.dart';
 import '../data/calorie_cloud_repository.dart';
 
-import 'package:heavy_duty/core/providers/sync_provider.dart';
+import 'package:rugged/core/providers/sync_provider.dart';
 
 class CalorieProvider with ChangeNotifier {
   CalorieLocalRepository? _localRepo;
@@ -35,7 +36,12 @@ class CalorieProvider with ChangeNotifier {
   List<SavedMeal> get savedMeals => _savedMeals;
   List<SavedMeal> get pinnedMeals => _savedMeals.where((m) => m.isPinnedToHome).toList();
   CalorieSettings get settings => _settings;
+  Set<String> get visibleMetrics => _settings.visibleMetrics;
   bool get isLoading => _isLoading;
+
+  Future<void> setVisibleMetrics(Set<String> metrics) async {
+    await updateSettings(_settings.copyWith(visibleMetrics: metrics));
+  }
 
   CalorieProvider() {
     _notificationService.addNotificationActionListener(_handleNotificationAction);
@@ -237,6 +243,7 @@ class CalorieProvider with ChangeNotifier {
 
   Future<void> _syncLocalToCloud() async {
     if (_localRepo == null) return;
+    if (!AuthProvider().isPro) return;
 
     final syncProv = SyncProvider();
     syncProv.startFeatureSync();
@@ -314,69 +321,71 @@ class CalorieProvider with ChangeNotifier {
       _savedMeals = await _localRepo!.getSavedMeals();
       notifyListeners();
 
-      // 2. Fetch remote settings
-      try {
-        final cloudSettings = await _cloudRepo.getSettings();
-        if (cloudSettings != null) {
-          await _localRepo!.saveSettings(cloudSettings, isFromCloud: true);
-          _settings = await _localRepo!.getSettings();
+      // 2. Fetch remote data (PRO ONLY)
+      if (AuthProvider().isPro) {
+        try {
+          final cloudSettings = await _cloudRepo.getSettings();
+          if (cloudSettings != null) {
+            await _localRepo!.saveSettings(cloudSettings, isFromCloud: true);
+            _settings = await _localRepo!.getSettings();
+          }
+        } catch (e) {
+          debugPrint("CalorieProvider: Settings sync failed: $e");
         }
-      } catch (e) {
-        debugPrint("CalorieProvider: Settings sync failed: $e");
-      }
 
-      // 3. Fetch and Add/Update Logs
-      try {
-        final cloudLogs = await _cloudRepo.getAllLogs();
-        if (cloudLogs != null) {
-          final localLogs = await _localRepo!.getAllLogs();
-          final cloudIds = cloudLogs.map((l) => l.id).toSet();
+        // 3. Fetch and Add/Update Logs
+        try {
+          final cloudLogs = await _cloudRepo.getAllLogs();
+          if (cloudLogs != null) {
+            final localLogs = await _localRepo!.getAllLogs();
+            final cloudIds = cloudLogs.map((l) => l.id).toSet();
 
-          // Deletion Reconciliation: Remove local synced logs missing from cloud
-          for (var localL in localLogs) {
-            if (localL.isSynced == 1 && !cloudIds.contains(localL.id)) {
-              await _localRepo!.deleteLog(localL.id);
+            // Deletion Reconciliation: Remove local synced logs missing from cloud
+            for (var localL in localLogs) {
+              if (localL.isSynced == 1 && !cloudIds.contains(localL.id)) {
+                await _localRepo!.deleteLog(localL.id);
+              }
             }
-          }
 
-          bool logChanged = false;
+            bool logChanged = false;
 
-          // Pulling: Add/Update logs from cloud
-          for (var log in cloudLogs) {
-            await _localRepo!.insertLog(log, isFromCloud: true);
-            logChanged = true;
-          }
-          if (logChanged) _logs = await _localRepo!.getAllLogs();
-        }
-      } catch (e) {
-        debugPrint("CalorieProvider: Logs reconciliation failed: $e");
-      }
-
-      // 4. Fetch and Add/Update Saved Meals
-      try {
-        final cloudSavedMeals = await _cloudRepo.getSavedMeals();
-        if (cloudSavedMeals != null) {
-          final localMeals = await _localRepo!.getSavedMeals();
-          final cloudIds = cloudSavedMeals.map((m) => m.id).toSet();
-
-          // Deletion Reconciliation: Remove local synced meals missing from cloud
-          for (var localM in localMeals) {
-            if (localM.isSynced == 1 && !cloudIds.contains(localM.id)) {
-              await _localRepo!.deleteSavedMeal(localM.id);
+            // Pulling: Add/Update logs from cloud
+            for (var log in cloudLogs) {
+              await _localRepo!.insertLog(log, isFromCloud: true);
+              logChanged = true;
             }
+            if (logChanged) _logs = await _localRepo!.getAllLogs();
           }
-
-          bool mealChanged = false;
-
-          // Pulling: Add/Update meals from cloud
-          for (var meal in cloudSavedMeals) {
-            await _localRepo!.insertSavedMeal(meal, isFromCloud: true);
-            mealChanged = true;
-          }
-          if (mealChanged) _savedMeals = await _localRepo!.getSavedMeals();
+        } catch (e) {
+          debugPrint("CalorieProvider: Logs reconciliation failed: $e");
         }
-      } catch (e) {
-        debugPrint("CalorieProvider: Meals reconciliation failed: $e");
+
+        // 4. Fetch and Add/Update Saved Meals
+        try {
+          final cloudSavedMeals = await _cloudRepo.getSavedMeals();
+          if (cloudSavedMeals != null) {
+            final localMeals = await _localRepo!.getSavedMeals();
+            final cloudIds = cloudSavedMeals.map((m) => m.id).toSet();
+
+            // Deletion Reconciliation: Remove local synced meals missing from cloud
+            for (var localM in localMeals) {
+              if (localM.isSynced == 1 && !cloudIds.contains(localM.id)) {
+                await _localRepo!.deleteSavedMeal(localM.id);
+              }
+            }
+
+            bool mealChanged = false;
+
+            // Pulling: Add/Update meals from cloud
+            for (var meal in cloudSavedMeals) {
+              await _localRepo!.insertSavedMeal(meal, isFromCloud: true);
+              mealChanged = true;
+            }
+            if (mealChanged) _savedMeals = await _localRepo!.getSavedMeals();
+          }
+        } catch (e) {
+          debugPrint("CalorieProvider: Saved meals reconciliation failed: $e");
+        }
       }
 
       // 5. Schedule notifications
@@ -589,6 +598,11 @@ class CalorieProvider with ChangeNotifier {
   }
 
   Future<String?> generateShareableLink(SavedMeal meal, String userName) async {
+    if (!AuthProvider().isPro) {
+      debugPrint("CalorieProvider: Sharing skipped - Pro status required.");
+      return null;
+    }
+
     final Map<String, dynamic> shareData = {
       'type': 'meal',
       'name': meal.name,
@@ -606,7 +620,7 @@ class CalorieProvider with ChangeNotifier {
       }).select('id').single();
 
       final shareId = response['id'] as String;
-      return "https://heavydutyapp.org/share/meal?id=$shareId&from=${Uri.encodeComponent(userName)}";
+      return "https://affulabs.com/rugged/app/share/meal?id=$shareId&from=${Uri.encodeComponent(userName)}";
     } catch (e) {
       debugPrint("CalorieProvider: Error generating share link: $e");
       return null;

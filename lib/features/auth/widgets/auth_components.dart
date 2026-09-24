@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
 
 class AuthInputField extends StatelessWidget {
   final TextEditingController controller;
@@ -32,15 +32,13 @@ class AuthInputField extends StatelessWidget {
       obscureText: obscure,
       enabled: enabled,
       keyboardType: keyboardType,
-      style: AppTextStyles.inputText.copyWith(
+      style: AppTextStyles.inputText.adaptive(context).copyWith(
         color: AppColors.white,
-        fontSize: isWideLayout ? 16 : 14.sp,
       ),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: AppTextStyles.labelSmall.copyWith(
+        hintStyle: AppTextStyles.labelSmall.adaptive(context).copyWith(
           color: AppColors.textSecondary,
-          fontSize: isWideLayout ? 12 : 10.sp,
         ),
         filled: true,
         fillColor: AppColors.surface,
@@ -112,13 +110,67 @@ class AuthPrimaryButton extends StatelessWidget {
                 )
               : Text(
                   label,
-                  style: AppTextStyles.labelMedium.copyWith(
+                  style: AppTextStyles.labelMedium.adaptive(context).copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w500,
-                    fontSize: isWideLayout ? 18 : 16.sp,
                   ),
                 ),
         ),
+      ),
+    );
+  }
+}
+
+class AuthSocialButton extends StatelessWidget {
+  final String label;
+  final Widget icon;
+  final VoidCallback onTap;
+  final bool isWideLayout;
+  final bool isLoading;
+
+  const AuthSocialButton({
+    super.key,
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.isWideLayout = false,
+    this.isLoading = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: isLoading ? null : onTap,
+      child: Container(
+        width: double.infinity,
+        height: isWideLayout ? 60 : 54.h,
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
+        ),
+        child: isLoading
+            ? const Center(
+                child: SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  icon,
+                  SizedBox(width: isWideLayout ? 16 : 12.w),
+                  Text(
+                    label,
+                    style: AppTextStyles.labelMedium.adaptive(context).copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
       ),
     );
   }
@@ -165,13 +217,18 @@ class AuthDividerWithText extends StatelessWidget {
     return Row(
       children: [
         Expanded(child: Divider(color: AppColors.white.withValues(alpha: 0.1))),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: isWideLayout ? 24 : 16.w),
-          child: Text(
-            text,
-            style: AppTextStyles.labelSmall.copyWith(
-              fontSize: isWideLayout ? 11 : 9.sp,
-              color: AppColors.textSecondary,
+        Flexible(
+          flex: 4,
+          child: Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: isWideLayout ? 24 : 16.w),
+              child: Text(
+                text,
+                textAlign: TextAlign.center,
+                style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
             ),
           ),
         ),
@@ -209,8 +266,8 @@ class AuthBrandingSection extends StatelessWidget {
               child: Text(
                 title,
                 textAlign: isWideLayout ? TextAlign.center : TextAlign.start,
-                style: AppTextStyles.h1.copyWith(
-                  fontSize: isWideLayout ? 64.sp.clamp(60, 100) : 48.sp,
+                style: AppTextStyles.h1.adaptive(context).copyWith(
+                  fontSize: isWideLayout ? 64 : 48,
                   height: 0.9,
                   color: AppColors.white,
                   letterSpacing: -2,
@@ -223,10 +280,9 @@ class AuthBrandingSection extends StatelessWidget {
         Text(
           subtitle,
           textAlign: isWideLayout ? TextAlign.center : TextAlign.start,
-          style: AppTextStyles.labelSmall.copyWith(
+          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
             color: AppColors.textSecondary,
             letterSpacing: isWideLayout ? 4 : 2,
-            fontSize: isWideLayout ? 14.sp.clamp(12, 18) : 12.sp,
             fontWeight: FontWeight.w500,
           ),
         ),

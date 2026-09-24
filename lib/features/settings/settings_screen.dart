@@ -2,32 +2,35 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/core/widgets/elite_unit_toggle_card.dart';
-import 'package:heavy_duty/core/navigation/app_routes.dart';
-import 'package:heavy_duty/core/widgets/elite_settings_app_bar.dart';
-import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
-import 'package:heavy_duty/features/tracker/cycle_tracker/provider/cycle_provider.dart';
-import 'package:heavy_duty/features/tracker/hydration/provider/hydration_provider.dart';
-import 'package:heavy_duty/features/tracker/body_composition/provider/body_comp_provider.dart';
-import 'package:heavy_duty/features/tracker/cycle_tracker/model/cycle_settings.dart';
-import 'package:heavy_duty/features/tracker/body_composition/model/body_comp_settings.dart';
-import 'package:heavy_duty/features/tracker/sleep/provider/sleep_provider.dart';
-import 'package:heavy_duty/features/tracker/calorie/provider/calorie_provider.dart';
-import 'package:heavy_duty/features/tracker/supplement/provider/supplement_provider.dart';
-import 'package:heavy_duty/features/exercise/provider/exercise_provider.dart';
-import 'package:heavy_duty/features/affirmation/provider/affirmation_provider.dart';
-import 'package:heavy_duty/core/providers/ui_provider.dart';
-import 'package:heavy_duty/core/providers/update_provider.dart';
-import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/core/widgets/elite_unit_toggle_card.dart';
+import 'package:rugged/core/navigation/app_routes.dart';
+import 'package:rugged/core/widgets/elite_settings_app_bar.dart';
+import 'package:rugged/features/auth/provider/auth_provider.dart';
+import 'package:rugged/features/tracker/cycle_tracker/provider/cycle_provider.dart';
+import 'package:rugged/features/tracker/hydration/provider/hydration_provider.dart';
+import 'package:rugged/features/tracker/body_composition/provider/body_comp_provider.dart';
+import 'package:rugged/features/tracker/cycle_tracker/model/cycle_settings.dart';
+import 'package:rugged/features/tracker/body_composition/model/body_comp_settings.dart';
+import 'package:rugged/features/tracker/sleep/provider/sleep_provider.dart';
+import 'package:rugged/features/tracker/calorie/provider/calorie_provider.dart';
+import 'package:rugged/features/tracker/supplement/provider/supplement_provider.dart';
+import 'package:rugged/features/exercise/provider/exercise_provider.dart';
+import 'package:rugged/features/affirmation/provider/affirmation_provider.dart';
+import 'package:rugged/core/providers/ui_provider.dart';
+import 'package:rugged/core/providers/update_provider.dart';
+import 'package:rugged/core/widgets/elite_snackbar.dart';
 
+import '../pro/pro_upgrade_screen.dart';
 import '../profile/change_password_screen.dart';
 import '../profile/change_username_screen.dart';
 import '../profile/manage_email_screen.dart';
 import 'body_comp_settings_screen.dart';
 import 'calorie_settings_screen.dart';
 import 'cycle_tracking_settings_screen.dart';
+import 'delete_account_screen.dart';
 import 'hydration_settings_screen.dart';
 import 'notification_screen.dart';
 import 'sleep_settings_screen.dart';
@@ -58,26 +61,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
       return Center(
         child: Text(
           "SELECT AN OPTION TO VIEW",
-          style: AppTextStyles.labelSmall.copyWith(
+          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
             color: AppColors.textSecondary.withValues(alpha: 0.3), 
             letterSpacing: 2,
-            fontSize: isCompact ? 12.sp : 18.0,
           ),
         ),
       );
     }
 
     switch (route) {
-      case AppRoutes.changeUsername: return const ChangeUsernameScreen();
-      case AppRoutes.changePassword: return const ChangePasswordScreen();
-      case AppRoutes.manageEmail: return const ManageEmailScreen();
-      case AppRoutes.settingsNotifications: return const NotificationSettingsScreen();
-      case AppRoutes.settingsCycle: return const CycleTrackingSettingsScreen();
-      case AppRoutes.settingsCalorie: return const CalorieSettingsScreen();
-      case AppRoutes.settingsHydration: return const HydrationSettingsScreen();
-      case AppRoutes.settingsSupplement: return const SupplementSettingsScreen();
-      case AppRoutes.settingsSleep: return const SleepSettingsScreen();
-      case AppRoutes.settingsBodyComp: return const BodyCompConfigScreen();
+      case AppRoutes.proUpgrade: return const ProUpgradeScreen(isEmbedded: true);
+      case AppRoutes.changeUsername: return const ChangeUsernameScreen(isEmbedded: true);
+      case AppRoutes.changePassword: return const ChangePasswordScreen(isEmbedded: true);
+      case AppRoutes.manageEmail: return const ManageEmailScreen(isEmbedded: true);
+      case AppRoutes.settingsNotifications: return const NotificationSettingsScreen(isEmbedded: true);
+      case AppRoutes.settingsCycle: return const CycleTrackingSettingsScreen(isEmbedded: true);
+      case AppRoutes.settingsCalorie: return const CalorieSettingsScreen(isEmbedded: true);
+      case AppRoutes.settingsHydration: return const HydrationSettingsScreen(isEmbedded: true);
+      case AppRoutes.settingsSupplement: return const SupplementSettingsScreen(isEmbedded: true);
+      case AppRoutes.settingsSleep: return const SleepSettingsScreen(isEmbedded: true);
+      case AppRoutes.settingsBodyComp: return const BodyCompConfigScreen(isEmbedded: true);
+      case AppRoutes.deleteAccount: return const DeleteAccountScreen(isEmbedded: true);
       default: return const SizedBox.shrink();
     }
   }
@@ -113,15 +117,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _launchUrl(String urlString) async {
+    final Uri url = Uri.parse(urlString);
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      if (mounted) {
+        EliteSnackbar.show(context, "COULD NOT OPEN $urlString", isError: true);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer4<CycleProvider, HydrationProvider, BodyCompProvider, SleepProvider>(
       builder: (context, cycleProv, hydProv, bodyProv, sleepProv, _) {
-        final bool useMetricWeight = cycleProv.settings.weightUnit == WeightUnit.kgs;
-        final bool useMetricVolume = hydProv.settings.unit == HydrationUnit.ml;
-        final bool bodyUseMetricWeight = bodyProv.settings.weightUnit == WeightUnit.kgs;
-        final bool bodyUseMetricHeight = bodyProv.settings.heightUnit == HeightUnit.cm;
-
         return Scaffold(
           backgroundColor: AppColors.background,
           body: SafeArea(
@@ -129,6 +139,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               builder: (context, constraints) {
                 final bool isCompact = constraints.maxWidth < 600;
                 final bool isWideLandscape = !isCompact && MediaQuery.orientationOf(context) == Orientation.landscape;
+                if (isWideLandscape && _selectedRoute == null) {
+                  _selectedRoute = AppRoutes.proUpgrade;
+                }
 
                 return Column(
                   children: [
@@ -200,10 +213,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final bool bodyUseMetricWeight = bodyProv.settings.weightUnit == WeightUnit.kgs;
     final bool bodyUseMetricHeight = bodyProv.settings.heightUnit == HeightUnit.cm;
 
+    final bool isPro = context.watch<AuthProvider>().isPro;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionHeader("ACCOUNT & SECURITY", isCompact),
+        _buildSettingTile(
+          icon: isPro ? Icons.workspace_premium_rounded : Icons.auto_awesome_rounded,
+          title: isPro ? "ELITE MEMBERSHIP" : "UPGRADE TO ELITE",
+          subtitle: isPro 
+              ? context.watch<AuthProvider>().activeProTierName 
+              : "Remove ads and unlock all features",
+          onTap: () => _navigateTo(AppRoutes.proUpgrade, isWideLandscape),
+          isCompact: isCompact,
+          isSelected: isWideLandscape && _selectedRoute == AppRoutes.proUpgrade,
+          trailing: isPro 
+            ? Container(
+                padding: EdgeInsets.symmetric(horizontal: isCompact ? 10.w : 10.0, vertical: isCompact ? 5.h : 5.0),
+                decoration: BoxDecoration(
+                  color: Colors.greenAccent.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(20.r),
+                  border: Border.all(color: Colors.greenAccent.withValues(alpha: 0.4)),
+                ),
+                child: Text(
+                  "ACTIVE",
+                  style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+                    color: Colors.greenAccent,
+                    fontWeight: FontWeight.bold,
+                    fontSize: isCompact ? 10.sp : 10.0,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              )
+            : null,
+        ),
         _buildSettingTile(
           icon: Icons.person_outline_rounded,
           title: "CHANGE USERNAME",
@@ -373,32 +417,61 @@ class _SettingsScreenState extends State<SettingsScreen> {
             final bool update = updateProv.isUpdateAvailable;
             return _buildSettingTile(
               icon: Icons.info_outline_rounded,
-              title: "HEAVY DUTY v${updateProv.currentVersion}",
+              title: "RUGGED v${updateProv.currentVersion}",
               subtitle: update ? "New version available. Tap to upgrade." : "All systems operational",
               onTap: update ? updateProv.launchUpdateUrl : null,
               isCompact: isCompact,
               trailing: update
                 ? Text(
                     "NOT UP TO DATE",
-                    style: AppTextStyles.labelSmall.copyWith(
+                    style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                       color: AppColors.crimson,
-                      fontSize: 9.0,
                       fontWeight: FontWeight.w500,
                       letterSpacing: 1,
                     ),
                   )
                 : Text(
                     "UP TO DATE",
-                    style: AppTextStyles.labelSmall.copyWith(
+                    style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                       color: AppColors.success,
-                      fontSize: 9.0,
                       fontWeight: FontWeight.w500
                     ),
                   ),
             );
           },
         ),
-        const SizedBox(height: 16.0),
+        _buildDeleteAccountTile(isCompact, isWideLandscape),
+        const SizedBox(height: 32.0),
+        _buildSectionHeader("LEGAL & PRIVACY", isCompact),
+        _buildSettingTile(
+          icon: Icons.privacy_tip_outlined,
+          title: "PRIVACY POLICY",
+          subtitle: "View data protection and privacy terms",
+          onTap: () => _launchUrl("https://affulabs.com/rugged/privacy.html"),
+          isCompact: isCompact,
+        ),
+        _buildSettingTile(
+          icon: Icons.description_outlined,
+          title: "TERMS OF SERVICE / EULA",
+          subtitle: "End-user license agreement and policies",
+          onTap: () => _launchUrl("https://affulabs.com/rugged/terms.html"),
+          isCompact: isCompact,
+        ),
+        _buildSettingTile(
+          icon: Icons.health_and_safety_outlined,
+          title: "MEDICAL DISCLAIMER",
+          subtitle: "Physical training and health safety terms",
+          onTap: () => _launchUrl("https://affulabs.com/rugged/disclaimer.html"),
+          isCompact: isCompact,
+        ),
+        _buildSettingTile(
+          icon: Icons.gavel_outlined,
+          title: "LEGAL NOTICE",
+          subtitle: "Copyright and trademark disclosures",
+          onTap: () => _launchUrl("https://affulabs.com/rugged/legal.html"),
+          isCompact: isCompact,
+        ),
+        const SizedBox(height: 32.0),
         _buildLogoutButton(isCompact),
       ],
     );
@@ -406,16 +479,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // ─── UI COMPONENTS ────────────────────────────────────────────────────────
 
+  Widget _buildDeleteAccountTile(bool isCompact, bool isWideLandscape) {
+    return _buildSettingTile(
+      icon: Icons.delete_forever_rounded,
+      title: "DELETE ACCOUNT",
+      subtitle: "Permanently erase your elite data",
+      onTap: () => _navigateTo(AppRoutes.deleteAccount, isWideLandscape),
+      isCompact: isCompact,
+      isSelected: isWideLandscape && _selectedRoute == AppRoutes.deleteAccount,
+    );
+  }
+
   Widget _buildSectionHeader(String title, bool isCompact) {
     return Padding(
       padding: EdgeInsets.only(bottom: isCompact ? 12.h : 12.0, left: isCompact ? 4.w : 4.0),
       child: Text(
         title,
-        style: AppTextStyles.labelSmall.copyWith(
+        style: AppTextStyles.labelSmall.adaptive(context).copyWith(
           color: AppColors.crimson, 
           fontWeight: FontWeight.w500, 
           letterSpacing: 1.5,
-          fontSize: isCompact ? null : 11.0,
         ),
       ),
     );
@@ -459,15 +542,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: AppTextStyles.labelSmall.copyWith(
+                  Text(title, style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                     color: Colors.white, 
                     fontWeight: FontWeight.w500,
-                    fontSize: isCompact ? null : 12.0,
                   )),
                   if (subtitle != null)
-                    Text(subtitle, style: AppTextStyles.labelSmall.copyWith(
+                    Text(subtitle, style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                       color: isSelected ? AppColors.white.withValues(alpha: 0.7) : AppColors.textSecondary, 
-                      fontSize: isCompact ? 10.sp : 10.0
                     )),
                 ],
               ),
@@ -489,7 +570,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           await context.read<AuthProvider>().signOut();
         } catch (e) {
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('LOGOUT FAILED: $e'), backgroundColor: AppColors.error));
+          EliteSnackbar.show(context, 'LOGOUT FAILED: $e', isError: true);
         }
       },
       child: Container(
@@ -503,11 +584,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Center(
           child: Text(
             "LOGOUT",
-            style: AppTextStyles.labelMedium.copyWith(
+            style: AppTextStyles.labelMedium.adaptive(context).copyWith(
               color: AppColors.crimson, 
               fontWeight: FontWeight.w500, 
               letterSpacing: 2,
-              fontSize: isCompact ? null : 13.0,
             ),
           ),
         ),

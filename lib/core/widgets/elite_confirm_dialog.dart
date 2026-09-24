@@ -29,7 +29,7 @@ class EliteConfirmDialog {
                 Container(
                   padding: EdgeInsets.all(isCompact ? 12.r : 12.0),
                   decoration: BoxDecoration(
-                    color: confirmColor.withOpacity(0.1),
+                    color: confirmColor.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -41,8 +41,7 @@ class EliteConfirmDialog {
                 SizedBox(height: isCompact ? 16.h : 16.0),
                 Text(
                   title.toUpperCase(),
-                  style: AppTextStyles.h3.copyWith(
-                    fontSize: isCompact ? 16.sp : 15.0,
+                  style: AppTextStyles.h3.adaptive(context).copyWith(
                     letterSpacing: 1.2,
                   ),
                   textAlign: TextAlign.center,
@@ -55,10 +54,9 @@ class EliteConfirmDialog {
                 Text(
                   message.toUpperCase(),
                   textAlign: TextAlign.center,
-                  style: AppTextStyles.labelMedium.copyWith(
+                  style: AppTextStyles.labelMedium.adaptive(context).copyWith(
                     color: AppColors.textSecondary,
                     height: 1.4,
-                    fontSize: isCompact ? null : 12.0,
                   ),
                 ),
               ],
@@ -81,15 +79,14 @@ class EliteConfirmDialog {
                           decoration: BoxDecoration(
                             color: Colors.transparent,
                             borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
-                            border: Border.all(color: AppColors.white.withOpacity(0.1)),
+                            border: Border.all(color: AppColors.white.withValues(alpha: 0.1)),
                           ),
                           alignment: Alignment.center,
                           child: Text(
                             cancelText.toUpperCase(),
-                            style: AppTextStyles.labelMedium.copyWith(
+                            style: AppTextStyles.labelMedium.adaptive(context).copyWith(
                               color: AppColors.textSecondary,
                               fontWeight: FontWeight.w500,
-                              fontSize: isCompact ? null : 12.0,
                             ),
                           ),
                         ),
@@ -102,17 +99,16 @@ class EliteConfirmDialog {
                         child: Container(
                           padding: EdgeInsets.symmetric(vertical: isCompact ? 12.h : 12.0),
                           decoration: BoxDecoration(
-                            color: confirmColor.withOpacity(0.1),
+                            color: confirmColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
-                            border: Border.all(color: confirmColor.withOpacity(0.5)),
+                            border: Border.all(color: confirmColor.withValues(alpha: 0.5)),
                           ),
                           alignment: Alignment.center,
                           child: Text(
                             confirmText.toUpperCase(),
-                            style: AppTextStyles.labelMedium.copyWith(
+                            style: AppTextStyles.labelMedium.adaptive(context).copyWith(
                               color: confirmColor,
                               fontWeight: FontWeight.w500,
-                              fontSize: isCompact ? null : 12.0,
                             ),
                           ),
                         ),

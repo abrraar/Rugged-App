@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/features/exercise/model/exercise_template.dart';
-import 'package:heavy_duty/features/exercise/provider/exercise_provider.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/features/exercise/model/exercise_template.dart';
+import 'package:rugged/features/exercise/provider/exercise_provider.dart';
 import 'package:provider/provider.dart';
 
 class ExercisePickerSheet extends StatefulWidget {
@@ -61,7 +61,7 @@ class _ExercisePickerSheetState extends State<ExercisePickerSheet> with SingleTi
                       children: [
                         Text(
                           "PICK EXERCISE", 
-                          style: AppTextStyles.h3.copyWith(fontSize: isCompact ? 22.sp : 18.0)
+                          style: AppTextStyles.h3.adaptive(context)
                         ),
                         if (widget.isSideSheet)
                           IconButton(
@@ -80,10 +80,10 @@ class _ExercisePickerSheetState extends State<ExercisePickerSheet> with SingleTi
                     ),
                     child: TextField(
                       onChanged: (v) => setState(() => _searchQuery = v),
-                      style: AppTextStyles.inputText.copyWith(color: Colors.white, fontSize: isCompact ? 15.sp : null),
+                      style: AppTextStyles.inputText.adaptive(context).copyWith(color: Colors.white),
                       decoration: InputDecoration(
                         hintText: "SEARCH...",
-                        hintStyle: TextStyle(fontSize: isCompact ? 15.sp : null),
+                        hintStyle: AppTextStyles.inputHint.adaptive(context),
                         prefixIcon: const Icon(Icons.search, color: AppColors.crimson),
                         filled: true,
                         fillColor: AppColors.background.withValues(alpha : 0.5),
@@ -110,7 +110,7 @@ class _ExercisePickerSheetState extends State<ExercisePickerSheet> with SingleTi
                       ),
                       labelColor: AppColors.white,
                       unselectedLabelColor: AppColors.textSecondary,
-                      labelStyle: AppTextStyles.labelSmall.copyWith(fontWeight: FontWeight.w500, letterSpacing: 1.2, fontSize: isCompact ? 13.sp : 11.0),
+                      labelStyle: AppTextStyles.labelSmall.adaptive(context).copyWith(fontWeight: FontWeight.w500, letterSpacing: 1.2),
                       tabs: const [
                         Tab(text: 'DEFAULT EXERCISES'),
                         Tab(text: 'MY EXERCISES'),
@@ -149,7 +149,7 @@ class _ExercisePickerSheetState extends State<ExercisePickerSheet> with SingleTi
       return Center(
         child: Text(
           "NO EXERCISES FOUND",
-          style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: isCompact ? 13.sp : 11.0),
+          style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary),
         ),
       );
     }
@@ -165,11 +165,11 @@ class _ExercisePickerSheetState extends State<ExercisePickerSheet> with SingleTi
             Navigator.pop(context);
           },
           contentPadding: EdgeInsets.symmetric(vertical: isCompact ? 8.h : 6.0),
-          title: Text(t.name.toUpperCase(), style: AppTextStyles.labelMedium.copyWith(color: Colors.white, fontSize: isCompact ? 16.sp : 14.0)),
+          title: Text(t.name.toUpperCase(), style: AppTextStyles.labelMedium.adaptive(context).copyWith(color: Colors.white)),
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(t.targetMuscles?.toUpperCase() ?? "GENERAL", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: isCompact ? 11.sp : 10.0)),
+              Text(t.targetMuscles?.toUpperCase() ?? "GENERAL", style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary)),
               SizedBox(height: isCompact ? 4.h : 4.0),
               Container(
                 padding: EdgeInsets.symmetric(horizontal: isCompact ? 8.w : 8.0, vertical: isCompact ? 2.h : 2.0),
@@ -179,10 +179,9 @@ class _ExercisePickerSheetState extends State<ExercisePickerSheet> with SingleTi
                 ),
                 child: Text(
                   t.type.name.toUpperCase(),
-                  style: AppTextStyles.labelSmall.copyWith(
+                  style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                     color: t.type == ExerciseType.compound ? AppColors.crimson : AppColors.textSecondary,
                     fontWeight: FontWeight.w500,
-                    fontSize: isCompact ? 11.sp : 10.0,
                   ),
                 ),
               ),

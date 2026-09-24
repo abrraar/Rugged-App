@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/services.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/core/widgets/elite_settings_app_bar.dart';
-import 'package:heavy_duty/core/widgets/elite_unit_toggle_card.dart';
-import 'package:heavy_duty/features/tracker/cycle_tracker/model/cycle_settings.dart';
-import 'package:heavy_duty/features/tracker/cycle_tracker/provider/cycle_provider.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/core/widgets/elite_settings_app_bar.dart';
+import 'package:rugged/core/widgets/elite_unit_toggle_card.dart';
+import 'package:rugged/features/tracker/cycle_tracker/model/cycle_settings.dart';
+import 'package:rugged/features/tracker/cycle_tracker/provider/cycle_provider.dart';
 import 'package:provider/provider.dart';
 
 class CycleTrackingSettingsScreen extends StatefulWidget {
-  const CycleTrackingSettingsScreen({super.key});
+  final bool isEmbedded;
+  const CycleTrackingSettingsScreen({super.key, this.isEmbedded = false});
 
   @override
   State<CycleTrackingSettingsScreen> createState() => _CycleTrackingSettingsScreenState();
@@ -49,14 +50,13 @@ class _CycleTrackingSettingsScreenState extends State<CycleTrackingSettingsScree
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final bool isCompact = constraints.maxWidth < 600 && !isLargeScreen;
-                final bool isWideLandscape = isLargeScreen && MediaQuery.of(context).orientation == Orientation.landscape;
 
                 return Column(
                   children: [
                     EliteSettingsAppBar(
                       title: 'TRAINING SETTINGS', 
                       isCompact: isCompact,
-                      showBackButton: !isWideLandscape,
+                      showBackButton: !widget.isEmbedded,
                     ),
                     Expanded(
                       child: SingleChildScrollView(
@@ -101,6 +101,23 @@ class _CycleTrackingSettingsScreenState extends State<CycleTrackingSettingsScree
                                         }
                                       },
                                     ),
+                                  ),
+
+                                  SizedBox(height: isLargeScreen ? 32.0 : 32.h),
+
+                                  _buildSectionHeader('AUTOMATION & LOGGING', isLargeScreen),
+                                  SizedBox(height: isLargeScreen ? 12.0 : 12.h),
+
+                                  _buildSimpleToggleCard(
+                                    title: "Smart Auto Date Log",
+                                    subtitle: "Auto-log today's date on completion unless a workout was already logged today",
+                                    value: provider.settings.smartAutoDateEnabled,
+                                    isLargeScreen: isLargeScreen,
+                                    onChanged: (val) {
+                                      provider.updateSettings(provider.settings.copyWith(
+                                        smartAutoDateEnabled: val,
+                                      ));
+                                    },
                                   ),
 
                                   SizedBox(height: isLargeScreen ? 32.0 : 32.h),
@@ -151,10 +168,9 @@ class _CycleTrackingSettingsScreenState extends State<CycleTrackingSettingsScree
         SizedBox(width: isLargeScreen ? 8.0 : 8.w),
         Text(
           title,
-          style: AppTextStyles.labelSmall.copyWith(
+          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
             color: AppColors.textSecondary.withValues(alpha: 0.7),
             letterSpacing: 1.2,
-            fontSize: isLargeScreen ? 11.0 : null,
           ),
         ),
       ],
@@ -181,13 +197,11 @@ class _CycleTrackingSettingsScreenState extends State<CycleTrackingSettingsScree
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: AppTextStyles.labelMedium.copyWith(
-                fontSize: isLargeScreen ? 14.0 : null
-              )),
+              Text(title, style: AppTextStyles.labelMedium.adaptive(context)),
               Switch.adaptive(
                 value: value, 
                 onChanged: onChanged,
-                activeColor: AppColors.crimson,
+                activeTrackColor: AppColors.crimson,
               ),
             ],
           ),
@@ -195,12 +209,55 @@ class _CycleTrackingSettingsScreenState extends State<CycleTrackingSettingsScree
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(subtitle, style: AppTextStyles.labelSmall.copyWith(
+              Text(subtitle, style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                 color: AppColors.textSecondary,
-                fontSize: isLargeScreen ? 12.0 : null,
               )),
               child,
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSimpleToggleCard({
+    required String title,
+    required String subtitle,
+    required bool value,
+    required bool isLargeScreen,
+    required Function(bool) onChanged,
+  }) {
+    return Container(
+      padding: EdgeInsets.all(isLargeScreen ? 16.0 : 16.r),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceLight.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(isLargeScreen ? 12.0 : 16.r),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppTextStyles.labelMedium.adaptive(context)),
+                SizedBox(height: isLargeScreen ? 4.0 : 4.h),
+                Text(
+                  subtitle,
+                  style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+                    color: AppColors.textSecondary,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: isLargeScreen ? 16.0 : 16.w),
+          Switch.adaptive(
+            value: value,
+            onChanged: onChanged,
+            activeTrackColor: AppColors.crimson,
           ),
         ],
       ),
@@ -234,10 +291,9 @@ class _CycleTrackingSettingsScreenState extends State<CycleTrackingSettingsScree
               ],
               onChanged: onChanged,
               textAlign: TextAlign.center,
-              style: AppTextStyles.labelSmall.copyWith(
+              style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                 color: AppColors.white, 
                 fontWeight: FontWeight.w500,
-                fontSize: isLargeScreen ? 12.0 : null,
               ),
               decoration: const InputDecoration(
                 isDense: true,
@@ -249,9 +305,8 @@ class _CycleTrackingSettingsScreenState extends State<CycleTrackingSettingsScree
           SizedBox(width: isLargeScreen ? 4.0 : 4.w),
           Text(
             suffix,
-            style: AppTextStyles.labelSmall.copyWith(
+            style: AppTextStyles.labelSmall.adaptive(context).copyWith(
               color: AppColors.textSecondary, 
-              fontSize: isLargeScreen ? 10.0 : 10.sp
             ),
           ),
         ],

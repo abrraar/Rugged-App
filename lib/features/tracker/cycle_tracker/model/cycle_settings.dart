@@ -8,6 +8,7 @@ class CycleSettings {
   final Set<String> visibleMetrics;
   final bool workoutRemindersEnabled;
   final int workoutReminderInterval;
+  final bool smartAutoDateEnabled;
   final int isSynced;
   final DateTime? updatedAt;
   final String? userId;
@@ -17,6 +18,7 @@ class CycleSettings {
     this.visibleMetrics = const {"strength", "volume"},
     this.workoutRemindersEnabled = false,
     this.workoutReminderInterval = 2,
+    this.smartAutoDateEnabled = true,
     this.isSynced = 1,
     this.updatedAt,
     this.userId,
@@ -30,6 +32,7 @@ class CycleSettings {
       'visible_metrics_json': jsonEncode(visibleMetrics.toList()),
       'workout_reminders_enabled': workoutRemindersEnabled ? 1 : 0,
       'workout_reminder_interval': workoutReminderInterval,
+      'smart_auto_date_enabled': smartAutoDateEnabled ? 1 : 0,
       'is_synced': isSynced,
       'updated_at': updatedAt?.toIso8601String(),
     };
@@ -52,6 +55,9 @@ class CycleSettings {
       }
     }
 
+    final rawSmartAutoDate = map['smart_auto_date_enabled'];
+    final bool smartAutoDate = rawSmartAutoDate == null ? true : (rawSmartAutoDate == 1 || rawSmartAutoDate == true);
+
     return CycleSettings(
       weightUnit: WeightUnit.values.firstWhere(
         (e) => e.name == map['weight_unit'],
@@ -60,6 +66,7 @@ class CycleSettings {
       visibleMetrics: metrics,
       workoutRemindersEnabled: map['workout_reminders_enabled'] == 1,
       workoutReminderInterval: map['workout_reminder_interval'] ?? 2,
+      smartAutoDateEnabled: smartAutoDate,
       isSynced: map['is_synced'] ?? 1,
       updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'].toString()) : null,
       userId: map['user_id'] as String?,
@@ -71,6 +78,7 @@ class CycleSettings {
     Set<String>? visibleMetrics,
     bool? workoutRemindersEnabled,
     int? workoutReminderInterval,
+    bool? smartAutoDateEnabled,
     int? isSynced,
     DateTime? updatedAt,
     String? userId,
@@ -80,6 +88,7 @@ class CycleSettings {
       visibleMetrics: visibleMetrics ?? this.visibleMetrics,
       workoutRemindersEnabled: workoutRemindersEnabled ?? this.workoutRemindersEnabled,
       workoutReminderInterval: workoutReminderInterval ?? this.workoutReminderInterval,
+      smartAutoDateEnabled: smartAutoDateEnabled ?? this.smartAutoDateEnabled,
       isSynced: isSynced ?? this.isSynced,
       updatedAt: updatedAt ?? this.updatedAt,
       userId: userId ?? this.userId,

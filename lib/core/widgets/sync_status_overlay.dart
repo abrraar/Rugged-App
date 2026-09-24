@@ -2,9 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/core/providers/sync_provider.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/core/providers/sync_provider.dart';
 import 'package:provider/provider.dart';
 
 class SyncStatusOverlay extends StatelessWidget {
@@ -80,8 +80,7 @@ class SyncStatusOverlay extends StatelessWidget {
           isSuccess: true,
         );
       case SyncUIState.idle:
-      default:
-        return const SizedBox.shrink();
+      return const SizedBox.shrink();
     }
   }
 }
@@ -138,7 +137,7 @@ class _StatusCard extends StatelessWidget {
                 children: [
                   Text(
                     message,
-                    style: AppTextStyles.labelSmall.copyWith(
+                    style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w500,
                       letterSpacing: 1.0,
@@ -153,9 +152,8 @@ class _StatusCard extends StatelessWidget {
                           if (subMessage != null)
                             Text(
                               subMessage!,
-                              style: AppTextStyles.labelSmall.copyWith(
+                              style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                                 color: AppColors.textSecondary,
-                                fontSize: 9.sp,
                                 letterSpacing: 0.5,
                               ),
                             ),
@@ -196,8 +194,7 @@ class _StatusCard extends StatelessWidget {
                 ),
                 child: Text(
                   trailing!,
-                  style: AppTextStyles.h3.copyWith(
-                    fontSize: 12.sp,
+                  style: AppTextStyles.h3.adaptive(context).copyWith(
                     color: AppColors.crimson,
                     fontWeight: FontWeight.w500,
                   ),

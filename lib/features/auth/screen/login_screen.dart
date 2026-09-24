@@ -3,13 +3,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
-import 'package:heavy_duty/core/navigation/app_routes.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/core/constants/dimensions.dart';
-import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
-import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
-import 'package:heavy_duty/features/auth/widgets/auth_components.dart';
+import 'package:rugged/core/navigation/app_routes.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/core/constants/dimensions.dart';
+import 'package:rugged/core/widgets/elite_snackbar.dart';
+import 'package:rugged/features/auth/provider/auth_provider.dart';
+import 'package:rugged/features/auth/widgets/auth_components.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -99,7 +99,7 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const AuthBrandingSection(
-                  title: 'HEAVY\nDUTY',
+                  title: 'RUGGED',
                   subtitle: 'INTENSE BRIEF INFREQUENT',
                 ),
                 SizedBox(height: 40.h),
@@ -122,7 +122,7 @@ class _LoginScreenState extends State<LoginScreen> {
             padding: const EdgeInsets.all(64),
             child: const Center(
               child: AuthBrandingSection(
-                title: 'HEAVY\nDUTY',
+                title: 'RUGGED',
                 subtitle: 'INTENSE BRIEF INFREQUENT',
                 isWideLayout: true,
               ),
@@ -153,9 +153,8 @@ class _LoginScreenState extends State<LoginScreen> {
         if (isWideLayout) ...[
           Text(
             'WELCOME BACK',
-            style: AppTextStyles.h2.copyWith(
+            style: AppTextStyles.h2.adaptive(context).copyWith(
               color: AppColors.white,
-              fontSize: 28.sp.clamp(24, 36),
             ),
           ),
           SizedBox(height: 24.h.clamp(16, 40)),
@@ -190,9 +189,8 @@ class _LoginScreenState extends State<LoginScreen> {
             onPressed: isLoading ? null : () => context.push(AppRoutes.forgotPass),
             child: Text(
               'Forgot password?',
-              style: AppTextStyles.labelSmall.copyWith(
+              style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                 color: AppColors.textSecondary,
-                fontSize: isWideLayout ? 13 : 12.sp,
               ),
             ),
           ),
@@ -204,6 +202,20 @@ class _LoginScreenState extends State<LoginScreen> {
           onTap: _handleLogin,
           isWideLayout: isWideLayout,
         ),
+        SizedBox(height: 24.h.clamp(16, 32)),
+        const AuthDividerWithText(text: 'OR CONTINUE WITH'),
+        SizedBox(height: 24.h.clamp(16, 32)),
+        AuthSocialButton(
+          label: 'GOOGLE SIGN IN',
+          icon: Icon(
+            Icons.g_mobiledata_rounded, 
+            color: Colors.white, 
+            size: isWideLayout ? 32 : 28.r
+          ),
+          onTap: () => context.read<AuthProvider>().signInWithGoogle(),
+          isWideLayout: isWideLayout,
+          isLoading: isLoading,
+        ),
         SizedBox(height: 48.h.clamp(32, 80)),
         Center(
           child: Wrap(
@@ -212,18 +224,15 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               Text(
                 "Don't have an account? ",
-                style: AppTextStyles.caption.copyWith(
-                  fontSize: isWideLayout ? 14 : 13.sp,
-                ),
+                style: AppTextStyles.caption.adaptive(context),
               ),
               GestureDetector(
                 onTap: isLoading ? null : () => context.push(AppRoutes.signin),
                 child: Text(
                   'SIGN UP',
-                  style: AppTextStyles.link.copyWith(
+                  style: AppTextStyles.link.adaptive(context).copyWith(
                     color: AppColors.crimson,
                     fontWeight: FontWeight.w500,
-                    fontSize: isWideLayout ? 14 : 13.sp,
                   ),
                 ),
               ),

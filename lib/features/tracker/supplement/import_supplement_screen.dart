@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/features/tracker/supplement/provider/supplement_provider.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/features/tracker/supplement/provider/supplement_provider.dart';
 import 'package:go_router/go_router.dart';
-import 'package:heavy_duty/core/navigation/app_routes.dart';
+import 'package:rugged/core/navigation/app_routes.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../../../core/widgets/elite_snackbar.dart';
 
 class ImportSupplementScreen extends StatefulWidget {
   final String shareId;
@@ -58,42 +62,61 @@ class _ImportSupplementScreenState extends State<ImportSupplementScreen> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
+      backgroundColor: Colors.black.withValues(alpha: 0.8),
+      body: Center(
         child: LayoutBuilder(
           builder: (context, constraints) {
             final bool isCompact = constraints.maxWidth < 600;
-            return Column(
-              children: [
-                _buildHeader(isCompact),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isCompact ? 24.w : 24.0, 
-                      vertical: isCompact ? 20.h : 20.0
+            return ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: isCompact ? double.infinity : 480, 
+                maxHeight: isCompact ? double.infinity : 680,
+              ),
+              child: Container(
+                margin: EdgeInsets.all(isCompact ? 16.r : 24.0),
+                padding: EdgeInsets.all(isCompact ? 20.r : 24.0),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(isCompact ? 24.r : 20.0),
+                  border: Border.all(color: AppColors.border),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      blurRadius: 30,
+                      offset: const Offset(0, 15),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildSenderInfo(isCompact),
-                        SizedBox(height: isCompact ? 32.h : 32.0),
-                        Text(
-                          "SUPPLEMENT DETAILS",
-                          style: AppTextStyles.labelSmall.copyWith(
-                            color: AppColors.textSecondary, 
-                            letterSpacing: 2,
-                            fontSize: isCompact ? null : 11.0,
-                          ),
-                        ),
-                        SizedBox(height: isCompact ? 16.h : 16.0),
-                        _buildSuppSummary(isCompact),
-                        SizedBox(height: isCompact ? 40.h : 40.0),
-                        _buildActions(isCompact),
-                      ],
-                    ),
-                  ),
+                  ],
                 ),
-              ],
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildHeader(isCompact),
+                    Flexible(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildWebToAppBanner(context, isCompact),
+                            _buildSenderInfo(isCompact),
+                            SizedBox(height: isCompact ? 24.h : 20.0),
+                            Text(
+                              "SUPPLEMENT DETAILS",
+                              style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+                                color: AppColors.textSecondary, 
+                                letterSpacing: 2,
+                              ),
+                            ),
+                            SizedBox(height: isCompact ? 12.h : 12.0),
+                            _buildSuppSummary(isCompact),
+                            SizedBox(height: isCompact ? 28.h : 24.0),
+                            _buildActions(isCompact),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             );
           }
         ),
@@ -127,7 +150,7 @@ class _ImportSupplementScreenState extends State<ImportSupplementScreen> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0),
-        border: Border.all(color: AppColors.white.withOpacity(0.05)),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         children: [
@@ -141,7 +164,7 @@ class _ImportSupplementScreenState extends State<ImportSupplementScreen> {
             "HAS SHARED A SUPPLEMENT WITH YOU",
             textAlign: TextAlign.center,
             style: AppTextStyles.labelSmall.copyWith(
-              color: AppColors.textSecondary.withOpacity(0.5), 
+              color: AppColors.textSecondary.withValues(alpha: 0.5), 
               fontSize: isCompact ? 10.sp : 11.0
             ),
           ),
@@ -163,7 +186,7 @@ class _ImportSupplementScreenState extends State<ImportSupplementScreen> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(isCompact ? 20.r : 16.0),
-        border: Border.all(color: AppColors.white.withOpacity(0.05)),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -274,13 +297,10 @@ class _ImportSupplementScreenState extends State<ImportSupplementScreen> {
                     updatedData['remaining_stock'] = useServings ? (remaining * weightPerServing) : remaining;
 
                     await context.read<SupplementProvider>().importSharedSupplement(updatedData);
-                    if (mounted) {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("SUPPLEMENT ADDED TO LIBRARY")),
-                      );
-                      context.go('/tracker/supplement?tab=2');
-                    }
+                    if (!context.mounted) return;
+                    Navigator.pop(context);
+                    EliteSnackbar.show(context, "SUPPLEMENT ADDED TO LIBRARY");
+                    context.go('/tracker/supplement?tab=2');
                   },
                   child: Text("SAVE", style: AppTextStyles.labelSmall.copyWith(
                     color: Colors.white, 
@@ -318,7 +338,7 @@ class _ImportSupplementScreenState extends State<ImportSupplementScreen> {
       children: [
         Text(label, style: AppTextStyles.labelSmall.copyWith(
           fontSize: isCompact ? 8.sp : 9.0, 
-          color: AppColors.textSecondary.withOpacity(0.5)
+          color: AppColors.textSecondary.withValues(alpha: 0.5)
         )),
         SizedBox(height: isCompact ? 4.h : 4.0),
         TextField(
@@ -370,6 +390,59 @@ class _ImportSupplementScreenState extends State<ImportSupplementScreen> {
     );
   }
 
+  Widget _buildWebToAppBanner(BuildContext context, bool isCompact) {
+    if (!kIsWeb) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      margin: EdgeInsets.only(bottom: isCompact ? 20.h : 20.0),
+      padding: EdgeInsets.all(isCompact ? 14.r : 12.0),
+      decoration: BoxDecoration(
+        color: Colors.blueAccent.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
+        border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.phone_android_rounded, color: Colors.blueAccent, size: 20),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "HAVE THE RUGGED APP?",
+                  style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: Colors.blueAccent, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 2.h),
+                Text(
+                  "Open this shared item directly in your native app.",
+                  style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 8.w),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blueAccent,
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+            ),
+            onPressed: () async {
+              final currentUri = GoRouterState.of(context).uri;
+              final customUri = Uri.parse('affulabs://rugged${currentUri.path}?${currentUri.query}');
+              if (await canLaunchUrl(customUri)) {
+                await launchUrl(customUri);
+              }
+            },
+            child: Text("OPEN APP", style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildExpiredState() {
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -384,7 +457,7 @@ class _ImportSupplementScreenState extends State<ImportSupplementScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.timer_off_rounded, color: AppColors.textSecondary.withOpacity(0.2), size: isCompact ? 80.r : 70.0),
+                    Icon(Icons.timer_off_rounded, color: AppColors.textSecondary.withValues(alpha: 0.2), size: isCompact ? 80.r : 70.0),
                     SizedBox(height: isCompact ? 24.h : 20.0),
                     Text(
                       "LINK EXPIRED", 

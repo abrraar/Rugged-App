@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/features/auth/provider/auth_provider.dart';
 import 'package:provider/provider.dart';
 
 class WelcomeHeader extends StatelessWidget {
@@ -20,18 +19,16 @@ class WelcomeHeader extends StatelessWidget {
           children: [
             Text(
               'WELCOME BACK, $name',
-              style: AppTextStyles.labelSmall.copyWith(
+              style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                 color: AppColors.crimson,
                 letterSpacing: 2,
-                fontSize: isCompact ? 13.sp : 11.0,
                 fontWeight: FontWeight.w500,
               ),
             ),
             const SizedBox(height: 6),
             Text(
               'READY FOR INTENSITY?',
-              style: AppTextStyles.h1.copyWith(
-                fontSize: isCompact ? 32.sp : 28.0,
+              style: AppTextStyles.h1.adaptive(context).copyWith(
                 fontWeight: FontWeight.w500,
                 color: Colors.white,
                 letterSpacing: -0.5,

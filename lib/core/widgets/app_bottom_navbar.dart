@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
 
 class AppBottomNavbar extends StatelessWidget {
   final int currentIndex;
@@ -45,7 +45,13 @@ class AppBottomNavbar extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected ? AppColors.crimson.withValues(alpha: 0.12) : Colors.transparent,
           borderRadius: BorderRadius.circular(24.r),
-          // Removed border for a soft, "faded" edge look
+          boxShadow: isSelected ? [
+            BoxShadow(
+              color: AppColors.crimson.withValues(alpha: 0.15),
+              blurRadius: 20.r,
+              spreadRadius: -2.r,
+            )
+          ] : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

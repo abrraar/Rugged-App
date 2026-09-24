@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
-import 'package:heavy_duty/core/utils/adaptive_utils.dart';
-import 'package:heavy_duty/features/tracker/body_composition/widgets/body_comp_notification_sheet.dart';
-import 'package:heavy_duty/features/tracker/body_composition/provider/body_comp_provider.dart';
-import 'package:heavy_duty/features/tracker/cycle_tracker/model/cycle_settings.dart';
-import 'package:heavy_duty/features/tracker/body_composition/model/body_comp_settings.dart';
+import 'package:rugged/core/widgets/elite_snackbar.dart';
+import 'package:rugged/core/utils/adaptive_utils.dart';
+import 'package:rugged/features/tracker/body_composition/widgets/body_comp_notification_sheet.dart';
+import 'package:rugged/features/tracker/body_composition/provider/body_comp_provider.dart';
+import 'package:rugged/features/tracker/cycle_tracker/model/cycle_settings.dart';
+import 'package:rugged/features/tracker/body_composition/model/body_comp_settings.dart';
 import 'package:provider/provider.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/core/widgets/elite_settings_app_bar.dart';
-import 'package:heavy_duty/core/widgets/elite_unit_toggle_card.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/core/widgets/elite_settings_app_bar.dart';
+import 'package:rugged/core/widgets/elite_unit_toggle_card.dart';
 
 class BodyCompConfigScreen extends StatefulWidget {
-  const BodyCompConfigScreen({super.key});
+  final bool isEmbedded;
+  const BodyCompConfigScreen({super.key, this.isEmbedded = false});
 
   @override
   State<BodyCompConfigScreen> createState() => _BodyCompConfigScreenState();
@@ -88,14 +89,13 @@ class _BodyCompConfigScreenState extends State<BodyCompConfigScreen> {
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final bool isCompact = constraints.maxWidth < 600 && !isLargeScreen;
-                final bool isWideLandscape = isLargeScreen && MediaQuery.of(context).orientation == Orientation.landscape;
 
                 return Column(
                   children: [
                     EliteSettingsAppBar(
                       title: "BODY COMP SETTINGS", 
                       isCompact: isCompact,
-                      showBackButton: !isWideLandscape,
+                      showBackButton: !widget.isEmbedded,
                     ),
 
                     Expanded(
@@ -180,11 +180,10 @@ class _BodyCompConfigScreenState extends State<BodyCompConfigScreen> {
       ),
       child: Text(
         title,
-        style: AppTextStyles.labelSmall.copyWith(
+        style: AppTextStyles.labelSmall.adaptive(context).copyWith(
           color: AppColors.crimson,
           fontWeight: FontWeight.w500,
           letterSpacing: 1.5,
-          fontSize: isLargeScreen ? 11.0 : null,
         ),
       ),
     );
@@ -208,16 +207,14 @@ class _BodyCompConfigScreenState extends State<BodyCompConfigScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title.toUpperCase(), style: AppTextStyles.labelSmall.copyWith(
+                  Text(title.toUpperCase(), style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                     color: AppColors.white, 
                     fontWeight: FontWeight.w500,
-                    fontSize: isLargeScreen ? 12.0 : null,
                   )),
                   Text(
                     isEnabled ? "ACTIVE" : "DISABLED",
-                    style: AppTextStyles.labelSmall.copyWith(
+                    style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                       color: isEnabled ? AppColors.crimson : AppColors.textSecondary,
-                      fontSize: isLargeScreen ? 10.0 : 10.sp,
                       fontWeight: FontWeight.w500,
                     ),
                   ),

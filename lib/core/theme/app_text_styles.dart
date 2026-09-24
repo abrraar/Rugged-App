@@ -1,106 +1,105 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'app_colors.dart';
 
+/// ELITE TYPOGRAPHY SYSTEM
+/// 
+/// Provides a unified set of styles with a baseline size.
+/// Use the `.adaptive(context)` extension to scale these styles perfectly
+/// across Phones, Foldables, and Tablets.
 class AppTextStyles {
-  AppTextStyles._(); // prevents instantiation
+  AppTextStyles._(); 
 
   static const String _font = 'Impact';
 
   // ── Display / Hero ────────────────────────────────────
-  // Used for: splash screen title, big stat numbers
-  static TextStyle get displayLarge => TextStyle(
+  static TextStyle get displayLarge => const TextStyle(
         fontFamily: _font,
-        fontSize: 48.sp,
+        fontSize: 48.0,
         color: AppColors.textPrimary,
         letterSpacing: 1.5,
         fontWeight: FontWeight.w500,
       );
 
-  static TextStyle get displayMedium => TextStyle(
+  static TextStyle get displayMedium => const TextStyle(
         fontFamily: _font,
-        fontSize: 36.sp,
+        fontSize: 36.0,
         color: AppColors.textPrimary,
         letterSpacing: 1.2,
         fontWeight: FontWeight.w500,
       );
 
   // ── Headings ──────────────────────────────────────────
-  // Used for: screen titles like "Sign in", "Dashboard"
-  static TextStyle get h1 => TextStyle(
+  static TextStyle get h1 => const TextStyle(
         fontFamily: _font,
-        fontSize: 32.sp,
+        fontSize: 32.0,
         color: AppColors.textPrimary,
         letterSpacing: 0.8,
         fontWeight: FontWeight.w500,
       );
 
-  static TextStyle get h2 => TextStyle(
+  static TextStyle get h2 => const TextStyle(
         fontFamily: _font,
-        fontSize: 26.sp,
+        fontSize: 26.0,
         color: AppColors.textPrimary,
         letterSpacing: 0.6,
         fontWeight: FontWeight.w500,
       );
 
-  static TextStyle get h3 => TextStyle(
+  static TextStyle get h3 => const TextStyle(
         fontFamily: _font,
-        fontSize: 22.sp,
+        fontSize: 22.0,
         color: AppColors.textPrimary,
         letterSpacing: 0.4,
         fontWeight: FontWeight.w500,
       );
 
   // ── Section Labels ────────────────────────────────────
-  // Used for: "Username", "Email", card titles
-  static TextStyle get labelLarge => TextStyle(
+  static TextStyle get labelLarge => const TextStyle(
         fontFamily: _font,
-        fontSize: 16.sp,
+        fontSize: 16.0,
         color: AppColors.textPrimary,
         letterSpacing: 0.3,
         fontWeight: FontWeight.w500,
       );
 
-  static TextStyle get labelMedium => TextStyle(
+  static TextStyle get labelMedium => const TextStyle(
         fontFamily: _font,
-        fontSize: 14.sp,
+        fontSize: 14.0,
         color: AppColors.textPrimary,
         letterSpacing: 0.2,
         fontWeight: FontWeight.w500,
       );
 
-  static TextStyle get labelSmall => TextStyle(
+  static TextStyle get labelSmall => const TextStyle(
         fontFamily: _font,
-        fontSize: 12.sp,
+        fontSize: 12.0,
         color: AppColors.textSecondary,
         letterSpacing: 0.2,
         fontWeight: FontWeight.w500,
       );
 
   // ── Body ──────────────────────────────────────────────
-  // Used for: descriptions, longer text blocks
-  // Impact isn't ideal for body — using it at smaller size with normal spacing
-  static TextStyle get bodyLarge => TextStyle(
+  static TextStyle get bodyLarge => const TextStyle(
         fontFamily: _font,
-        fontSize: 16.sp,
+        fontSize: 16.0,
         color: AppColors.textSecondary,
         letterSpacing: 0.1,
         height: 1.5,
         fontWeight: FontWeight.w500,
       );
 
-  static TextStyle get bodyMedium => TextStyle(
+  static TextStyle get bodyMedium => const TextStyle(
         fontFamily: _font,
-        fontSize: 14.sp,
+        fontSize: 14.0,
         color: AppColors.textSecondary,
         letterSpacing: 0.1,
         height: 1.5,
         fontWeight: FontWeight.w500,
       );
 
-  static TextStyle get bodySmall => TextStyle(
+  static TextStyle get bodySmall => const TextStyle(
         fontFamily: _font,
-        fontSize: 12.sp,
+        fontSize: 12.0,
         color: AppColors.textMuted,
         letterSpacing: 0.1,
         height: 1.5,
@@ -108,61 +107,59 @@ class AppTextStyles {
       );
 
   // ── Buttons ───────────────────────────────────────────
-  // Used for: primary button, social buttons
-  static TextStyle get buttonPrimary => TextStyle(
+  static TextStyle get buttonPrimary => const TextStyle(
         fontFamily: _font,
-        fontSize: 18.sp,
+        fontSize: 18.0,
         color: AppColors.textPrimary,
         letterSpacing: 1.0,
         fontWeight: FontWeight.w500,
       );
 
-  static TextStyle get buttonSecondary => TextStyle(
+  static TextStyle get buttonSecondary => const TextStyle(
         fontFamily: _font,
-        fontSize: 16.sp,
+        fontSize: 16.0,
         color: AppColors.textPrimary,
         letterSpacing: 0.8,
         fontWeight: FontWeight.w500,
       );
 
-  static TextStyle get buttonDark => TextStyle(
+  static TextStyle get buttonDark => const TextStyle(
         fontFamily: _font,
-        fontSize: 16.sp,
+        fontSize: 16.0,
         color: Colors.black87,
         letterSpacing: 0.8,
         fontWeight: FontWeight.w500,
       );
 
   // ── Input Fields ──────────────────────────────────────
-  static TextStyle get inputText => TextStyle(
+  static TextStyle get inputText => const TextStyle(
         fontFamily: _font,
-        fontSize: 14.sp,
+        fontSize: 14.0,
         color: Colors.black87,
         letterSpacing: 0.2,
         fontWeight: FontWeight.w500,
       );
 
-  static TextStyle get inputHint => TextStyle(
+  static TextStyle get inputHint => const TextStyle(
         fontFamily: _font,
-        fontSize: 14.sp,
+        fontSize: 14.0,
         color: AppColors.inputHint,
         letterSpacing: 0.2,
         fontWeight: FontWeight.w500,
       );
 
   // ── Captions & Links ──────────────────────────────────
-  // Used for: "Already have an account?", divider text
-  static TextStyle get caption => TextStyle(
+  static TextStyle get caption => const TextStyle(
         fontFamily: _font,
-        fontSize: 13.sp,
+        fontSize: 13.0,
         color: AppColors.textSecondary,
         letterSpacing: 0.2,
         fontWeight: FontWeight.w500,
       );
 
-  static TextStyle get link => TextStyle(
+  static TextStyle get link => const TextStyle(
         fontFamily: _font,
-        fontSize: 13.sp,
+        fontSize: 13.0,
         color: AppColors.textPrimary,
         letterSpacing: 0.2,
         decoration: TextDecoration.underline,
@@ -170,37 +167,63 @@ class AppTextStyles {
         fontWeight: FontWeight.w500,
       );
 
-  static TextStyle get dividerLabel => TextStyle(
+  static TextStyle get dividerLabel => const TextStyle(
         fontFamily: _font,
-        fontSize: 13.sp,
+        fontSize: 13.0,
         color: AppColors.textSecondary,
         letterSpacing: 0.3,
         fontWeight: FontWeight.w500,
       );
 
   // ── Workout / Stats specific ───────────────────────────
-  // Used for: rep counts, weights, timers — big bold numbers
-  static TextStyle get statNumber => TextStyle(
+  static TextStyle get statNumber => const TextStyle(
         fontFamily: _font,
-        fontSize: 42.sp,
+        fontSize: 42.0,
         color: AppColors.crimson,
         letterSpacing: 2.0,
         fontWeight: FontWeight.w500,
       );
 
-  static TextStyle get statLabel => TextStyle(
+  static TextStyle get statLabel => const TextStyle(
         fontFamily: _font,
-        fontSize: 11.sp,
+        fontSize: 11.0,
         color: AppColors.textMuted,
         letterSpacing: 1.5,
         fontWeight: FontWeight.w500,
       );
 
-  static TextStyle get timerDisplay => TextStyle(
+  static TextStyle get timerDisplay => const TextStyle(
         fontFamily: _font,
-        fontSize: 64.sp,
+        fontSize: 64.0,
         color: AppColors.textPrimary,
         letterSpacing: 3.0,
         fontWeight: FontWeight.w500,
       );
+}
+
+/// THE ELITE ADAPTIVE EXTENSION
+/// 
+/// Automatically scales font size based on the device shortest side.
+/// Includes dampening logic to keep text elegant on Tablets and Foldables.
+extension AdaptiveTextStyle on TextStyle {
+  TextStyle adaptive(BuildContext context) {
+    final double shortestSide = MediaQuery.of(context).size.shortestSide;
+    double baseSize = fontSize ?? 14.0;
+    
+    // DESIGN BASELINE: iPhone width is approx 375dp
+    double scale = shortestSide / 375.0;
+    
+    // ELITE HIGH-DENSITY DAMPENING: 
+    // We only take 5% of the growth above baseline. 
+    // This creates an ultra-sharp, high-density look on Tablets/Foldables
+    // where the text remains close to phone-scale while the screen grows.
+    if (shortestSide >= 480) {
+      scale = 1.0 + (scale - 3) * 0.1;
+    }
+    
+    // ACCESSIBILITY: Multiplies by the user's system font preference.
+    final double finalSize = (baseSize * scale) * MediaQuery.textScalerOf(context).scale(1.0);
+    
+    return copyWith(fontSize: finalSize);
+  }
 }

@@ -2,12 +2,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/core/widgets/elite_settings_app_bar.dart';
-import 'package:heavy_duty/features/tracker/cycle_tracker/provider/cycle_provider.dart';
-import 'package:heavy_duty/features/tracker/cycle_tracker/model/cycle_settings.dart';
-import 'package:intl/intl.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
+import 'package:rugged/core/widgets/elite_settings_app_bar.dart';
+import 'package:rugged/features/tracker/cycle_tracker/provider/cycle_provider.dart';
+import 'package:rugged/features/tracker/cycle_tracker/model/cycle_settings.dart';
 import 'package:provider/provider.dart';
 import 'model/exercise.dart';
 import 'model/exercise_log.dart';
@@ -49,7 +48,6 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
   Timer? _debounce;
   ExerciseLog? _currentSessionLog;
   bool _isInitialLoad = true;
-  final bool _isManualEditMode = false;
   WeightUnit? _lastUnit;
 
   @override
@@ -141,7 +139,11 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
   Widget build(BuildContext context) {
     return Consumer<CycleProvider>(
       builder: (context, provider, _) {
-        final sessionLogs = provider.logs.where((l) => l.exerciseId == widget.exerciseId).toList();
+        final sessionLogs = provider.logs.where((l) {
+          if (l.exerciseId != widget.exerciseId) return false;
+          final workout = provider.getWorkoutForExercise(l.exerciseId);
+          return workout != null && workout.completedAt != null;
+        }).toList();
 
         final bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
         final bool isLargeScreen = MediaQuery.of(context).size.width >= 600;
@@ -188,8 +190,6 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
           debugPrint("CycleExerciseDetailScreen: Error checking read-only: $e");
         }
 
-        final bool isReadOnly = isCycleFinished && !_isManualEditMode;
-
         if (_isInitialLoad) {
           if (isCycleFinished) {
             if (sessionLogs.isNotEmpty) {
@@ -235,7 +235,11 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
         if (myIdx > 0) {
           for (int i = myIdx - 1; i >= 0; i--) {
             final prevExId = exerciseInstances[i].id;
-            final prevLogs = provider.logs.where((l) => l.exerciseId == prevExId).toList();
+            final prevLogs = provider.logs.where((l) {
+              if (l.exerciseId != prevExId) return false;
+              final workout = provider.getWorkoutForExercise(l.exerciseId);
+              return workout != null && workout.completedAt != null;
+            }).toList();
             if (prevLogs.isNotEmpty) {
               prevLogs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
               displayLastLog = prevLogs.first;
@@ -306,19 +310,19 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
                           if (displayLastLog != null) _buildProgressionAnalysis(displayLastLog, isCompact),
 
                           SizedBox(height: isCompact ? 16.h : 16.0),
-                          _buildSectionHeader("BASE LOAD", isCompact),
+                          _buildSectionHeader(context, "BASE LOAD", isCompact),
                           _buildWeightInput(isCompact),
 
                           SizedBox(height: isCompact ? 32.h : 32.0),
-                          _buildSectionHeader("INTENSIFIER SELECTION", isCompact),
+                          _buildSectionHeader(context, "INTENSIFIER SELECTION", isCompact),
                           _buildIntensifierGrid(isCompact),
 
                           SizedBox(height: isCompact ? 32.h : 32.0),
-                          _buildSectionHeader("ACTIVE METRICS", isCompact),
+                          _buildSectionHeader(context, "ACTIVE METRICS", isCompact),
                           _buildDynamicInputs(isCompact),
 
                           SizedBox(height: isCompact ? 32.h : 32.0),
-                          _buildSectionHeader("OBSERVATIONS & FEEDBACK", isCompact),
+                          _buildSectionHeader(context, "OBSERVATIONS & FEEDBACK", isCompact),
                           _buildCommentBox(isCompact),
 
                           _buildAutoSaveIndicator(isCompact),
@@ -345,11 +349,10 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
         padding: EdgeInsets.only(top: isCompact ? 24.h : 24.0),
         child: Text(
           "DATA AUTOSAVES AS YOU TYPE",
-          style: AppTextStyles.labelMedium.copyWith(
+          style: AppTextStyles.labelMedium.adaptive(context).copyWith(
             color: AppColors.textSecondary.withValues(alpha: 0.4),
             letterSpacing: 1.5,
             fontWeight: FontWeight.w500,
-            fontSize: isCompact ? 10.sp : 11.0,
           ),
         ),
       ),
@@ -372,10 +375,9 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
             SizedBox(width: isCompact ? 16.w : 16.0),
             Text(
               "NO RECORD AVAILABLE",
-              style: AppTextStyles.labelMedium.copyWith(
+              style: AppTextStyles.labelMedium.adaptive(context).copyWith(
                 color: AppColors.white,
                 fontStyle: FontStyle.italic,
-                fontSize: isCompact ? 16.sp : 14.0,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -397,7 +399,8 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
     if (lastLog.negativeReps > 0) metrics.add("${lastLog.negativeReps} NEG");
     if (lastLog.forcedReps > 0) metrics.add("${lastLog.forcedReps} FORCED");
 
-    final double volumeValue = lastLog.weightKg * lastLog.positiveReps;
+    final double volumeKg = lastLog.weightKg * lastLog.positiveReps;
+    final double tonnage = volumeKg / 1000.0;
 
     return Container(
       padding: EdgeInsets.all(isCompact ? 20.r : 16.0),
@@ -416,9 +419,8 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
               children: [
                 Text(
                   "PREVIOUS RECORD",
-                  style: AppTextStyles.labelSmall.copyWith(
+                  style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                     color: AppColors.textSecondary,
-                    fontSize: isCompact ? 12.sp : 11.0,
                     letterSpacing: 1,
                     fontWeight: FontWeight.w500,
                   ),
@@ -427,22 +429,20 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
                 if (metrics.isNotEmpty)
                   Text(
                     metrics.join(' • '),
-                    style: AppTextStyles.labelMedium.copyWith(
+                    style: AppTextStyles.labelMedium.adaptive(context).copyWith(
                       color: AppColors.white,
                       fontWeight: FontWeight.w500,
-                      fontSize: isCompact ? 16.sp : 15.0,
                     ),
                   ),
-                if (volumeValue > 0)
+                if (volumeKg > 0)
                   Padding(
                     padding: EdgeInsets.only(top: isCompact ? 8.h : 8.0),
                     child: Text(
-                      "TONNAGE: ${volumeValue.toStringAsFixed(1)} T",
-                      style: AppTextStyles.labelSmall.copyWith(
+                      "TOTAL TONNAGE: ${tonnage >= 1 ? tonnage.toStringAsFixed(2) : tonnage.toStringAsFixed(3)} T",
+                      style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                         color: AppColors.textSecondary,
                         fontWeight: FontWeight.w500,
                         letterSpacing: 0.5,
-                        fontSize: isCompact ? 13.sp : 12.0,
                       ),
                     ),
                   ),
@@ -489,9 +489,9 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
         child: Container(
           padding: EdgeInsets.all(isCompact ? 24.r : 20.0),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: AppColors.surfaceLight.withValues(alpha: 0.6),
             borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0),
-            border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
+            border: Border.all(color: AppColors.border),
           ),
           child: Row(
             children: [
@@ -500,10 +500,9 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
               Expanded(
                 child: Text(
                   "ENTER BASE LOAD AND REPS TO ANALYZE PROGRESSION",
-                  style: AppTextStyles.labelSmall.copyWith(
+                  style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                     color: AppColors.textSecondary.withValues(alpha: 0.5),
                     letterSpacing: 0.5,
-                    fontSize: isCompact ? 13.sp : 12.0,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -519,7 +518,7 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHeader("HIT PROGRESSION ANALYSIS", isCompact),
+          _buildSectionHeader(context, "HIT PROGRESSION ANALYSIS", isCompact),
 
           Row(
             children: [
@@ -549,9 +548,9 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
           Container(
             padding: EdgeInsets.all(isCompact ? 20.r : 16.0),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: AppColors.surfaceLight.withValues(alpha: 0.6),
               borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0),
-              border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
+              border: Border.all(color: AppColors.border),
             ),
             child: Row(
               children: [
@@ -596,9 +595,8 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
               children: [
                 Text(
                   label,
-                  style: AppTextStyles.labelSmall.copyWith(
+                  style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                     color: AppColors.white,
-                    fontSize: isCompact ? 12.sp : 10.0,
                     fontWeight: FontWeight.w500,
                     letterSpacing: 0.5,
                   ),
@@ -609,9 +607,8 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
             SizedBox(height: isCompact ? 12.h : 12.0),
             Text(
               "${value >= 0 ? "+" : ""}${value.toStringAsFixed(1)}${isPercentage ? "%" : ""}",
-              style: AppTextStyles.h2.copyWith(
+              style: AppTextStyles.h2.adaptive(context).copyWith(
                 color: color,
-                fontSize: isCompact ? 24.sp : 22.0,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -637,9 +634,8 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
             children: [
               Text(
                 label,
-                style: AppTextStyles.labelSmall.copyWith(
+                style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                   color: AppColors.white,
-                  fontSize: isCompact ? 12.sp : 10.0,
                   fontWeight: FontWeight.w500,
                   letterSpacing: 0.5,
                 ),
@@ -651,18 +647,16 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
                 children: [
                   Text(
                     "${isPositive ? "+" : ""}${value.abs() < 0.001 ? "0.0" : double.parse(value.abs().toStringAsFixed(3)).toString()}",
-                    style: AppTextStyles.labelMedium.copyWith(
+                    style: AppTextStyles.labelMedium.adaptive(context).copyWith(
                       color: color,
                       fontWeight: FontWeight.w500,
-                      fontSize: isCompact ? 18.sp : 15.0,
                     ),
                   ),
                   SizedBox(width: isCompact ? 6.w : 6.0),
                   Text(
                     unit,
-                    style: AppTextStyles.labelSmall.copyWith(
+                    style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                       color: AppColors.textSecondary.withValues(alpha: 0.5),
-                      fontSize: isCompact ? 12.sp : 11.0,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -675,64 +669,56 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
     );
   }
 
-  void _addMetricToProgression(List<Map<String, dynamic>> list, String label, TextEditingController controller, int previousValue) {
-    if (_activeIntensifiers[label] == false) return;
-    int? current = int.tryParse(controller.text);
-    if (previousValue > 0 && current != null && current > 0) {
-      int diff = current - previousValue;
-      list.add({"label": label, "value": diff.toDouble(), "unit": label == "STATIC HOLD" ? "SEC" : "REPS"});
-    }
-  }
-
   Widget _buildCommentBox(bool isCompact) {
     return TextField(
       controller: _commentController,
       enabled: true,
       minLines: 3,
       maxLines: null,
-      style: AppTextStyles.labelSmall.copyWith(
+      style: AppTextStyles.labelSmall.adaptive(context).copyWith(
         color: AppColors.white,
-        fontSize: isCompact ? 15.sp : 13.0,
       ),
       decoration: InputDecoration(
-        hintText: "DESCRIBE MUSCLE SENSATION, FORM DEGRADATION, OR RECOVERY NOTES...",
-        hintStyle: AppTextStyles.labelSmall.copyWith(
-          color: AppColors.textSecondary,
-          fontSize: isCompact ? 13.sp : 11.0
+        hintText: "NOTES ON EXERCISE...",
+        hintStyle: AppTextStyles.labelSmall.adaptive(context).copyWith(
+          color: AppColors.textSecondary.withValues(alpha: 0.3),
         ),
         filled: true,
-        fillColor: AppColors.surface,
+        fillColor: AppColors.surface.withValues(alpha: 0.3),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
-          borderSide: BorderSide(color: AppColors.white.withValues(alpha: 0.1))
+          borderSide: const BorderSide(color: AppColors.border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
+          borderSide: const BorderSide(color: AppColors.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
-          borderSide: const BorderSide(color: AppColors.crimson)
+          borderSide: const BorderSide(color: AppColors.crimson),
         ),
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title, bool isCompact) {
+  Widget _buildSectionHeader(BuildContext context, String title, bool isCompact) {
     return Padding(
       padding: EdgeInsets.only(bottom: isCompact ? 12.h : 12.0),
       child: Row(
         children: [
           Container(
-            width: isCompact ? 2.5.w : 2.5,
-            height: isCompact ? 12.h : 12.0,
+            width: 2.5,
+            height: 12.0,
             decoration: BoxDecoration(
               color: AppColors.crimson,
-              borderRadius: BorderRadius.circular(isCompact ? 2.r : 2.0),
+              borderRadius: BorderRadius.circular(2.0),
             ),
           ),
-          SizedBox(width: isCompact ? 8.w : 8.0),
+          const SizedBox(width: 6.0),
           Text(
             title,
-            style: AppTextStyles.labelSmall.copyWith(
+            style: AppTextStyles.labelSmall.adaptive(context).copyWith(
               color: AppColors.textSecondary.withValues(alpha: 0.8),
-              fontSize: isCompact ? 14.sp : 12.0,
             ),
           ),
         ],
@@ -742,38 +728,42 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
 
   Widget _buildWeightInput(bool isCompact) {
     final provider = context.watch<CycleProvider>();
-    final bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
-    final bool isTablet = MediaQuery.of(context).size.width >= 600;
+    final bool hasValue = _weightController.text.trim().isNotEmpty;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
+    return TextField(
+      controller: _weightController,
+      enabled: true,
+      onChanged: (_) => setState(() {}),
+      inputFormatters: [
+        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,3}')),
+      ],
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      style: AppTextStyles.h1.adaptive(context).copyWith(
+        color: AppColors.white,
       ),
-      child: TextField(
-        controller: _weightController,
-        enabled: true,
-        onChanged: (_) => setState(() {}),
-        inputFormatters: [
-          FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,3}')),
-        ],
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        style: AppTextStyles.h1.copyWith(
-          color: AppColors.white,
-          fontSize: isLandscape ? 22.0 : (isTablet ? 24.0 : 28.sp),
+      decoration: InputDecoration(
+        isDense: true,
+        filled: true,
+        fillColor: AppColors.surfaceLight.withValues(alpha: 0.6),
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: isCompact ? 16.w : 16.0,
+          vertical: isCompact ? 12.h : 12.0,
         ),
-        decoration: InputDecoration(
-          isDense: true,
-          contentPadding: EdgeInsets.symmetric(
-            horizontal: isCompact ? 16.w : 16.0,
-            vertical: isCompact ? 12.h : 12.0
-          ),
-          suffixText: provider.settings.weightUnit == WeightUnit.kgs ? "KGS" : "LBS",
-          suffixStyle: AppTextStyles.labelMedium.copyWith(
-            color: AppColors.textSecondary,
-            fontSize: (isLandscape || isTablet) ? 12.0 : (isCompact ? 14.sp : null),
-          ),
-          border: InputBorder.none,
+        suffixText: provider.settings.weightUnit == WeightUnit.kgs ? "KGS" : "LBS",
+        suffixStyle: AppTextStyles.labelMedium.adaptive(context).copyWith(
+          color: hasValue ? AppColors.crimson : AppColors.textSecondary,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
+          borderSide: BorderSide(color: hasValue ? AppColors.crimson : AppColors.border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
+          borderSide: BorderSide(color: hasValue ? AppColors.crimson : AppColors.border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
+          borderSide: const BorderSide(color: AppColors.crimson, width: 1.5),
         ),
       ),
     );
@@ -794,14 +784,13 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
               vertical: isCompact ? 12.h : 10.0
             ),
             decoration: BoxDecoration(
-              color: isActive ? AppColors.crimson : AppColors.surface,
+              color: isActive ? AppColors.crimson : AppColors.surfaceLight.withValues(alpha: 0.6),
               borderRadius: BorderRadius.circular(isCompact ? 8.r : 6.0),
-              border: Border.all(color: isActive ? AppColors.crimson : AppColors.white.withValues(alpha: 0.1)),
+              border: Border.all(color: isActive ? AppColors.crimson : AppColors.border),
             ),
-            child: Text(key, style: AppTextStyles.labelSmall.copyWith(
+            child: Text(key, style: AppTextStyles.labelSmall.adaptive(context).copyWith(
               color: isActive ? AppColors.white : AppColors.textSecondary,
               fontWeight: FontWeight.w500,
-              fontSize: isCompact ? 13.sp : 11.0,
             )),
           ),
         );
@@ -816,10 +805,9 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
         padding: EdgeInsets.symmetric(vertical: isCompact ? 12.h : 12.0),
         child: Text(
           "NO METRICS SELECTED. TOGGLE INTENSIFIERS ABOVE TO TRACK DATA.",
-          style: AppTextStyles.labelSmall.copyWith(
+          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
             color: AppColors.textSecondary.withValues(alpha: 0.4),
             fontStyle: FontStyle.italic,
-            fontSize: isCompact ? 14.sp : 12.0,
           ),
         ),
       );
@@ -835,9 +823,6 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
   }
 
   Widget _buildMetricField(String label, TextEditingController controller, String unit, bool isCompact) {
-    final bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
-    final bool isTablet = MediaQuery.of(context).size.width >= 600;
-
     return ListenableBuilder(
       listenable: controller,
       builder: (context, child) {
@@ -846,9 +831,8 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
           padding: EdgeInsets.only(bottom: isCompact ? 12.h : 12.0),
           child: Row(
             children: [
-              Expanded(flex: 2, child: Text(label, style: AppTextStyles.labelMedium.copyWith(
+              Expanded(flex: 2, child: Text(label, style: AppTextStyles.labelMedium.adaptive(context).copyWith(
                 color: hasValue ? AppColors.white : AppColors.textSecondary,
-                fontSize: (isLandscape || isTablet) ? 12.0 : (isCompact ? 16.sp : 14.0),
               ))),
               Expanded(
                 child: TextField(
@@ -861,22 +845,23 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
                   ],
                   keyboardType: TextInputType.number,
                   textAlign: TextAlign.right,
-                  style: AppTextStyles.labelMedium.copyWith(
+                  style: AppTextStyles.h2.adaptive(context).copyWith(
                     color: hasValue ? AppColors.white : AppColors.white.withValues(alpha: 0.4),
                     fontWeight: FontWeight.w500,
                     letterSpacing: 1.0,
-                    fontSize: isLandscape ? 18.0 : (isTablet ? 20.0 : (isCompact ? 24.sp : 20.0)),
                   ),
                   decoration: InputDecoration(
                     hintText: "0",
-                    hintStyle: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.2)),
+                    hintStyle: AppTextStyles.h2.adaptive(context).copyWith(
+                      color: AppColors.textSecondary.withValues(alpha: 0.2),
+                      fontWeight: FontWeight.w500,
+                    ),
                     suffixIcon: Padding(
                       padding: EdgeInsets.only(left: isCompact ? 8.w : 8.0),
                       child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [
-                        Text(unit, style: AppTextStyles.labelSmall.copyWith(
+                        Text(unit, style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                           color: hasValue ? AppColors.crimson : AppColors.white.withValues(alpha: 0.3),
                           fontWeight: FontWeight.w500,
-                          fontSize: (isLandscape || isTablet) ? 10.0 : (isCompact ? 12.sp : 11.0)
                         )),
                       ]),
                     ),

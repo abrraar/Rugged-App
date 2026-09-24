@@ -99,8 +99,8 @@ class NotificationService {
 
       // Create a high importance channel
       const AndroidNotificationChannel channel = AndroidNotificationChannel(
-        'heavy_duty_channel',
-        'Heavy Duty Reminders',
+        'rugged_channel',
+        'Rugged Reminders',
         description: 'Reminders for your supplements and hydration',
         importance: Importance.max,
         playSound: true,
@@ -522,7 +522,7 @@ class NotificationService {
             const NotificationDetails(
               android: AndroidNotificationDetails(
                 'heavy_duty_channel',
-                'Heavy Duty Reminders',
+                'Rugged Reminders',
                 importance: Importance.max,
                 priority: Priority.high,
                 actions: [
@@ -554,7 +554,7 @@ class NotificationService {
                 const NotificationDetails(
                   android: AndroidNotificationDetails(
                     'heavy_duty_channel',
-                    'Heavy Duty Reminders',
+                    'Rugged Reminders',
                     importance: Importance.max,
                     priority: Priority.high,
                     actions: [
@@ -586,7 +586,7 @@ class NotificationService {
               const NotificationDetails(
                 android: AndroidNotificationDetails(
                   'heavy_duty_channel',
-                  'Heavy Duty Reminders',
+                  'Rugged Reminders',
                   importance: Importance.max,
                   priority: Priority.high,
                   actions: [
@@ -777,7 +777,7 @@ class NotificationService {
           await _notificationsPlugin.zonedSchedule(
             notificationId,
             'Time to track your $label',
-            'Stay consistent with your Heavy Duty progress.',
+            'Stay consistent with your Rugged progress.',
             _nextInstance(day, time),
             const NotificationDetails(
               android: AndroidNotificationDetails(

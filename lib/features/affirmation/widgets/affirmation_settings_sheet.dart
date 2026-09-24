@@ -3,8 +3,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../provider/affirmation_provider.dart';
 import '../model/affirmation_settings.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
+import 'package:rugged/core/theme/app_colors.dart';
+import 'package:rugged/core/theme/app_text_styles.dart';
 
 class AffirmationSettingsSheet extends StatefulWidget {
   final bool isSideSheet;
@@ -91,7 +91,7 @@ class _AffirmationSettingsSheetState extends State<AffirmationSettingsSheet> {
                     borderRadius: widget.isSideSheet 
                       ? const BorderRadius.horizontal(left: Radius.circular(24.0))
                       : BorderRadius.vertical(top: Radius.circular(isCompact ? 32.r : 24.0)),
-                    border: Border.all(color: AppColors.white.withOpacity(0.05)),
+                    border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
                   ),
                   padding: EdgeInsets.fromLTRB(
                     isCompact ? 24.w : 24.0, 
@@ -110,7 +110,7 @@ class _AffirmationSettingsSheetState extends State<AffirmationSettingsSheet> {
                             width: isCompact ? 40.w : 40.0,
                             height: isCompact ? 4.h : 4.0,
                             decoration: BoxDecoration(
-                              color: AppColors.textSecondary.withOpacity(0.2),
+                              color: AppColors.textSecondary.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(2.r),
                             ),
                           ),
@@ -121,7 +121,7 @@ class _AffirmationSettingsSheetState extends State<AffirmationSettingsSheet> {
                         children: [
                           Text(
                             "ROTATION SETTINGS", 
-                            style: AppTextStyles.h3.copyWith(fontSize: isCompact ? null : 18.0)
+                            style: AppTextStyles.h3.adaptive(context)
                           ),
                           if (widget.isSideSheet)
                             IconButton(
@@ -132,35 +132,13 @@ class _AffirmationSettingsSheetState extends State<AffirmationSettingsSheet> {
                       ),
                       SizedBox(height: isCompact ? 32.h : 24.0),
 
-                      _buildSectionLabel("DISPLAY CONTENT", isCompact),
-                      Row(
-                        children: [
-                          _buildToggleChip(
-                            label: "SYSTEM",
-                            isSelected: settings.showSystem,
-                            isEnabled: settings.showCustom, 
-                            isCompact: isCompact,
-                            onTap: () => provider.updateSettings(settings.copyWith(showSystem: !settings.showSystem)),
-                          ),
-                          SizedBox(width: isCompact ? 12.w : 12.0),
-                          _buildToggleChip(
-                            label: "CUSTOM",
-                            isSelected: settings.showCustom,
-                            isEnabled: settings.showSystem && provider.allCustomAffirmations.isNotEmpty,
-                            isCompact: isCompact,
-                            onTap: () => provider.updateSettings(settings.copyWith(showCustom: !settings.showCustom)),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: isCompact ? 32.h : 24.0),
-
                       _buildSectionLabel("ROTATION FREQUENCY", isCompact),
                       Container(
                         height: isCompact ? 150.h : 120.0,
                         decoration: BoxDecoration(
-                          color: AppColors.background.withOpacity(0.5),
+                          color: AppColors.background.withValues(alpha: 0.5),
                           borderRadius: BorderRadius.circular(isCompact ? 20.r : 16.0),
-                          border: Border.all(color: AppColors.white.withOpacity(0.05)),
+                          border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
                         ),
                         child: Row(
                           children: [
@@ -190,9 +168,8 @@ class _AffirmationSettingsSheetState extends State<AffirmationSettingsSheet> {
                                         opacity: opacity,
                                         child: Text(
                                           "${index + 1}",
-                                          style: AppTextStyles.h3.copyWith(
+                                          style: AppTextStyles.h3.adaptive(context).copyWith(
                                             color: Colors.white,
-                                            fontSize: isCompact ? 20.sp : 18.0,
                                           ),
                                         ),
                                       ),
@@ -227,11 +204,10 @@ class _AffirmationSettingsSheetState extends State<AffirmationSettingsSheet> {
                                         opacity: opacity,
                                         child: Text(
                                           _units[index],
-                                          style: AppTextStyles.labelMedium.copyWith(
+                                          style: AppTextStyles.labelMedium.adaptive(context).copyWith(
                                             color: AppColors.crimson,
                                             fontWeight: FontWeight.w500,
                                             letterSpacing: 1.5,
-                                            fontSize: isCompact ? null : 12.0,
                                           ),
                                         ),
                                       ),
@@ -251,8 +227,6 @@ class _AffirmationSettingsSheetState extends State<AffirmationSettingsSheet> {
                         runSpacing: isCompact ? 8.h : 8.0,
                         children: [
                           _buildModeChip("random", "RANDOM", settings, provider, isCompact: isCompact),
-                          _buildModeChip("alternative", "ALTERNATIVE", settings, provider, 
-                            isEnabled: settings.showSystem && settings.showCustom, isCompact: isCompact),
                           _buildModeChip("continuous", "CONTINUOUS", settings, provider, isCompact: isCompact),
                         ],
                       ),
@@ -285,11 +259,10 @@ class _AffirmationSettingsSheetState extends State<AffirmationSettingsSheet> {
                           onPressed: () => Navigator.pop(context),
                           child: Text(
                             "SAVE & CLOSE",
-                            style: AppTextStyles.labelMedium.copyWith(
+                            style: AppTextStyles.labelMedium.adaptive(context).copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.w500,
                               letterSpacing: 1.5,
-                              fontSize: isCompact ? null : 13.0,
                             ),
                           ),
                         ),
@@ -319,9 +292,8 @@ class _AffirmationSettingsSheetState extends State<AffirmationSettingsSheet> {
           },
           selectedColor: AppColors.crimson,
           backgroundColor: AppColors.surfaceLight.withValues(alpha: 0.1),
-          labelStyle: TextStyle(
+          labelStyle: AppTextStyles.labelSmall.adaptive(context).copyWith(
             color: isSelected ? Colors.white : AppColors.textSecondary,
-            fontSize: isCompact ? 10.sp : 10.0,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -338,20 +310,19 @@ class _AffirmationSettingsSheetState extends State<AffirmationSettingsSheet> {
           duration: const Duration(milliseconds: 200),
           padding: EdgeInsets.symmetric(vertical: isCompact ? 12.h : 12.0),
           decoration: BoxDecoration(
-            color: isSelected ? AppColors.crimson.withOpacity(0.1) : Colors.transparent,
+            color: isSelected ? AppColors.crimson.withValues(alpha: 0.1) : Colors.transparent,
             borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
             border: Border.all(
-              color: isSelected ? AppColors.crimson : AppColors.white.withOpacity(0.1),
+              color: isSelected ? AppColors.crimson : AppColors.white.withValues(alpha: 0.1),
               width: 1.5,
             ),
           ),
           alignment: Alignment.center,
           child: Text(
             label,
-            style: AppTextStyles.labelSmall.copyWith(
+            style: AppTextStyles.labelSmall.adaptive(context).copyWith(
               color: isSelected ? AppColors.crimson : AppColors.textSecondary,
               fontWeight: isSelected ? FontWeight.w500 : FontWeight.w500,
-              fontSize: isCompact ? null : 11.0,
             ),
           ),
         ),
@@ -364,45 +335,10 @@ class _AffirmationSettingsSheetState extends State<AffirmationSettingsSheet> {
       padding: EdgeInsets.only(bottom: isCompact ? 12.h : 10.0),
       child: Text(
         label,
-        style: AppTextStyles.labelSmall.copyWith(
+        style: AppTextStyles.labelSmall.adaptive(context).copyWith(
           color: AppColors.textSecondary,
           letterSpacing: 1.2,
           fontWeight: FontWeight.w500,
-          fontSize: isCompact ? null : 10.0,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildToggleChip({required String label, required bool isSelected, required VoidCallback onTap, bool isEnabled = true, required bool isCompact}) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: isEnabled ? onTap : null,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: EdgeInsets.symmetric(vertical: isCompact ? 12.h : 12.0),
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.crimson.withOpacity(0.1) : Colors.transparent,
-            borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
-            border: Border.all(
-              color: isSelected 
-                  ? AppColors.crimson 
-                  : (isEnabled ? AppColors.white.withOpacity(0.1) : AppColors.white.withOpacity(0.02)),
-              width: 1.5,
-            ),
-          ),
-          alignment: Alignment.center,
-          child: Opacity(
-            opacity: isEnabled ? 1.0 : 0.2,
-            child: Text(
-              label,
-              style: AppTextStyles.labelSmall.copyWith(
-                color: isSelected ? AppColors.crimson : AppColors.textSecondary,
-                fontWeight: isSelected ? FontWeight.w500 : FontWeight.w500,
-                fontSize: isCompact ? null : 11.0,
-              ),
-            ),
-          ),
         ),
       ),
     );

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
-import 'package:heavy_duty/core/services/connectivity_service.dart';
+import 'package:rugged/core/services/connectivity_service.dart';
+import 'package:rugged/features/auth/provider/auth_provider.dart';
 import '../model/training_cycle.dart';
 import '../model/workout.dart';
 import '../model/exercise.dart';
@@ -10,7 +11,7 @@ import '../model/cycle_settings.dart';
 import '../data/cycle_local_repository.dart';
 import '../data/cycle_cloud_repository.dart';
 
-import 'package:heavy_duty/core/providers/sync_provider.dart';
+import 'package:rugged/core/providers/sync_provider.dart';
 
 class CycleProvider with ChangeNotifier {
   CycleLocalRepository? _localRepo;
@@ -87,6 +88,31 @@ class CycleProvider with ChangeNotifier {
   List<Exercise> get exercises => _cachedExercises;
 
   String? getExerciseName(String id) => _exerciseNameCache[id];
+
+  Workout? getWorkoutForExercise(String exerciseId) {
+    for (var cycle in _cycles) {
+      for (var workout in cycle.workouts) {
+        if (workout.exercises.any((e) => e.id == exerciseId)) {
+          return workout;
+        }
+      }
+    }
+    return null;
+  }
+
+  Workout? getWorkoutById(String workoutId) {
+    for (var cycle in _cycles) {
+      for (var workout in cycle.workouts) {
+        if (workout.id == workoutId) return workout;
+      }
+    }
+    return null;
+  }
+
+  bool isExerciseInUse(String name) {
+    final upperName = name.trim().toUpperCase();
+    return _cachedExercises.any((e) => e.name.trim().toUpperCase() == upperName);
+  }
 
   TrainingCycle? get activeCycle {
     try {
@@ -272,6 +298,7 @@ class CycleProvider with ChangeNotifier {
 
   Future<void> _syncLocalToCloud() async {
     if (_localRepo == null) return;
+    if (!AuthProvider().isPro) return;
 
     final syncProv = SyncProvider();
     syncProv.startFeatureSync();
@@ -346,15 +373,6 @@ class CycleProvider with ChangeNotifier {
     }
   }
 
-  /// Clears the deletion queue after a successful sync process.
-  Future<void> _clearDeletionQueue() async {
-    if (_localRepo == null) return;
-    final deletions = await _localRepo!.getPendingDeletions();
-    for (var del in deletions) {
-      await _localRepo!.removeFromDeletionQueue(del['id'] as String);
-    }
-  }
-
   Future<void> forceRefresh() async {
     if (_localRepo == null) return;
     _isLoading = true;
@@ -392,89 +410,87 @@ class CycleProvider with ChangeNotifier {
       
       _cycles = await _localRepo!.getAllCycles();
 
-      // AUTO-INITIALIZE MENTZER LIBRARY:
-      // If no library templates are found (fresh install), seed them locally.
+      // AUTO-INITIALIZE RUGGED ROUTINE LIBRARY:
+      // If no library templates are found (fresh install or migration), seed them locally.
       if (_cycles.where((c) => c.isDefault && c.status == CycleStatus.template).isEmpty) {
-        debugPrint("CycleProvider: [INITIALIZE] Seeding Mike Mentzer library locally...");
-        await _initializeMentzerDefaults();
+        debugPrint("CycleProvider: [INITIALIZE] Seeding Rugged routine library locally...");
+        await _initializeRuggedDefaults();
         _cycles = await _localRepo!.getAllCycles(); // Refresh memory
       }
 
       _rebuildCaches();
       notifyListeners();
 
-      // 2. THE RECONCILIATION PROCESS
-      debugPrint("CycleProvider: [SYNC-PULL] RECONCILIATION START");
+      // 2. THE RECONCILIATION PROCESS (PRO ONLY)
+      if (AuthProvider().isPro) {
+        debugPrint("CycleProvider: [SYNC-PULL] RECONCILIATION START");
 
-      // 2a. Fetch Cloud Data
-      debugPrint("CycleProvider: [SYNC-PULL] Fetching cloud data...");
-      final cloudCycles = await _cloudRepo.getAllCycles();
-      final cloudLogs = await _cloudRepo.getAllLogs();
-      final cloudSettings = await _cloudRepo.getSettings();
-      debugPrint("CycleProvider: [SYNC-PULL] Cloud Data: ${cloudCycles?.length ?? 0} cycles, ${cloudLogs?.length ?? 0} logs.");
+        // 2a. Fetch Cloud Data
+        debugPrint("CycleProvider: [SYNC-PULL] Fetching cloud data...");
+        final cloudCycles = await _cloudRepo.getAllCycles();
+        final cloudLogs = await _cloudRepo.getAllLogs();
+        final cloudSettings = await _cloudRepo.getSettings();
+        debugPrint("CycleProvider: [SYNC-PULL] Cloud Data: ${cloudCycles?.length ?? 0} cycles, ${cloudLogs?.length ?? 0} logs.");
 
-      if (cloudSettings != null) {
-        await _localRepo!.saveSettings(cloudSettings, isFromCloud: true);
-        final refreshedSettings = await _localRepo!.getSettings();
-        if (refreshedSettings != null) _settings = CycleSettings.fromMap(refreshedSettings);
-      }
-
-      if (cloudCycles != null) {
-        final localCycles = await _localRepo!.getAllCycles();
-        final pendingDels = await _localRepo!.getPendingDeletions();
-        final pendingIds = pendingDels.map((d) => d['id'] as String).toSet();
-
-        // 2b. Merge Cloud -> Local (Only non-dirty items)
-        for (var c in cloudCycles) {
-          if (pendingIds.contains(c.id)) continue;
-          
-          // Filter out deleted sub-items based on pending deletion queue
-          final filteredWorkouts = c.workouts.where((w) => !pendingIds.contains(w.id)).map((w) {
-            final filteredEx = w.exercises.where((e) => !pendingIds.contains(e.id)).toList();
-            return w.copyWith(exercises: filteredEx);
-          }).toList();
-          
-          final filteredCycle = c.copyWith(workouts: filteredWorkouts);
-          
-          // CRITICAL: isFromCloud: true prevents overwriting local unsynced work
-          await _localRepo!.insertCycle(filteredCycle, isFromCloud: true);
+        if (cloudSettings != null) {
+          await _localRepo!.saveSettings(cloudSettings, isFromCloud: true);
+          final refreshedSettings = await _localRepo!.getSettings();
+          if (refreshedSettings != null) _settings = CycleSettings.fromMap(refreshedSettings);
         }
-      }
 
-      if (cloudLogs != null) {
-        final localLogs = await _localRepo!.getAllLogs();
-        final localLogMap = {for (var l in localLogs) l.id: l};
-        final pendingDels = await _localRepo!.getPendingDeletions();
-        final pendingIds = pendingDels.map((d) => d['id'] as String).toSet();
+        if (cloudCycles != null) {
+          final pendingDels = await _localRepo!.getPendingDeletions();
+          final pendingIds = pendingDels.map((d) => d['id'] as String).toSet();
 
-        for (var l in cloudLogs) {
-          if (pendingIds.contains(l.id)) continue;
-          await _localRepo!.insertLog(l, isFromCloud: true);
+          // 2b. Merge Cloud -> Local (Only non-dirty items)
+          for (var c in cloudCycles) {
+            if (pendingIds.contains(c.id)) continue;
+            
+            // Filter out deleted sub-items based on pending deletion queue
+            final filteredWorkouts = c.workouts.where((w) => !pendingIds.contains(w.id)).map((w) {
+              final filteredEx = w.exercises.where((e) => !pendingIds.contains(e.id)).toList();
+              return w.copyWith(exercises: filteredEx);
+            }).toList();
+            
+            final filteredCycle = c.copyWith(workouts: filteredWorkouts);
+            
+            // CRITICAL: isFromCloud: true prevents overwriting local unsynced work
+            await _localRepo!.insertCycle(filteredCycle, isFromCloud: true);
+          }
         }
-      }
 
-      // 3. PUSH LOCAL CHANGES (Push second so local additions win)
-      await _syncLocalToCloud();
+        if (cloudLogs != null) {
+          final pendingDels = await _localRepo!.getPendingDeletions();
+          final pendingIds = pendingDels.map((d) => d['id'] as String).toSet();
 
-      // 4. Final Verification: Prune anything that was deleted on OTHER devices
-      // We do this by checking what is synced=1 locally but missing from cloud
-      if (cloudCycles != null) {
-        final currentLocal = await _localRepo!.getAllCycles();
-        final cloudCycleIds = cloudCycles.map((c) => c.id).toSet();
-        final cloudWorkoutIds = cloudCycles.expand((c) => c.workouts.map((w) => w.id)).toSet();
-        final cloudExerciseIds = cloudCycles.expand((c) => c.workouts.expand((w) => w.exercises.map((e) => e.id))).toSet();
+          for (var l in cloudLogs) {
+            if (pendingIds.contains(l.id)) continue;
+            await _localRepo!.insertLog(l, isFromCloud: true);
+          }
+        }
 
-        for (var lc in currentLocal) {
-          if (lc.isSynced == 1 && !lc.isDefault && !cloudCycleIds.contains(lc.id)) {
-            await _localRepo!.deleteCycle(lc.id);
-          } else if (!lc.isDefault) {
-            for (var lw in lc.workouts) {
-              if (lw.isSynced == 1 && !cloudWorkoutIds.contains(lw.id)) {
-                await _localRepo!.deleteWorkout(lw.id);
-              }
-              for (var le in lw.exercises) {
-                if (le.isSynced == 1 && !cloudExerciseIds.contains(le.id)) {
-                  await _localRepo!.deleteExercise(le.id);
+        // 3. PUSH LOCAL CHANGES (Push second so local additions win)
+        await _syncLocalToCloud();
+
+        // 4. Final Verification: Prune anything that was deleted on OTHER devices
+        if (cloudCycles != null) {
+          final currentLocal = await _localRepo!.getAllCycles();
+          final cloudCycleIds = cloudCycles.map((c) => c.id).toSet();
+          final cloudWorkoutIds = cloudCycles.expand((c) => c.workouts.map((w) => w.id)).toSet();
+          final cloudExerciseIds = cloudCycles.expand((c) => c.workouts.expand((w) => w.exercises.map((e) => e.id))).toSet();
+
+          for (var lc in currentLocal) {
+            if (lc.isSynced == 1 && !lc.isDefault && !cloudCycleIds.contains(lc.id)) {
+              await _localRepo!.deleteCycle(lc.id);
+            } else if (!lc.isDefault) {
+              for (var lw in lc.workouts) {
+                if (lw.isSynced == 1 && !cloudWorkoutIds.contains(lw.id)) {
+                  await _localRepo!.deleteWorkout(lw.id);
+                }
+                for (var le in lw.exercises) {
+                  if (le.isSynced == 1 && !cloudExerciseIds.contains(le.id)) {
+                    await _localRepo!.deleteExercise(le.id);
+                  }
                 }
               }
             }
@@ -488,6 +504,7 @@ class CycleProvider with ChangeNotifier {
       _logs.clear();
       _logs.addAll(allLogsRefresh);
       _rebuildCaches();
+      await _reconcileLogTimestamps();
       
       debugPrint("CycleProvider: [SYNC-PULL] RECONCILIATION COMPLETE");
     } catch (e) {
@@ -513,6 +530,53 @@ class CycleProvider with ChangeNotifier {
           _exerciseNameCache[exercise.id] = exercise.name;
         }
       }
+    }
+  }
+
+  Future<void> _reconcileLogTimestamps() async {
+    if (_localRepo == null || _logs.isEmpty) return;
+
+    final Map<String, DateTime?> exerciseWorkoutDateMap = {};
+    for (var cycle in _cycles) {
+      for (var workout in cycle.workouts) {
+        for (var exercise in workout.exercises) {
+          exerciseWorkoutDateMap[exercise.id] = workout.completedAt;
+        }
+      }
+    }
+
+    bool needsResort = false;
+    for (int j = 0; j < _logs.length; j++) {
+      final log = _logs[j];
+      final workoutCompletedAt = exerciseWorkoutDateMap[log.exerciseId];
+
+      if (workoutCompletedAt != null) {
+        if (log.timestamp.year != workoutCompletedAt.year ||
+            log.timestamp.month != workoutCompletedAt.month ||
+            log.timestamp.day != workoutCompletedAt.day) {
+          final newTimestamp = DateTime(
+            workoutCompletedAt.year,
+            workoutCompletedAt.month,
+            workoutCompletedAt.day,
+            log.timestamp.hour,
+            log.timestamp.minute,
+            log.timestamp.second,
+          );
+          final updatedLog = log.copyWith(
+            timestamp: () => newTimestamp,
+            isSynced: 0,
+            updatedAt: DateTime.now(),
+          );
+          _logs[j] = updatedLog;
+          await _localRepo!.insertLog(updatedLog);
+          needsResort = true;
+          debugPrint("CycleProvider: Reconciled log ${log.id} timestamp to $newTimestamp");
+        }
+      }
+    }
+
+    if (needsResort) {
+      _logs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
     }
   }
 
@@ -681,37 +745,33 @@ class CycleProvider with ChangeNotifier {
       return;
     }
 
-    // 1. Mark parent cycle as modified if it was a default
-    await _markCycleAsModified(workout.cycleId);
-
-    // 2. OPTIMISTIC UPDATE: Update memory state immediately
-    if (cycleIdx != -1) {
-      final now = DateTime.now();
-      final updatedWorkout = workout.copyWith(
-        isSynced: 0,
-        updatedAt: now,
-      );
+    // 1. INSTANT MEMORY UPDATE: Update UI state immediately (0ms)
+    final now = DateTime.now();
+    final updatedWorkout = workout.copyWith(
+      isSynced: 0,
+      updatedAt: now,
+    );
+    
+    final updatedCycle = _cycles[cycleIdx].copyWith(
+      workouts: [..._cycles[cycleIdx].workouts, updatedWorkout],
+      isSynced: 0,
+      updatedAt: now,
+    );
+    _cycles[cycleIdx] = updatedCycle;
+    _rebuildCaches();
+    notifyListeners();
+    
+    // 2. BACKGROUND PERSISTENCE & SYNC: Save to local DB & Cloud asynchronously
+    try {
+      await _markCycleAsModified(workout.cycleId);
+      await _localRepo!.insertWorkout(updatedWorkout);
+      await _localRepo!.insertCycle(updatedCycle);
       
-      final updatedCycle = _cycles[cycleIdx].copyWith(
-        workouts: [..._cycles[cycleIdx].workouts, updatedWorkout],
-        isSynced: 0,
-        updatedAt: now,
-      );
-      _cycles[cycleIdx] = updatedCycle;
-      _rebuildCaches();
-      notifyListeners();
-      
-      // 2. Persistent Save
-      try {
-        await _localRepo!.insertWorkout(updatedWorkout);
-        await _localRepo!.insertCycle(updatedCycle);
-        
-        if (_shouldSyncCycle(updatedCycle)) {
-          await _syncCycle(updatedCycle);
-        }
-      } catch (e) {
-        debugPrint("Error saving workout: $e");
+      if (_shouldSyncCycle(updatedCycle)) {
+        await _syncCycle(updatedCycle);
       }
+    } catch (e) {
+      debugPrint("Error saving workout: $e");
     }
   }
 
@@ -733,7 +793,6 @@ class CycleProvider with ChangeNotifier {
     }
 
     // 2. OPTIMISTIC UPDATE: Find parent workout and update memory state
-    bool found = false;
     for (int i = 0; i < _cycles.length; i++) {
       final wIdx = _cycles[i].workouts.indexWhere((w) => w.id == exercise.workoutId);
       if (wIdx != -1) {
@@ -761,13 +820,14 @@ class CycleProvider with ChangeNotifier {
         _cycles[i] = updatedCycle;
         _rebuildCaches();
         notifyListeners();
-        found = true;
 
         // 2. Persistent Save
         try {
           await _localRepo!.insertExercise(updatedExercise);
           await _localRepo!.insertWorkout(updatedWorkout);
           await _localRepo!.insertCycle(updatedCycle);
+
+          await _checkWorkoutCompletion(workoutId: exercise.workoutId);
 
           if (_shouldSyncCycle(updatedCycle)) {
             await _syncCycle(updatedCycle);
@@ -884,7 +944,7 @@ class CycleProvider with ChangeNotifier {
     if (_localRepo == null) return;
     
     final cycle = _cycles.firstWhere((c) => c.id == id, orElse: () => null as dynamic);
-    if (cycle != null && cycle.isDefault && cycle.status == CycleStatus.template) {
+    if (cycle.isDefault && cycle.status == CycleStatus.template) {
       debugPrint("CycleProvider: Blocked deletion of a locked Default Blueprint.");
       return;
     }
@@ -1093,11 +1153,43 @@ class CycleProvider with ChangeNotifier {
       if (allExercisesFinished && currentTargetWorkout.exercises.isNotEmpty) {
         // --- 1. POTENTIAL COMPLETION ---
         // A workout is complete ONLY if all exercises are done.
-        // We no longer auto-assign the current date if it's missing.
         if (!isCurrentlyCompleted) {
           debugPrint("CycleProvider: All exercises finished. Updating workout '${currentTargetWorkout.name}' to COMPLETED.");
+          
+          DateTime? autoDate = currentTargetWorkout.completedAt;
+
+          // SMART AUTO WORKOUT DATE LOG:
+          if (_settings.smartAutoDateEnabled && autoDate == null) {
+            final now = DateTime.now();
+            bool hasWorkoutToday = false;
+
+            // Check across ALL workouts in ALL cycles (current or previous)
+            for (var c in _cycles) {
+              for (var w in c.workouts) {
+                if (w.id == currentTargetWorkout.id) continue;
+
+                if (w.completedAt != null) {
+                  final d = w.completedAt!;
+                  if (d.year == now.year && d.month == now.month && d.day == now.day) {
+                    hasWorkoutToday = true;
+                    break;
+                  }
+                }
+              }
+              if (hasWorkoutToday) break;
+            }
+
+            if (!hasWorkoutToday) {
+              autoDate = now;
+              debugPrint("CycleProvider: Smart Auto Date applied today's date ($now) to '${currentTargetWorkout.name}'.");
+            } else {
+              debugPrint("CycleProvider: Smart Auto Date skipped setting today's date because another workout is already logged for today.");
+            }
+          }
+
           final updatedWorkout = currentTargetWorkout.copyWith(
             status: WorkoutStatus.completed,
+            completedAt: autoDate != null ? () => autoDate : null,
           );
           await _updateWorkoutInCycle(currentTargetCycle, updatedWorkout);
         }
@@ -1267,7 +1359,40 @@ class CycleProvider with ChangeNotifier {
 
         await _updateWorkoutInCycle(_cycles[i], updatedWorkout);
 
-        // 2. Re-check if the workout should be "Completed" based on exercises
+        // 2. Cascade timestamp update to associated ExerciseLogs
+        final exerciseIds = targetWorkout.exercises.map((e) => e.id).toSet();
+        if (exerciseIds.isNotEmpty) {
+          for (int j = 0; j < _logs.length; j++) {
+            if (exerciseIds.contains(_logs[j].exerciseId)) {
+              final oldLog = _logs[j];
+              DateTime newTimestamp;
+              if (date != null) {
+                newTimestamp = DateTime(
+                  date.year,
+                  date.month,
+                  date.day,
+                  oldLog.timestamp.hour,
+                  oldLog.timestamp.minute,
+                  oldLog.timestamp.second,
+                );
+              } else {
+                newTimestamp = oldLog.timestamp;
+              }
+
+              final updatedLog = oldLog.copyWith(
+                timestamp: () => newTimestamp,
+                isSynced: 0,
+                updatedAt: DateTime.now(),
+              );
+              _logs[j] = updatedLog;
+              await _localRepo!.insertLog(updatedLog);
+            }
+          }
+          _logs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          _syncLocalToCloud();
+        }
+
+        // 3. Re-check if the workout should be "Completed" based on exercises
         await _checkWorkoutCompletion(workoutId: workoutId);
         break;
       }
@@ -1619,10 +1744,19 @@ class CycleProvider with ChangeNotifier {
   }
 
   /// Returns a map with 'strength' and 'volume' progression percentages.
-  Map<String, double> calculateExerciseProgression(String exerciseName, {String? targetCycleId}) {
+  Map<String, double> calculateExerciseProgression(String exerciseName, {String? targetCycleId, String? exerciseId}) {
+    if (exerciseId != null) {
+      final instanceLogs = _logs.where((l) => l.exerciseId == exerciseId && (l.weightKg > 0 || l.weightLbs > 0) && l.positiveReps > 0).toList();
+      if (instanceLogs.isEmpty) {
+        return {"strength": 0.0, "volume": 0.0};
+      }
+    }
+
     final allLogs = _logs.where((l) {
       final cachedName = getExerciseName(l.exerciseId);
-      return cachedName?.trim().toUpperCase() == exerciseName.trim().toUpperCase();
+      if (cachedName?.trim().toUpperCase() != exerciseName.trim().toUpperCase()) return false;
+      final workout = getWorkoutForExercise(l.exerciseId);
+      return workout != null && workout.completedAt != null;
     }).toList()..sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
     if (allLogs.isEmpty) return {"strength": 0.0, "volume": 0.0};
@@ -1641,12 +1775,23 @@ class CycleProvider with ChangeNotifier {
     if (targetIdx <= 0) return {"strength": 0.0, "volume": 0.0};
 
     final targetCycle = relevantCycles[targetIdx];
-    final targetCycleLogs = allLogs.where((l) {
-      return targetCycle.workouts.any((w) => w.exercises.any((e) => e.id == l.exerciseId));
-    }).toList();
 
-    if (targetCycleLogs.isEmpty) return {"strength": 0.0, "volume": 0.0};
-    final latestLog = targetCycleLogs.last;
+    ExerciseLog? latestLog;
+    if (exerciseId != null) {
+      final instanceLogs = _logs.where((l) => l.exerciseId == exerciseId && (l.weightKg > 0 || l.weightLbs > 0) && l.positiveReps > 0).toList()..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+      if (instanceLogs.isNotEmpty) {
+        latestLog = instanceLogs.last;
+      }
+    }
+
+    if (latestLog == null) {
+      final targetCycleLogs = allLogs.where((l) {
+        return targetCycle.workouts.any((w) => w.exercises.any((e) => e.id == l.exerciseId));
+      }).toList();
+
+      if (targetCycleLogs.isEmpty) return {"strength": 0.0, "volume": 0.0};
+      latestLog = targetCycleLogs.last;
+    }
 
     final previousCycle = relevantCycles[targetIdx - 1];
     final previousCycleLogs = allLogs.where((l) {
@@ -1681,7 +1826,7 @@ class CycleProvider with ChangeNotifier {
     double totalVolume = 0.0;
     
     for (var exercise in workout.exercises) {
-      final prog = calculateExerciseProgression(exercise.name, targetCycleId: targetCycleId ?? workout.cycleId);
+      final prog = calculateExerciseProgression(exercise.name, targetCycleId: targetCycleId ?? workout.cycleId, exerciseId: exercise.id);
       totalStrength += prog['strength']!;
       totalVolume += prog['volume']!;
     }
@@ -1725,11 +1870,11 @@ class CycleProvider with ChangeNotifier {
     return calculateCycleProgression(cycleId)['strength']!;
   }
 
-  Future<void> _initializeMentzerDefaults() async {
+  Future<void> _initializeRuggedDefaults() async {
     if (_localRepo == null) return;
 
-    // Mike Mentzer's Ideal Routine
-    const idealCycleId = "mentzer_ideal_routine";
+    // Ideal Routine
+    const idealCycleId = "rugged_ideal_routine";
     final idealCycle = TrainingCycle(
       id: idealCycleId,
       name: "IDEAL ROUTINE", 
@@ -1738,27 +1883,27 @@ class CycleProvider with ChangeNotifier {
       isSynced: 1, 
       updatedAt: DateTime.now(),
       workouts: [
-        _createDefaultWorkout(idealCycleId, "mentzer_ideal_w1", "WORKOUT ONE: CHEST & BACK", 0, [
+        _createDefaultWorkout(idealCycleId, "rugged_ideal_w1", "WORKOUT ONE: CHEST & BACK", 0, [
           "Dumbbell Flyes", 
           "Incline Presses", 
           "Straight-Arm Lat Machine Pulldowns", 
           "Palms-Up Pulldowns", 
           "Deadlifts"
         ]),
-        _createDefaultWorkout(idealCycleId, "mentzer_ideal_w2", "WORKOUT TWO: LEGS & ABS", 1, [
+        _createDefaultWorkout(idealCycleId, "rugged_ideal_w2", "WORKOUT TWO: LEGS & ABS", 1, [
           "Leg Extensions", 
           "Leg Presses", 
           "Standing Calf Raises", 
           "Sit-Ups"
         ]),
-        _createDefaultWorkout(idealCycleId, "mentzer_ideal_w3", "WORKOUT THREE: SHOULDERS & ARMS", 2, [
+        _createDefaultWorkout(idealCycleId, "rugged_ideal_w3", "WORKOUT THREE: SHOULDERS & ARMS", 2, [
           "Dumbbell Lateral Raises", 
           "Bent-Over Dumbbell Laterals", 
           "Palms-Up Pulldowns", 
           "Triceps Pressdowns", 
           "Dips"
         ]),
-        _createDefaultWorkout(idealCycleId, "mentzer_ideal_w4", "WORKOUT FOUR: LEGS & ABS", 3, [
+        _createDefaultWorkout(idealCycleId, "rugged_ideal_w4", "WORKOUT FOUR: LEGS & ABS", 3, [
           "Leg Extensions", 
           "Leg Presses", 
           "Standing Calf Raises", 
@@ -1770,7 +1915,7 @@ class CycleProvider with ChangeNotifier {
     await _localRepo!.insertCycle(idealCycle);
 
     // Consolidated Routine
-    const consolidatedCycleId = "mentzer_consolidated_routine";
+    const consolidatedCycleId = "rugged_consolidated_routine";
     final consolidatedCycle = TrainingCycle(
       id: consolidatedCycleId,
       name: "CONSOLIDATED", 
@@ -1779,12 +1924,12 @@ class CycleProvider with ChangeNotifier {
       isSynced: 1, 
       updatedAt: DateTime.now(),
       workouts: [
-        _createDefaultWorkout(consolidatedCycleId, "mentzer_cons_w1", "WORKOUT ONE", 0, [
+        _createDefaultWorkout(consolidatedCycleId, "rugged_cons_w1", "WORKOUT ONE", 0, [
           "Squats", 
           "Palms-Up Pulldowns", 
           "Dips"
         ]),
-        _createDefaultWorkout(consolidatedCycleId, "mentzer_cons_w2", "WORKOUT TWO", 1, [
+        _createDefaultWorkout(consolidatedCycleId, "rugged_cons_w2", "WORKOUT TWO", 1, [
           "Deadlifts", 
           "Press Behind Neck", 
           "Standing Calf Raises"
@@ -1795,7 +1940,7 @@ class CycleProvider with ChangeNotifier {
     await _localRepo!.insertCycle(consolidatedCycle);
 
     // Beginner Routine
-    const beginnerCycleId = "mentzer_beginner_routine";
+    const beginnerCycleId = "rugged_beginner_routine";
     final beginnerExercises = [
       "Squats", 
       "Barbell Rows", 
@@ -1816,7 +1961,7 @@ class CycleProvider with ChangeNotifier {
       updatedAt: DateTime.now(),
       workouts: List.generate(5, (i) => _createDefaultWorkout(
         beginnerCycleId, 
-        "mentzer_beg_w${i + 1}", 
+        "rugged_beg_w${i + 1}", 
         "DAY ${i + 1}", 
         i, 
         beginnerExercises
@@ -1825,17 +1970,17 @@ class CycleProvider with ChangeNotifier {
 
     await _localRepo!.insertCycle(beginnerCycle);
 
-    // Mentzer Productive Routine
-    const productiveCycleId = "mentzer_productive_routine";
+    // Productive Routine
+    const productiveCycleId = "rugged_productive_routine";
     final productiveCycle = TrainingCycle(
       id: productiveCycleId,
-      name: "MENTZER PRODUCTIVE ROUTINE",
+      name: "PRODUCTIVE ROUTINE",
       description: "2 SESSIONS • HIGH INTENSITY SUPERSETS",
       isDefault: true,
       isSynced: 1,
       updatedAt: DateTime.now(),
       workouts: [
-        _createDefaultWorkout(productiveCycleId, "mentzer_prod_w1", "WORKOUT ONE (MONDAY)", 0, [
+        _createDefaultWorkout(productiveCycleId, "rugged_prod_w1", "WORKOUT ONE (MONDAY)", 0, [
           "Leg Extensions",
           "Squats",
           "Leg Curls",
@@ -1848,10 +1993,10 @@ class CycleProvider with ChangeNotifier {
           "Dips",
           "Lying Triceps Extensions"
         ]),
-        _createDefaultWorkout(productiveCycleId, "mentzer_prod_w2", "WORKOUT TWO (WEDNESDAY)", 1, [
+        _createDefaultWorkout(productiveCycleId, "rugged_prod_w2", "WORKOUT TWO (WEDNESDAY)", 1, [
           "Nautilus Machine Pullovers",
           "Palms-Up Pulldowns",
-          "Bent-Over Barbell Rows",
+          "Barbell Rows",
           "Shrugs",
           "Upright Rows",
           "Dumbbell Lateral Raises",
@@ -1865,38 +2010,38 @@ class CycleProvider with ChangeNotifier {
 
     await _localRepo!.insertCycle(productiveCycle);
 
-    // Mike Mentzer's One-Set Heavy Duty (Dorian Yates)
-    const dorianCycleId = "mentzer_dorian_yates_routine";
+    // One-Set Intensity Routine
+    const dorianCycleId = "rugged_dorian_yates_routine";
     final dorianCycle = TrainingCycle(
       id: dorianCycleId,
-      name: "ONE-SET HEAVY DUTY (DORIAN YATES)",
-      description: "3 SESSIONS • THE 1992 OLYMPIA PROTOCOL",
+      name: "ONE-SET INTENSITY ROUTINE",
+      description: "3 SESSIONS • THE HIGH INTENSITY PROTOCOL",
       isDefault: true,
       isSynced: 1,
       updatedAt: DateTime.now(),
       workouts: [
-        _createDefaultWorkout(dorianCycleId, "mentzer_dorian_w1", "MONDAY'S WORKOUT", 0, [
+        _createDefaultWorkout(dorianCycleId, "rugged_dorian_w1", "MONDAY'S WORKOUT", 0, [
           "Dumbbell Flyes",
-          "Machine Incline Presses",
-          "Nautilus Lateral Raises",
-          "Nautilus Rear Delt Raises",
-          "Nautilus Machine Triceps Extensions",
-          "Triceps Pressdowns"
+          "Incline Presses",
+          "Dumbbell Lateral Raises",
+          "Bent-Over Dumbbell Laterals",
+          "Triceps Pressdowns",
+          "Dips"
         ]),
-        _createDefaultWorkout(dorianCycleId, "mentzer_dorian_w2", "WEDNESDAY'S WORKOUT", 1, [
+        _createDefaultWorkout(dorianCycleId, "rugged_dorian_w2", "WEDNESDAY'S WORKOUT", 1, [
           "Nautilus Machine Pullovers",
           "Palms-Up Pulldowns",
-          "Hammer Rows",
-          "Hammer Shrugs",
-          "Nautilus Machine Curls",
-          "Preacher Curls"
+          "Barbell Rows",
+          "Shrugs",
+          "Preacher Curls",
+          "Concentration Curls"
         ]),
-        _createDefaultWorkout(dorianCycleId, "mentzer_dorian_w3", "FRIDAY'S WORKOUT", 2, [
+        _createDefaultWorkout(dorianCycleId, "rugged_dorian_w3", "FRIDAY'S WORKOUT", 2, [
           "Leg Extensions",
           "Leg Presses",
           "Squats",
           "Leg Curls",
-          "Stiff-Legged Deadlifts",
+          "Deadlifts",
           "Standing Calf Raises"
         ]),
       ],
@@ -1999,7 +2144,7 @@ class CycleProvider with ChangeNotifier {
     final cycle = _cycles.firstWhere((c) => c.id == cycleId, orElse: () => TrainingCycle(name: ""));
     if (cycle.id.isEmpty) return false;
 
-    // A cycle is an unmodified default if its structure matches one of the internal Mentzer routines
+    // A cycle is an unmodified default if its structure matches one of the internal default routines
     final matchingName = findMatchingTemplate(cycleId);
     if (matchingName == null) return false;
 
@@ -2007,7 +2152,9 @@ class CycleProvider with ChangeNotifier {
       "IDEAL ROUTINE", 
       "CONSOLIDATED", 
       "BEGINNER ROUTINE", 
-      "MENTZER PRODUCTIVE ROUTINE", 
+      "PRODUCTIVE ROUTINE", 
+      "MENTZER PRODUCTIVE ROUTINE",
+      "ONE-SET INTENSITY ROUTINE",
       "ONE-SET HEAVY DUTY (DORIAN YATES)"
     ];
     
@@ -2015,11 +2162,16 @@ class CycleProvider with ChangeNotifier {
   }
 
   Future<String?> generateShareableLink(String cycleId, String userName) async {
+    if (!AuthProvider().isPro) {
+      debugPrint("CycleProvider: Sharing skipped - Pro status required.");
+      return null;
+    }
+
     final cycle = _cycles.firstWhere((c) => c.id == cycleId);
     
     final Map<String, dynamic> shareData = {
       'name': cycle.name,
-      'description': cycle.description ?? "SHARED HIT ROUTINE",
+      'description': cycle.description,
       'sender': userName,
       'workouts': cycle.workouts.map((w) => {
         'name': w.name,
@@ -2038,8 +2190,8 @@ class CycleProvider with ChangeNotifier {
       }).select('id').single();
 
       final shareId = response['id'] as String;
-      // Using the actual confirmed domain: heavydutyapp.org
-      return "https://heavydutyapp.org/share/cycle?id=$shareId&from=${Uri.encodeComponent(userName)}";
+      // Using the actual confirmed domain: affulabs.com/rugged
+      return "https://affulabs.com/rugged/app/share/cycle?id=$shareId&from=${Uri.encodeComponent(userName)}";
     } catch (e) {
       debugPrint("Error generating share link: $e");
       return null;

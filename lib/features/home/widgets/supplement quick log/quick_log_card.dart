@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/features/tracker/supplement/provider/supplement_provider.dart';
+import 'package:rugged/features/tracker/supplement/provider/supplement_provider.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -43,9 +43,9 @@ class QuickLogCard extends StatelessWidget {
             margin: EdgeInsets.only(right: 16.w),
             padding: EdgeInsets.all(16.r),
             decoration: BoxDecoration(
-              color: AppColors.surfaceLight.withOpacity(0.6),
+              color: AppColors.surfaceLight.withValues(alpha: 0.6),
               borderRadius: BorderRadius.circular(24.r),
-              border: Border.all(color: Colors.white.withOpacity(0.1)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
               boxShadow: [
                 BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 3)),
               ],
@@ -57,13 +57,12 @@ class QuickLogCard extends StatelessWidget {
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
                   decoration: BoxDecoration(
-                    color: themeColor.withOpacity(0.2),
+                    color: themeColor.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8.r),
                   ),
                   child: Text(
                     actionLabel,
-                    style: AppTextStyles.labelSmall.copyWith(
-                      fontSize: 10.sp,
+                    style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                       fontWeight: FontWeight.w500,
                       color: themeColor,
                     ),
@@ -75,8 +74,7 @@ class QuickLogCard extends StatelessWidget {
                   children: [
                     Text(
                       item.name.toUpperCase(),
-                      style: AppTextStyles.labelSmall.copyWith(
-                        fontSize: 14.sp,
+                      style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                         fontWeight: FontWeight.w500,
                         color: Colors.white,
                       ),
@@ -91,8 +89,7 @@ class QuickLogCard extends StatelessWidget {
                         SizedBox(width: 4.w),
                         Text(
                           amountDisplay.toUpperCase(),
-                          style: AppTextStyles.labelSmall.copyWith(
-                            fontSize: 11.sp,
+                          style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                             color: Colors.white70,
                           ),
                         ),
@@ -104,23 +101,21 @@ class QuickLogCard extends StatelessWidget {
                 Container(
                   padding: EdgeInsets.only(top: 8.h),
                   decoration: BoxDecoration(
-                    border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1))),
+                    border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
                         "STOCK",
-                        style: AppTextStyles.labelSmall.copyWith(
-                          fontSize: 10.sp,
+                        style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                           color: AppColors.textSecondary,
                         ),
                       ),
                       SizedBox(width: 12.w),
                       Text(
                         "${(item.remainingStock ?? 0).toInt()}${item.weightUnit} | $remainingServings",
-                        style: AppTextStyles.labelSmall.copyWith(
-                          fontSize: 10.sp,
+                        style: AppTextStyles.labelSmall.adaptive(context).copyWith(
                           color: provider.getStockColor(item),
                           fontWeight: FontWeight.w500,
                         ),
