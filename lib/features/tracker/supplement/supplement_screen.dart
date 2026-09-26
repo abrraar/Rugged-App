@@ -224,9 +224,10 @@ class _SupplementScreenState extends State<SupplementScreen>
             child: LayoutBuilder(
               builder: (context, constraints) => ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.zero,
                 children: [
-                  Container(
-                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  SizedBox(
+                    height: constraints.maxHeight,
                     child: Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -354,9 +355,10 @@ class _SupplementScreenState extends State<SupplementScreen>
                     ? LayoutBuilder(
                         builder: (context, constraints) => ListView(
                           physics: const AlwaysScrollableScrollPhysics(),
+                          padding: EdgeInsets.zero,
                           children: [
-                            Container(
-                              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                            SizedBox(
+                              height: constraints.maxHeight,
                               child: Center(
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
@@ -478,9 +480,10 @@ class _SupplementScreenState extends State<SupplementScreen>
             child: LayoutBuilder(
               builder: (context, constraints) => ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.zero,
                 children: [
-                  Container(
-                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  SizedBox(
+                    height: constraints.maxHeight,
                     child: Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -830,9 +833,10 @@ class _SupplementScreenState extends State<SupplementScreen>
                               ? LayoutBuilder(
                                   builder: (context, constraints) => ListView(
                                     physics: const AlwaysScrollableScrollPhysics(),
+                                    padding: EdgeInsets.zero,
                                     children: [
-                                      Container(
-                                        constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                                      SizedBox(
+                                        height: constraints.maxHeight,
                                         child: Center(
                                           child: _buildEmptyState("No logs for this date.", isCompact),
                                         ),

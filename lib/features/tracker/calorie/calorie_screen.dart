@@ -805,9 +805,10 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                         ? LayoutBuilder(
                             builder: (context, constraints) => ListView(
                               physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                              padding: EdgeInsets.zero,
                               children: [
-                                Container(
-                                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                                SizedBox(
+                                  height: constraints.maxHeight,
                                   child: Center(
                                     child: Text(
                                       "No saved meals in your library.",
