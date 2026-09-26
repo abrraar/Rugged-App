@@ -34,7 +34,7 @@ class SupplementStack {
     this.reminders = const [],
     this.sharedBy,
     this.userId,
-    this.isSynced = 1,
+    this.isSynced = 0,
     this.updatedAt,
     this.pinnedRecordModes = const {},
     this.pinnedUseServings = const {},

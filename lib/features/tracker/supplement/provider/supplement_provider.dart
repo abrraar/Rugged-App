@@ -382,6 +382,17 @@ class SupplementProvider with ChangeNotifier {
         final localSuppsCurrent = await _localRepo!.getAllSupplements();
         final cloudIds = cloudSupps.map((s) => s.id).toSet();
 
+        // Safety Push: Upload local items missing from cloud before reconciliation
+        for (var localS in localSuppsCurrent) {
+          if (!cloudIds.contains(localS.id)) {
+            try {
+              await _cloudRepo.saveSupplement(localS);
+              await _localRepo!.markSupplementSynced(localS.id);
+              cloudIds.add(localS.id);
+            } catch (_) {}
+          }
+        }
+
         // Deletion Reconciliation: Remove local synced supplements missing from cloud
         for (var localS in localSuppsCurrent) {
           if (localS.isSynced == 1 && !cloudIds.contains(localS.id)) {
@@ -400,6 +411,17 @@ class SupplementProvider with ChangeNotifier {
         final localStacksCurrent = await _localRepo!.getAllStacks(_library);
         final cloudIds = cloudStacks.map((s) => s.id).toSet();
 
+        // Safety Push: Upload local stacks missing from cloud
+        for (var localSt in localStacksCurrent) {
+          if (!cloudIds.contains(localSt.id)) {
+            try {
+              await _cloudRepo.saveStack(localSt);
+              await _localRepo!.markStackSynced(localSt.id);
+              cloudIds.add(localSt.id);
+            } catch (_) {}
+          }
+        }
+
         // Deletion Reconciliation: Remove local synced stacks missing from cloud
         for (var localSt in localStacksCurrent) {
           if (localSt.isSynced == 1 && !cloudIds.contains(localSt.id)) {
@@ -417,6 +439,17 @@ class SupplementProvider with ChangeNotifier {
       if (cloudHistory != null) {
         final localHistoryCurrent = await _localRepo!.getAllHistory();
         final cloudIds = cloudHistory.map((h) => h.id).toSet();
+
+        // Safety Push: Upload local history entries missing from cloud
+        for (var localH in localHistoryCurrent) {
+          if (!cloudIds.contains(localH.id)) {
+            try {
+              await _cloudRepo.insertSupplementItem(localH);
+              await _localRepo!.markHistoryAsSynced(localH.id);
+              cloudIds.add(localH.id);
+            } catch (_) {}
+          }
+        }
 
         // Delete local history logs missing from cloud
         for (var localH in localHistoryCurrent) {

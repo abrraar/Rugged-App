@@ -208,7 +208,7 @@ class Supplement {
     this.fatsPerUnit,
     this.sharedBy,
     this.userId,
-    this.isSynced = 1,
+    this.isSynced = 0,
     this.updatedAt,
     this.isPinnedToHome = false,
     this.pinnedIntakeAmount = 1.0,

@@ -104,6 +104,17 @@ class AffirmationProvider with ChangeNotifier {
         final localAffs = await _localRepo!.getAllAffirmations();
         final cloudIds = cloudAffs.map((a) => a.id).toSet();
 
+        // Safety Push: Upload local affirmations missing from cloud before reconciliation
+        for (var localA in localAffs) {
+          if (!cloudIds.contains(localA.id)) {
+            try {
+              await _cloudRepo.insertAffirmation(localA);
+              await _localRepo!.markAffirmationSynced(localA.id);
+              cloudIds.add(localA.id);
+            } catch (_) {}
+          }
+        }
+
         // Deletion Reconciliation: Remove local synced affirmations missing from cloud
         for (var localA in localAffs) {
           if (localA.isSynced == 1 && !cloudIds.contains(localA.id)) {

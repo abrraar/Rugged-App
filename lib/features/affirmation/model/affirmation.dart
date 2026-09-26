@@ -18,7 +18,7 @@ class Affirmation {
     this.speaker,
     this.sharedBy,
     DateTime? createdAt,
-    this.isSynced = 1,
+    this.isSynced = 0,
     this.updatedAt,
     this.displayOrder = 0,
     this.userId,

@@ -10,7 +10,7 @@ class AffirmationSettings {
     this.rotationMinutes = 60,
     this.rotationMode = 'random',
     this.orderDirection = 'asc',
-    this.isSynced = 1,
+    this.isSynced = 0,
     this.updatedAt,
     this.userId,
   });

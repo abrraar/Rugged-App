@@ -21,7 +21,7 @@ class SupplementItem {
     required this.details,
     required this.weightAdjustment,
     required this.timestamp,
-    required this.isSynced,
+    this.isSynced = 0,
     this.updatedAt,
     this.sourceId,
     this.userId,
