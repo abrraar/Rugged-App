@@ -153,9 +153,7 @@ class _CircularSleepPickerState extends State<CircularSleepPicker> {
     final double centerX = containerSize / 2;
     final double centerY = containerSize / 2;
 
-    final EdgeInsets horizontalPad = EdgeInsets.symmetric(
-      horizontal: isCompact ? 20.w : 24.0,
-    );
+    final EdgeInsets horizontalPad = EdgeInsets.zero;
 
     return Column(
       children: [

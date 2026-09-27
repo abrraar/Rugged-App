@@ -526,19 +526,11 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
                   },
                 ),
                 
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: isCompact ? 20.w : 24.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 32.0),
-                      _buildSectionTitle(context, 'ALARM CONFIGURATION', isCompact),
-                      const SizedBox(height: 16.0),
-                      _buildEnhancedAlarmCard(alarmProvider, isCompact),
-                      const SizedBox(height: 32.0),
-                    ],
-                  ),
-                ),
+                const SizedBox(height: 32.0),
+                _buildSectionTitle(context, 'ALARM CONFIGURATION', isCompact),
+                const SizedBox(height: 16.0),
+                _buildEnhancedAlarmCard(alarmProvider, isCompact),
+                const SizedBox(height: 32.0),
               ],
             ),
           );
