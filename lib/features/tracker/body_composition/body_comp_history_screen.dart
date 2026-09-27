@@ -116,7 +116,7 @@ class _BodyCompHistoryScreenState extends State<BodyCompHistoryScreen> {
     return Center(
       child: Text(
         'No entries found.',
-        style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+        style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary),
       ),
     );
   }

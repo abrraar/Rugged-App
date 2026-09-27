@@ -812,7 +812,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                                   child: Center(
                                     child: Text(
                                       "No saved meals in your library.",
-                                      style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary),
+                                      style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary),
                                     ),
                                   ),
                                 ),
@@ -1105,7 +1105,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                           child: Center(
                             child: Text(
                               "No logs for this date.",
-                              style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary),
+                              style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary),
                             ),
                           ),
                         ),
