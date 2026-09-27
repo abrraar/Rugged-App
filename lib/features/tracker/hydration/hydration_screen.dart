@@ -558,10 +558,21 @@ class _HydrationScreenState extends State<HydrationScreen>
                         color: Colors.blueAccent,
                         backgroundColor: AppColors.surface,
                         child: filteredLogs.isEmpty
-                            ? Center(
-                                child: Text(
-                                  _recordsFilter.isInitial ? "NO LOGS FOR THIS DATE" : "NO MATCHING LOGS",
-                                  style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary.withValues(alpha: 0.5)),
+                            ? LayoutBuilder(
+                                builder: (context, constraints) => ListView(
+                                  physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                                  padding: EdgeInsets.zero,
+                                  children: [
+                                    SizedBox(
+                                      height: constraints.maxHeight,
+                                      child: Center(
+                                        child: Text(
+                                          _recordsFilter.isInitial ? "No logs for this date." : "No matching logs.",
+                                          style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               )
                             : ListView.separated(
@@ -661,14 +672,15 @@ class _HydrationScreenState extends State<HydrationScreen>
                 child: filteredLogs.isEmpty
                     ? LayoutBuilder(
                         builder: (context, constraints) => ListView(
-                          physics: const AlwaysScrollableScrollPhysics(),
+                          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                          padding: EdgeInsets.zero,
                           children: [
-                            Container(
-                              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                            SizedBox(
+                              height: constraints.maxHeight,
                               child: Center(
                                 child: Text(
-                                  _recordsFilter.isInitial ? "NO LOGS FOR THIS DATE" : "NO MATCHING LOGS",
-                                  style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.5)),
+                                  _recordsFilter.isInitial ? "No logs for this date." : "No matching logs.",
+                                  style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary),
                                 ),
                               ),
                             ),
