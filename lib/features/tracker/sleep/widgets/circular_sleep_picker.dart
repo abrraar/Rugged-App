@@ -148,8 +148,8 @@ class _CircularSleepPickerState extends State<CircularSleepPicker> {
   Widget build(BuildContext context) {
     final duration = _calculateDuration();
     final bool isCompact = widget.isCompact;
-    final double containerSize = isCompact ? 335.0 : 290.0;
-    final double ringRadius = isCompact ? 120.0 : 105.0;
+    final double containerSize = isCompact ? 350.0 : 300.0;
+    final double ringRadius = isCompact ? 128.0 : 110.0;
     final double centerX = containerSize / 2;
     final double centerY = containerSize / 2;
 
@@ -186,16 +186,16 @@ class _CircularSleepPickerState extends State<CircularSleepPicker> {
                         Text(
                           "Fall asleep",
                           style: AppTextStyles.labelSmall.copyWith(
-                            color: AppColors.textSecondary.withValues(alpha: 0.6),
-                            fontSize: 11.0,
+                            color: AppColors.textSecondary.withValues(alpha: 0.7),
+                            fontSize: 13.0,
                           ),
                         ),
                         Text(
                           _formatTime(_startAngle),
                           style: AppTextStyles.labelSmall.copyWith(
                             color: AppColors.textSecondary,
-                            fontWeight: FontWeight.w500,
-                            fontSize: 12.0,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14.0,
                           ),
                         ),
                       ],
@@ -203,7 +203,7 @@ class _CircularSleepPickerState extends State<CircularSleepPicker> {
                   ),
                   const SizedBox(height: 4.0),
                   SizedBox(
-                    width: 140.0,
+                    width: 170.0,
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Text.rich(
@@ -212,26 +212,26 @@ class _CircularSleepPickerState extends State<CircularSleepPicker> {
                             TextSpan(
                               text: "${duration.inHours}",
                               style: AppTextStyles.h1.copyWith(
-                                fontSize: 42.0,
+                                fontSize: 48.0,
                                 color: Colors.white,
-                                fontWeight: FontWeight.w500,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                             TextSpan(
                               text: "hr",
                               style: AppTextStyles.h3.copyWith(
-                                fontSize: 20.0,
-                                color: Colors.white.withValues(alpha: 0.8),
-                                fontWeight: FontWeight.w500,
+                                fontSize: 22.0,
+                                color: Colors.white.withValues(alpha: 0.85),
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                             if (duration.inMinutes % 60 > 0)
                               TextSpan(
                                 text: " ${duration.inMinutes % 60}m",
                                 style: AppTextStyles.h3.copyWith(
-                                  fontSize: 16.0,
-                                  color: Colors.white.withValues(alpha: 0.6),
-                                  fontWeight: FontWeight.w500,
+                                  fontSize: 18.0,
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                           ],
@@ -248,16 +248,16 @@ class _CircularSleepPickerState extends State<CircularSleepPicker> {
                         Text(
                           "Wake Up",
                           style: AppTextStyles.labelSmall.copyWith(
-                            color: AppColors.textSecondary.withValues(alpha: 0.6),
-                            fontSize: 11.0,
+                            color: AppColors.textSecondary.withValues(alpha: 0.7),
+                            fontSize: 13.0,
                           ),
                         ),
                         Text(
                           _formatTime(_endAngle),
                           style: AppTextStyles.labelSmall.copyWith(
                             color: AppColors.textSecondary,
-                            fontWeight: FontWeight.w500,
-                            fontSize: 12.0,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14.0,
                           ),
                         ),
                       ],
@@ -530,10 +530,10 @@ class SleepPickerPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = size.center(Offset.zero);
-    final strokeWidth = isCompact ? 34.0 : 30.0;
+    final strokeWidth = isCompact ? 36.0 : 32.0;
 
     final bgPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.12)
+      ..color = Colors.white.withValues(alpha: 0.22)
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
