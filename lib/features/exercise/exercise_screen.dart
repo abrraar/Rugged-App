@@ -256,21 +256,24 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
       color: AppColors.crimson,
       backgroundColor: AppColors.surface,
       child: exercises.isEmpty
-          ? ListView(
-              physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-              children: [
-                SizedBox(
-                  height: isTablet ? 250.0 : 400.h,
-                  child: Center(
-                    child: Text(
-                      "No exercises found.",
-                      style: AppTextStyles.labelSmall.adaptive(context).copyWith(
-                        color: AppColors.textSecondary,
+          ? LayoutBuilder(
+              builder: (context, constraints) => ListView(
+                physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                padding: EdgeInsets.zero,
+                children: [
+                  SizedBox(
+                    height: constraints.maxHeight,
+                    child: Center(
+                      child: Text(
+                        "No exercises found.",
+                        style: AppTextStyles.labelSmall.adaptive(context).copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             )
           : ListView.separated(
               physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),

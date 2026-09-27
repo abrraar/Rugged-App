@@ -1080,33 +1080,40 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
                 ),
                 const Divider(color: Colors.white10, height: 1),
                 Expanded(
-                  child: ListView(
-                    padding: EdgeInsets.zero,
-                    physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-                    children: [
-                      if (historyLogs.isNotEmpty) ...[
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
-                          child: _buildSectionHeader(context, "LOGGED METRICS", isCompact),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 20.w),
-                          child: Column(
-                            children: historyLogs.map((log) => _buildRecordCard(context, log, provider, isCompact)).toList(),
+                  child: historyLogs.isEmpty
+                      ? LayoutBuilder(
+                          builder: (context, constraints) => ListView(
+                            padding: EdgeInsets.zero,
+                            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                            children: [
+                              SizedBox(
+                                height: constraints.maxHeight,
+                                child: Center(
+                                  child: Text(
+                                    "No logs for this date.",
+                                    style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ] else
-                        SizedBox(
-                          height: 300.h,
-                          child: Center(
-                            child: Text(
-                              "No logs for this date.",
-                              style: AppTextStyles.labelSmall.adaptive(context).copyWith(color: AppColors.textSecondary),
+                        )
+                      : ListView(
+                          padding: EdgeInsets.zero,
+                          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                          children: [
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+                              child: _buildSectionHeader(context, "LOGGED METRICS", isCompact),
                             ),
-                          ),
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 20.w),
+                              child: Column(
+                                children: historyLogs.map((log) => _buildRecordCard(context, log, provider, isCompact)).toList(),
+                              ),
+                            ),
+                          ],
                         ),
-                    ],
-                  ),
                 ),
               ],
             );

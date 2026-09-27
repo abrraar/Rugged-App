@@ -557,9 +557,10 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
           onRefresh: () => provider.forceRefresh(),
           color: AppColors.crimson,
           child: ListView(
+            padding: EdgeInsets.zero,
             children: [
-              Container(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              SizedBox(
+                height: constraints.maxHeight,
                 child: Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -840,9 +841,10 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
                     ? LayoutBuilder(
                         builder: (context, constraints) => ListView(
                           physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                          padding: EdgeInsets.zero,
                           children: [
-                            Container(
-                              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                            SizedBox(
+                              height: constraints.maxHeight,
                               child: Center(
                                 child: Text(
                                   "No logs for this date.",

@@ -778,9 +778,10 @@ class _CycleTrackingScreenState extends State<CycleTrackingScreen>
             child: LayoutBuilder(
             builder: (context, constraints) => ListView(
               physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.zero,
               children: [
-                Container(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                SizedBox(
+                  height: constraints.maxHeight,
                   child: Center(
                     child: Text(
                       "COMPLETE CYCLES TO VIEW TRENDS",

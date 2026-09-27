@@ -60,7 +60,25 @@ class _BodyCompHistoryScreenState extends State<BodyCompHistoryScreen> {
           Expanded(
             child: Consumer<BodyCompProvider>(
               builder: (context, provider, _) {
-                if (provider.logs.isEmpty) return _buildEmptyState();
+                if (provider.logs.isEmpty) {
+                  return EliteRefreshIndicator(
+                    onRefresh: () => provider.forceRefresh(),
+                    color: AppColors.crimson,
+                    backgroundColor: AppColors.surface,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) => ListView(
+                        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                        padding: EdgeInsets.zero,
+                        children: [
+                          SizedBox(
+                            height: constraints.maxHeight,
+                            child: _buildEmptyState(),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
 
                 // Group logs by timestamp (to the minute) to show as single "entries" if they happened together
                 final Map<String, List<BodyCompLog>> groupedLogs = {};
