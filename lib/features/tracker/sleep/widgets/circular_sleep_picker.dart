@@ -148,8 +148,8 @@ class _CircularSleepPickerState extends State<CircularSleepPicker> {
   Widget build(BuildContext context) {
     final duration = _calculateDuration();
     final bool isCompact = widget.isCompact;
-    final double containerSize = isCompact ? 300.0 : 280.0;
-    final double ringRadius = isCompact ? 105.0 : 100.0;
+    final double containerSize = isCompact ? 335.0 : 290.0;
+    final double ringRadius = isCompact ? 120.0 : 105.0;
     final double centerX = containerSize / 2;
     final double centerY = containerSize / 2;
 
@@ -530,10 +530,10 @@ class SleepPickerPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = size.center(Offset.zero);
-    final strokeWidth = isCompact ? 32.0 : 30.0;
+    final strokeWidth = isCompact ? 34.0 : 30.0;
 
     final bgPaint = Paint()
-      ..color = AppColors.surfaceLight.withValues(alpha: 0.15)
+      ..color = Colors.white.withValues(alpha: 0.12)
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
