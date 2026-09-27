@@ -533,7 +533,7 @@ class SleepPickerPainter extends CustomPainter {
     final strokeWidth = isCompact ? 36.0 : 32.0;
 
     final bgPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.35)
+      ..color = Colors.white.withValues(alpha: 0.075)
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;

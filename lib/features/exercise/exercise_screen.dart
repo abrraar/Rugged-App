@@ -688,7 +688,7 @@ class _ExerciseCardItem extends StatelessWidget {
           borderRadius: BorderRadius.circular(isTablet ? 16.0 : 20.r),
           border: isSelected 
               ? Border.all(color: AppColors.crimson.withValues(alpha: 0.5), width: 1.5)
-              : Border.all(color: AppColors.white.withValues(alpha: 0.02)),
+              : Border.all(color: AppColors.white.withValues(alpha: 0.05), width: 1),
         ),
         padding: EdgeInsets.all(isTablet ? 16.0 : 20.r),
         child: Row(
