@@ -196,6 +196,17 @@ class ExerciseProvider with ChangeNotifier {
       final localTemplates = await _localRepo!.getAllTemplates();
       final cloudIds = cloudTemplates.map((t) => t.id).toSet();
 
+      // Safety Push: Upload custom local templates missing from cloud before reconciliation
+      for (var localT in localTemplates) {
+        if (!localT.isDefault && !cloudIds.contains(localT.id)) {
+          try {
+            await _cloudRepo.insertTemplate(localT);
+            await _localRepo!.markTemplateSynced(localT.id);
+            cloudIds.add(localT.id);
+          } catch (_) {}
+        }
+      }
+
       // Deletion Reconciliation: Remove local synced templates missing from cloud
       for (var localT in localTemplates) {
         if (localT.isSynced == 1 && !localT.isDefault && !cloudIds.contains(localT.id)) {

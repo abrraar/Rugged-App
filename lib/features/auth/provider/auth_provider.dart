@@ -1163,6 +1163,25 @@ class AuthProvider with ChangeNotifier {
         );
         await _profileRepo?.saveProfile(updatedLocal);
         _userProfile = updatedLocal;
+      } else {
+        final profile = await _profileRepo?.getProfile() ??
+            UserProfile(
+              id: userId,
+              fullName: displayName,
+              isPro: true,
+              proPlanTier: tier,
+              proStartDate: now,
+              proExpiryDate: expiry,
+            );
+        final updated = profile.copyWith(
+          isPro: true,
+          proPlanTier: tier,
+          proStartDate: now,
+          proExpiryDate: expiry,
+          isSynced: 1,
+        );
+        await _profileRepo?.saveProfile(updated);
+        _userProfile = updated;
       }
 
       // 3. Mark in SharedPreferences for fast startup check

@@ -476,6 +476,17 @@ class CycleProvider with ChangeNotifier {
         if (cloudCycles != null) {
           final currentLocal = await _localRepo!.getAllCycles();
           final cloudCycleIds = cloudCycles.map((c) => c.id).toSet();
+
+          // Safety Push: Upload local cycles missing from cloud before pruning
+          for (var lc in currentLocal) {
+            if (!lc.isDefault && !cloudCycleIds.contains(lc.id)) {
+              try {
+                await _syncCycle(lc);
+                cloudCycleIds.add(lc.id);
+              } catch (_) {}
+            }
+          }
+
           final cloudWorkoutIds = cloudCycles.expand((c) => c.workouts.map((w) => w.id)).toSet();
           final cloudExerciseIds = cloudCycles.expand((c) => c.workouts.expand((w) => w.exercises.map((e) => e.id))).toSet();
 

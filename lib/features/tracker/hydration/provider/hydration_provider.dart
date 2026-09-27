@@ -216,6 +216,17 @@ class HydrationProvider with ChangeNotifier {
         final localLogs = await _localRepo!.getAllLogs();
         final cloudIds = cloudLogs.map((l) => l.id).toSet();
 
+        // Safety Push: Upload local logs missing from cloud before reconciliation
+        for (var localL in localLogs) {
+          if (!cloudIds.contains(localL.id)) {
+            try {
+              await _cloudRepo.insertLog(localL);
+              await _localRepo!.markLogSynced(localL.id);
+              cloudIds.add(localL.id);
+            } catch (_) {}
+          }
+        }
+
         // Deletion Reconciliation: Remove local synced logs missing from cloud
         for (var localL in localLogs) {
           if (localL.isSynced == 1 && !cloudIds.contains(localL.id)) {

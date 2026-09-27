@@ -245,6 +245,19 @@ class BodyCompProvider with ChangeNotifier {
       final cloudLogs = await _cloudRepo.getAllLogs();
       if (cloudLogs != null) {
         final localLogs = await _localRepo!.getAllLogs();
+        final cloudIds = cloudLogs.map((l) => l.id).toSet();
+
+        // Safety Push: Upload local metric logs missing from cloud
+        for (var localL in localLogs) {
+          if (!cloudIds.contains(localL.id)) {
+            try {
+              await _cloudRepo.insertLog(localL);
+              await _localRepo!.markLogSynced(localL.id, localL.type);
+              cloudIds.add(localL.id);
+            } catch (_) {}
+          }
+        }
+
         final localMap = {for (var l in localLogs) l.id: l};
 
         bool logChanged = false;
