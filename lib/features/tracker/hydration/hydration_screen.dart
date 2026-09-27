@@ -337,19 +337,18 @@ class _HydrationScreenState extends State<HydrationScreen>
           // --- MOBILE: SINGLE COLUMN ---
           return SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.all(isCompact ? 24.r : 20.0),
+            padding: EdgeInsets.symmetric(horizontal: isCompact ? 20.w : 20.0, vertical: isCompact ? 20.h : 20.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(height: isCompact ? 10.h : 8.0),
                 _buildSectionHeader("DAILY INTAKE", isCompact),
                 SizedBox(height: isCompact ? 12.h : 10.0),
                 _buildCurrentIntakeCard(provider, isCompact),
-                SizedBox(height: isCompact ? 32.h : 24.0),
+                SizedBox(height: isCompact ? 24.h : 24.0),
                 _buildSectionHeader("MANUAL LOG", isCompact),
                 SizedBox(height: isCompact ? 12.h : 10.0),
                 _buildManualEntryCard(provider, isCompact),
-                SizedBox(height: 40.h),
+                SizedBox(height: isCompact ? 24.h : 24.0),
               ],
             ),
           );
@@ -434,7 +433,7 @@ class _HydrationScreenState extends State<HydrationScreen>
         isCompact: isCompact,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-          padding: EdgeInsets.all(isCompact ? 24.r : 20.0),
+          padding: EdgeInsets.symmetric(horizontal: isCompact ? 20.w : 20.0, vertical: isCompact ? 20.h : 20.0),
           child: isWideLandscape 
               ? Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -454,9 +453,9 @@ class _HydrationScreenState extends State<HydrationScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     buildTrendAndOverlayContent(),
-                    SizedBox(height: isCompact ? 40.h : 32.0),
+                    SizedBox(height: isCompact ? 24.h : 24.0),
                     buildComparisonContent(),
-                    SizedBox(height: 40.h),
+                    SizedBox(height: isCompact ? 24.h : 24.0),
                   ],
                 ),
         ),

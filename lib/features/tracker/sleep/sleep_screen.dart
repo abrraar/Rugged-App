@@ -464,14 +464,11 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
           // --- MOBILE: SINGLE COLUMN ---
           return SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+            padding: EdgeInsets.symmetric(horizontal: isCompact ? 20.w : 20.0, vertical: isCompact ? 20.h : 20.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 12.0),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: isCompact ? 20.w : 24.0),
-                  child: _buildSectionTitle(context, 'LOG SLEEP', isCompact),
-                ),
+                _buildSectionTitle(context, 'LOG SLEEP', isCompact),
                 const SizedBox(height: 16.0),
                 CircularSleepPicker(
                   initialBedtime: _entryBedTime,
@@ -636,7 +633,7 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
         isCompact: isCompact,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-          padding: EdgeInsets.all(isCompact ? 24.r : 20.0),
+          padding: EdgeInsets.symmetric(horizontal: isCompact ? 20.w : 20.0, vertical: isCompact ? 20.h : 20.0),
           child: isWideLandscape 
               ? Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -655,9 +652,9 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
               : Column(
                   children: [
                     buildTrendAndOverlayContent(),
-                    SizedBox(height: 32.h),
+                    SizedBox(height: isCompact ? 24.h : 24.0),
                     buildComparisonContent(),
-                    SizedBox(height: 40.h),
+                    SizedBox(height: isCompact ? 24.h : 24.0),
                   ],
                 ),
         ),

@@ -568,7 +568,7 @@ class _CycleTrackingScreenState extends State<CycleTrackingScreen>
               // --- MOBILE: SINGLE COLUMN ---
               return ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.all(isCompact ? 24.r : 20.0),
+                padding: EdgeInsets.symmetric(horizontal: isCompact ? 20.w : 20.0, vertical: isCompact ? 20.h : 20.0),
                 children: [
                   _buildSectionHeader("ACTIVE CYCLE", isCompact),
                   SizedBox(height: isCompact ? 16.h : 12.0),
@@ -867,7 +867,7 @@ class _CycleTrackingScreenState extends State<CycleTrackingScreen>
             isCompact: isCompact,
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-              padding: EdgeInsets.all(isCompact ? 24.r : 20.0),
+              padding: EdgeInsets.symmetric(horizontal: isCompact ? 20.w : 20.0, vertical: isCompact ? 20.h : 20.0),
               child: isWideLandscape 
                   ? Row(
                       crossAxisAlignment: CrossAxisAlignment.start,

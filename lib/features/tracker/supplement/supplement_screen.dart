@@ -320,7 +320,7 @@ class _SupplementScreenState extends State<SupplementScreen>
               }
               return ListView.builder(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+                padding: EdgeInsets.symmetric(horizontal: isCompact ? 20.w : 20.0, vertical: 20.0),
                 itemCount: active.length,
                 itemBuilder: (context, index) => TrackerCard(
                   supplement: active[index],
@@ -443,7 +443,7 @@ class _SupplementScreenState extends State<SupplementScreen>
                           }
                           return ListView.builder(
                             physics: const AlwaysScrollableScrollPhysics(),
-                            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+                            padding: EdgeInsets.symmetric(horizontal: isCompact ? 20.w : 20.0, vertical: 20.0),
                             itemCount: stacks.length,
                             itemBuilder: (context, index) {
                               final stack = stacks[index];
@@ -589,7 +589,7 @@ class _SupplementScreenState extends State<SupplementScreen>
                     }
                     return ListView.builder(
                       physics: const AlwaysScrollableScrollPhysics(),
-                      padding: EdgeInsets.all(20.r),
+                      padding: EdgeInsets.symmetric(horizontal: isCompact ? 20.w : 20.0, vertical: 20.0),
                       itemCount: provider.library.length,
                       itemBuilder: (context, index) {
                         final item = provider.library[index];

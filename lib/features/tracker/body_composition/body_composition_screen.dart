@@ -339,7 +339,7 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
             isCompact: isCompact,
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-              padding: EdgeInsets.symmetric(horizontal: isCompact ? 24.r : 20.0, vertical: isCompact ? 16.h : 16.0),
+              padding: EdgeInsets.symmetric(horizontal: isCompact ? 20.w : 20.0, vertical: isCompact ? 20.h : 20.0),
               child: isWideLandscape 
                   ? Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
